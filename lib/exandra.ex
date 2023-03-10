@@ -12,7 +12,21 @@ defmodule Exandra do
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
   def dumpers(:map, type), do: [type, Types.XJson]
-  def dumpers(_, type), do: [type]
+
+  def dumpers(:string, {:parameterized, Ecto.Enum, _} = type) do
+    [&encode_enum(Ecto.Type.dump(type, &1, :string))]
+  end
+
+  def dumpers(_, type) do
+    [type]
+  end
+
+  def encode_enum(encoded) do
+    case encoded do
+      {:ok, val} -> {:ok, {"text", val}}
+      :error -> :error
+    end
+  end
 
   def encode_uuid(uuid) do
     {:ok, {"uuid", uuid}}
@@ -41,7 +55,6 @@ defmodule Exandra do
   def decode_binary_id(id) do
     {:ok, Ecto.UUID.load!(id)}
   end
-
 
   @impl Ecto.Adapter.Migration
   def lock_for_migrations(_, _, fun), do: fun.()

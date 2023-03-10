@@ -11,13 +11,14 @@ defmodule ExandraTest do
     @primary_key {:id, :binary_id, autogenerate: true}
     schema "my_schema" do
       field(:my_map, :map)
+      field(:my_enum, Ecto.Enum, values: [:foo, :bar], default: :bar)
       field(:my_xmap, XMap, key: :string, value: :integer)
       field(:my_xset, XSet, type: :integer)
       field(:my_xlist, XList, type: :string)
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_map, :my_xmap, :my_xset, :my_xlist])
+      cast(%__MODULE__{}, attrs, [:my_enum, :my_map, :my_xmap, :my_xset, :my_xlist])
     end
   end
 
@@ -30,10 +31,11 @@ defmodule ExandraTest do
       set = MapSet.new([1, 2, 3])
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_map, my_xlist, my_xmap, my_xset, id) VALUES (?, ?, ?, ?, ?) " ==
+        assert "INSERT INTO my_schema (my_enum, my_map, my_xlist, my_xmap, my_xset, id) VALUES (?, ?, ?, ?, ?, ?) " ==
                  stmt
 
         assert [
+                 {"text", "foo"},
                  {"text", ~s({"a":"b"})},
                  {"list<text>", ~w(a b c)},
                  {"map<text, int>", %{"string" => 1}},
@@ -45,7 +47,7 @@ defmodule ExandraTest do
          %Xandra.Page{
            columns: ~w(id my_map my_xmap my_xset my_xlist),
            content: [
-             [uuid_binary, ~s({"a":"b"}), %{"this" => 1}, [1, 2, 3], ["a", "b", "c"]]
+             [uuid_binary, ~s({"a":"b"}), "foo", %{"this" => 1}, [1, 2, 3], ["a", "b", "c"]]
            ]
          }}
       end)
@@ -53,6 +55,7 @@ defmodule ExandraTest do
       assert {:ok, %Schema{id: id, my_map: %{a: :b}, my_xset: ^set, my_xlist: ["a", "b", "c"]}} =
                %{
                  my_map: %{a: :b},
+                 my_enum: "foo",
                  my_xmap: %{"string" => 1},
                  my_xset: [1, 2, 3],
                  my_xlist: ["a", "b", "c"]
@@ -88,7 +91,7 @@ defmodule ExandraTest do
     end
 
     test "returns hydrated Schema structs when pages exist" do
-      expected_stmt = "SELECT id, my_map, my_xmap, my_xset, my_xlist FROM my_schema"
+      expected_stmt = "SELECT id, my_map, my_enum, my_xmap, my_xset, my_xlist FROM my_schema"
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
 
@@ -102,13 +105,13 @@ defmodule ExandraTest do
           %Xandra.Page{
             columns: ~w(id my_map my_xmap my_xlist),
             content: [
-              [row1_id, %{}, %{"this" => 1}, [1], ~w(a b c)]
+              [row1_id, %{}, "foo", %{"this" => 1}, [1], ~w(a b c)]
             ]
           },
           %Xandra.Page{
             columns: ~w(id my_map my_xmap my_xlist),
             content: [
-              [row2_id, %{"a" => "c"}, %{"that" => 2}, [1, 2, 3], ~w(1 2 3)]
+              [row2_id, %{"a" => "c"}, "bar", %{"that" => 2}, [1, 2, 3], ~w(1 2 3)]
             ]
           }
         ]
