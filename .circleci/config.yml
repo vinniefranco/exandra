@@ -2,39 +2,10 @@ version: 2.1
 
 jobs:
   build:
-    environment:
-      PATH: "/home/circleci/.asdf/bin:/home/circleci/.asdf/shims:/usr/bin:/bin:/usr/sbin:/sbin"
-    machine:
-      image: ubuntu-1604:202004-01
+    docker:
+      - image: cimg/elixir:1.14
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - circle_sample-asdf
-      - run: if ! command -v asdf; then git clone https://github.com/asdf-vm/asdf.git ~/.asdf; fi
-      - run: asdf plugin list | grep -q erlang || asdf plugin add erlang
-      - run: asdf plugin list | grep -q elixir || asdf plugin add elixir
-      - run:
-          command: asdf install
-          no_output_timeout: 20m
-      - run: mix local.rebar --force
-      - save_cache:
-          key: circle_sample-asdf
-          paths:
-            - ~/.asdf
-      - restore_cache:
-          keys:
-            - circle_sample-{{ .Branch }}-{{ checksum "mix.lock" }}
-      - run: mix local.hex --force
+      - run: mix --version
       - run: mix deps.get
-      - save_cache:
-          key: circle_sample-{{ .Branch }}-{{ checksum "mix.lock" }}
-          paths:
-            - _build
-            - ~/.mix
-      - run: mix coveralls.circle
-
-workflows:
-  ci:
-    jobs:
-      - build
+      - run: mix test
