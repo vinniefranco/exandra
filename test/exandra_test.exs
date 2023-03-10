@@ -12,10 +12,12 @@ defmodule ExandraTest do
     schema "my_schema" do
       field(:my_map, :map)
       field(:my_xmap, XMap, key: :string, value: :integer)
+      field(:my_xset, XSet, type: :integer)
+      field(:my_xlist, XList, type: :string)
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_map, :my_xmap])
+      cast(%__MODULE__{}, attrs, [:my_map, :my_xmap, :my_xset, :my_xlist])
     end
   end
 
@@ -25,26 +27,36 @@ defmodule ExandraTest do
 
   describe "insert/1" do
     test "it coerces as expected for the Xandra driver" do
+      set = MapSet.new([1, 2, 3])
+
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_map, my_xmap, id) VALUES (?, ?, ?) " == stmt
+        assert "INSERT INTO my_schema (my_map, my_xlist, my_xmap, my_xset, id) VALUES (?, ?, ?, ?, ?) " ==
+                 stmt
 
         assert [
                  {"text", ~s({"a":"b"})},
+                 {"list<text>", ~w(a b c)},
                  {"map<text, int>", %{"string" => 1}},
+                 {"set<int>", ^set},
                  {"uuid", uuid_binary}
                ] = values
 
         {:ok,
          %Xandra.Page{
-           columns: ~w(id my_map my_xmap),
+           columns: ~w(id my_map my_xmap my_xset my_xlist),
            content: [
-             [uuid_binary, ~s({"a":"b"}), %{"this" => 1}]
+             [uuid_binary, ~s({"a":"b"}), %{"this" => 1}, [1, 2, 3]]
            ]
          }}
       end)
 
-      assert {:ok, %Schema{id: id, my_map: %{a: :b}}} =
-               %{my_map: %{a: :b}, my_xmap: %{"string" => 1}}
+      assert {:ok, %Schema{id: id, my_map: %{a: :b}, my_xset: ^set, my_xlist: ["a", "b", "c"]}} =
+               %{
+                 my_map: %{a: :b},
+                 my_xmap: %{"string" => 1},
+                 my_xset: [1, 2, 3],
+                 my_xlist: ["a", "b", "c"]
+               }
                |> Schema.changeset()
                |> Exandra.TestRepo.insert()
 
@@ -76,7 +88,7 @@ defmodule ExandraTest do
     end
 
     test "returns hydrated Schema structs when pages exist" do
-      expected_stmt = "SELECT id, my_map, my_xmap FROM my_schema"
+      expected_stmt = "SELECT id, my_map, my_xmap, my_xset, my_xlist FROM my_schema"
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
 
@@ -88,23 +100,38 @@ defmodule ExandraTest do
       |> expect(:stream_pages!, fn _conn, _, _opts, _fart ->
         [
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap),
+            columns: ~w(id my_map my_xmap my_xlist),
             content: [
-              [row1_id, %{}, %{"this" => 1}, [1], ["1"]]
+              [row1_id, %{}, %{"this" => 1}, [1], ~w(a b c)]
             ]
           },
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap),
+            columns: ~w(id my_map my_xmap my_xlist),
             content: [
-              [row2_id, %{}, %{"that" => 2}, [1, 2, 3], ["another"]]
+              [row2_id, %{"a" => "c"}, %{"that" => 2}, [1, 2, 3], ~w(1 2 3)]
             ]
           }
         ]
       end)
 
+      first_set = MapSet.new([1])
+      second_set = MapSet.new([1, 2, 3])
+
       assert [
-               %Schema{id: ^row1_id},
-               %Schema{id: ^row2_id}
+               %Schema{
+                 id: ^row1_id,
+                 my_map: %{},
+                 my_xmap: %{"this" => 1},
+                 my_xset: ^first_set,
+                 my_xlist: ["a", "b", "c"]
+               },
+               %Schema{
+                 id: ^row2_id,
+                 my_map: %{"a" => "c"},
+                 my_xmap: %{"that" => 2},
+                 my_xset: ^second_set,
+                 my_xlist: ["1", "2", "3"]
+               }
              ] = Exandra.TestRepo.all(Schema)
     end
   end

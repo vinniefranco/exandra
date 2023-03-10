@@ -29,7 +29,9 @@ defmodule Exandra.Types do
 
   def for({:parameterized, Ecto.Embedded, _}), do: :text
   def for({:parameterized, Ecto.Enum, _}), do: :text
+  def for({:parameterized, XList, opts}), do: XList.xandra_type(opts)
   def for({:parameterized, XMap, opts}), do: XMap.xandra_type(opts)
+  def for({:parameterized, XSet, opts}), do: XSet.xandra_type(opts)
 
   def for({:list, opts}), do: XList.type(opts)
   def for({:array, opts}), do: XList.type(opts)
