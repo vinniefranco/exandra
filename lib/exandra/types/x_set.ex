@@ -23,7 +23,7 @@ defmodule Exandra.Types.XSet do
     end
   end
 
-  def cast(%MapSet{} = set, opts), do: cast(MapSet.to_list(set), opts)
+  def cast(%MapSet{} = set, opts), do: set |> MapSet.to_list() |> cast(opts)
 
   def cast(list, %{type: type} = opts) when is_list(list) do
     casted =
@@ -37,12 +37,6 @@ defmodule Exandra.Types.XSet do
     if is_list(casted), do: {:ok, MapSet.new(casted)}, else: casted
   end
 
-  def cast(val, %{split: true} = opts) when is_binary(val) do
-    splitter = Map.get(opts, :splitter, ~r(\s*,\s*))
-    opts = [trim: Map.get(opts, :trim, true)]
-    {:ok, val |> String.trim() |> String.split(splitter, opts) |> MapSet.new()}
-  end
-
   def cast(val, %{type: type} = opts) do
     case Types.apply(type, :cast, val, opts) do
       {:ok, casted} -> {:ok, MapSet.new([casted])}
@@ -50,16 +44,7 @@ defmodule Exandra.Types.XSet do
     end
   end
 
-  def cast(%MapSet{} = mapset, opts) do
-    mapset |> MapSet.to_list() |> cast(opts)
-  end
-
-  def cast(key, val) do
-    IO.inspect(key, label: "HERE")
-    IO.inspect(val)
-
-    :error
-  end
+  def cast(_key, _val), do: :error
 
   @impl Ecto.ParameterizedType
   def load(%MapSet{} = mapset, _loader, %{type: type} = opts) do
