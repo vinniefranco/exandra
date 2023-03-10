@@ -2,6 +2,7 @@ defmodule Exandra.Types do
   alias Exandra.Types.XList
   alias Exandra.Types.XMap
   alias Exandra.Types.XSet
+  alias Exandra.Types.XJson
 
   def apply(type, op, value, opts) do
     cond do
@@ -21,6 +22,7 @@ defmodule Exandra.Types do
   def for(:integer), do: :int
   def for(:string), do: :text
   def for(:binary), do: :blob
+  def for(:map), do: XJson.type(:map)
 
   def for(t) when t in [:naive_datetime, :utc_datetime, :utc_datetime_usec],
     do: :timestamp
@@ -32,7 +34,6 @@ defmodule Exandra.Types do
   def for({:list, opts}), do: XList.type(opts)
   def for({:array, opts}), do: XList.type(opts)
   def for({:set, opts}), do: XSet.type(opts)
-  def for({:map, opts}), do: XMap.type(opts)
 
   def for(ecto_type) do
     if is_atom(ecto_type) and function_exported?(ecto_type, :type, 0) do

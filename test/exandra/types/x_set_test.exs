@@ -49,8 +49,13 @@ defmodule Exandra.Types.XSetTest do
 
   test "cast/2" do
     assert {:ok, MapSet.new()} == XSet.cast(nil, :anything)
-    assert {:ok, {:add, MapSet.new(["this", "that"])}} == XSet.cast({:add, ["this", "that"]}, %{type: :string})
-    assert {:ok, {:remove, MapSet.new(["this", "that"])}} == XSet.cast({:remove, ["this", "that"]}, %{type: :string})
+
+    assert {:ok, {:add, MapSet.new(["this", "that"])}} ==
+             XSet.cast({:add, ["this", "that"]}, %{type: :string})
+
+    assert {:ok, {:remove, MapSet.new(["this", "that"])}} ==
+             XSet.cast({:remove, ["this", "that"]}, %{type: :string})
+
     assert :error = XSet.cast({:remove, :a}, %{type: :string})
     assert {:ok, MapSet.new(["a"])} == XSet.cast(MapSet.new(["a"]), %{type: :string})
     assert {:ok, MapSet.new(["a"])} == XSet.cast(["a"], %{type: :string})
@@ -59,19 +64,18 @@ defmodule Exandra.Types.XSetTest do
     assert :error = XSet.cast(:asd, nil)
   end
 
-
   test "equal?/3" do
     refute XSet.equal?({nil, nil}, nil, nil)
-    refute XSet.equal?(nil, {nil, nil},  nil)
+    refute XSet.equal?(nil, {nil, nil}, nil)
     assert XSet.equal?(nil, nil, :anything)
     assert XSet.equal?(nil, [], :anything)
     assert XSet.equal?([], nil, :anything)
     assert XSet.equal?(MapSet.new(["a"]), MapSet.new(["a"]), :anything)
     refute XSet.equal?(MapSet.new(["b"]), MapSet.new(["a"]), :anything)
-    refute XSet.equal?(:true, true, nil)
+    refute XSet.equal?(true, true, nil)
   end
 
-  test "embed_as/1 returns :self" do 
+  test "embed_as/1 returns :self" do
     assert :self == XSet.embed_as(nil)
   end
 

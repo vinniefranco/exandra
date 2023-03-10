@@ -54,8 +54,11 @@ defmodule Exandra.Types.XMapTest do
     end
 
     test "returns {:ok, {op, casted}} when first param is a qualifying tuple" do
-      assert {:ok, {:add, %{"a" => "a"}}} == XMap.cast({:add, %{"a" => "a"}}, %{key: :string, value: :string})
-      assert {:ok, {:remove, %{"a" => "a"}}} == XMap.cast({:remove, %{"a" => "a"}}, %{key: :string, value: :string})
+      assert {:ok, {:add, %{"a" => "a"}}} ==
+               XMap.cast({:add, %{"a" => "a"}}, %{key: :string, value: :string})
+
+      assert {:ok, {:remove, %{"a" => "a"}}} ==
+               XMap.cast({:remove, %{"a" => "a"}}, %{key: :string, value: :string})
     end
 
     test "errors" do
@@ -64,22 +67,24 @@ defmodule Exandra.Types.XMapTest do
   end
 
   test "load/3" do
-    assert {:ok, %{"string" => "value"}} = XMap.load(%{"string" => "value"}, nil, %{key: :string, value: :string})
+    assert {:ok, %{"string" => "value"}} =
+             XMap.load(%{"string" => "value"}, nil, %{key: :string, value: :string})
+
     assert {:ok, %{}} = XMap.load(nil, nil, %{key: :string, value: :string})
   end
 
   describe "equal?/3" do
     refute XMap.equal?({nil, nil}, nil, nil)
-    refute XMap.equal?(nil, {nil, nil},  nil)
+    refute XMap.equal?(nil, {nil, nil}, nil)
     assert XMap.equal?(nil, nil, :anything)
     assert XMap.equal?(nil, [], :anything)
     assert XMap.equal?([], nil, :anything)
     assert XMap.equal?(%{"a" => "a"}, %{"a" => "a"}, :anything)
     refute XMap.equal?(%{"a" => "a"}, %{"b" => "a"}, :anything)
-    refute XMap.equal?(:true, true, nil)
+    refute XMap.equal?(true, true, nil)
   end
 
-  test "embed_as/1 returns :self" do 
+  test "embed_as/1 returns :self" do
     assert :self == XMap.embed_as(nil)
   end
 

@@ -18,7 +18,6 @@ end
 
 Mox.defmock(Exandra.Adapter.Mock, for: Exandra.Adapter.AdapterBehaviour)
 
-
 Application.put_env(:exandra, :adapter, Exandra.Adapter.Mock)
 Application.put_env(:exandra, :child_spec, TestConn)
 
@@ -38,12 +37,13 @@ defmodule Exandra.AdapterCase do
 
   setup do
     conn = Process.whereis(TestConn)
+
     repo =
       case Exandra.TestRepo.start_link() do
         {:ok, repo} -> repo
         {:error, {:already_started, repo}} -> repo
       end
-    
+
     {:ok, %{conn: conn, repo: repo}}
   end
 end

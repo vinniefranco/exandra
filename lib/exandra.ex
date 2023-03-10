@@ -13,10 +13,23 @@ defmodule Exandra do
   ]
 
   @impl Ecto.Adapter
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+  def dumpers(:binary_id, type), do: [type, Ecto.UUID]
+  def dumpers(_, type), do: [type]
+
+  @impl Ecto.Adapter
   def loaders({:map, _}, type),
     do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
 
+  def loaders(:binary_id, type), do: [&decode_binary_id/1, type]
   def loaders(_key, type), do: [type]
+
+  # Catch strings
+  def decode_binary_id(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = string) do
+    {:ok, string}
+  end
+
+  def decode_binary_id(id), do: {:ok, Ecto.UUID.load!(id)}
 
   @impl Ecto.Adapter.Migration
   def lock_for_migrations(_, _, fun), do: fun.()
@@ -128,6 +141,7 @@ defmodule Exandra do
     for source <- Keyword.keys(params) do
       field = source_field(schema, source)
       ecto_type = schema.__schema__(:type, field)
+
       {source, {ecto_type |> Types.for() |> to_string(), source_value(ecto_type, params[source])}}
     end
   end
@@ -193,7 +207,8 @@ defmodule Exandra do
   defp source_value(_, {:add, value}), do: value
   defp source_value(_, {:remove, value}), do: value
   defp source_value(_, %NaiveDateTime{} = value), do: DateTime.from_naive!(value, "Etc/UTC")
-  defp source_value(_, value), do: value
+  defp source_value(:map, value), do: Jason.encode!(value)
+  defp source_value(source, value), do: value
 end
 
 defimpl String.Chars, for: Xandra.Simple do
