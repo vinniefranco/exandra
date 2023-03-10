@@ -26,6 +26,8 @@ defmodule Exandra.MixProject do
       {:ecto_sql, "~> 3.9"},
       {:jason, "~> 1.4"},
       {:timex, "~> 3.7"},
+      # DEV DEPS ------
+      {:mox, "~> 1.0", only: :test},
       {:xandra, github: "vinniefranco/xandra", branch: "bump-deps"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},

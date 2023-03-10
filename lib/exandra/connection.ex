@@ -4,31 +4,27 @@ defmodule Exandra.Connection do
   alias Ecto.Migration.Table
   alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
+  alias Exandra.Adapter
   alias Exandra.Types
   alias Xandra.Prepared
 
   @impl Ecto.Adapters.SQL.Connection
   def child_spec(opts) do
-    repo = Keyword.fetch!(opts, :repo)
-    keyspace = Keyword.fetch!(opts, :keyspace)
-
-    opts = Keyword.put(opts, :after_connect, &Xandra.execute!(&1, "USE #{keyspace};"))
-
-    Supervisor.child_spec({Xandra.Cluster, opts}, id: repo)
+    Adapter.child_spec(opts)
   end
 
   def in_transaction?(%{sql: Exandra.Connection}), do: true
 
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
-    with {:ok, %Prepared{} = prepared} <- Xandra.Cluster.prepare(cluster, stmt, opts) do
+    with {:ok, %Prepared{} = prepared} <- Adapter.prepare(cluster, stmt, opts) do
       execute(cluster, prepared, params, opts)
     end
   end
 
   @impl Ecto.Adapters.SQL.Connection
   def execute(cluster, query, params, opts) do
-    stream = Xandra.Cluster.stream_pages!(cluster, query, params, opts)
+    stream = Adapter.stream_pages!(cluster, query, params, opts)
 
     result =
       Enum.reduce_while(stream, %{rows: [], num_rows: 0}, fn
@@ -51,7 +47,7 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def query(cluster, sql, params, opts) do
-    case Xandra.Cluster.execute(cluster, sql, params, opts) do
+    case Adapter.execute(cluster, sql, params, opts) do
       {:ok, %Xandra.SchemaChange{} = schema_change} ->
         {:ok, schema_change}
 

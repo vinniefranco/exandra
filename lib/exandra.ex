@@ -2,6 +2,7 @@ defmodule Exandra do
   use Ecto.Adapters.SQL, driver: :exandra
   alias Ecto.Adapters.SQL
 
+  alias Exandra.Adapter
   alias Exandra.Types
 
   @behaviour Ecto.Adapter.Storage
@@ -42,7 +43,7 @@ defmodule Exandra do
   end
 
   defp storage_toggle(conn, stmt, effect, error_msg) do
-    case Xandra.execute(conn, stmt) do
+    case Adapter.execute(conn, stmt) do
       {:ok, %Xandra.SchemaChange{effect: ^effect}} ->
         :ok
 
@@ -60,7 +61,7 @@ defmodule Exandra do
 
     stmt = "USE KEYSPACE #{keyspace};"
 
-    case Xandra.execute(conn, stmt) do
+    case Adapter.execute(conn, stmt) do
       {:error, %Xandra.Error{reason: :invalid}} ->
         :down
 
@@ -113,9 +114,9 @@ defmodule Exandra do
 
   defp start_storage_connection(opts) do
     keyspace = Keyword.fetch!(opts, :keyspace)
-    Application.ensure_all_started(:xandra)
+    Application.ensure_all_started(:exandra)
 
-    {:ok, conn} = Xandra.start_link(Keyword.take(opts, [:nodes, :protocol_version, :timeout]))
+    {:ok, conn} = Adapter.start_link(Keyword.take(opts, [:nodes, :protocol_version, :timeout]))
 
     {keyspace, conn}
   end
