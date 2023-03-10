@@ -45,7 +45,7 @@ defmodule ExandraTest do
          %Xandra.Page{
            columns: ~w(id my_map my_xmap my_xset my_xlist),
            content: [
-             [uuid_binary, ~s({"a":"b"}), %{"this" => 1}, [1, 2, 3]]
+             [uuid_binary, ~s({"a":"b"}), %{"this" => 1}, [1, 2, 3], ["a", "b", "c"]]
            ]
          }}
       end)

@@ -33,6 +33,8 @@ defmodule Exandra.Types.XJson do
   end
 
   @impl Ecto.ParameterizedType
+  def dump(val), do: {:ok, {"text", Jason.encode!(val)}}
+
   def dump(nil, dumper, %{default: default} = opts) when not is_nil(default),
     do: dump(default, dumper, opts)
 

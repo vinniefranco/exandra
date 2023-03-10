@@ -36,7 +36,7 @@ defmodule Exandra.Types.XListTest do
     type = Schema.__schema__(:type, :my_list)
     assert {:ok, []} = Ecto.Type.load(type, :my_list)
 
-    assert {:ok, :my_list} == Ecto.Type.dump(type, :my_list)
+    assert {:ok, {"list<text>", :my_list}} == Ecto.Type.dump(type, :my_list)
   end
 
   describe "cast/2" do
@@ -63,7 +63,7 @@ defmodule Exandra.Types.XListTest do
   end
 
   test "dump/3" do
-    assert {:ok, ["a"]} = XList.dump(["a"], nil, nil)
+    assert {:ok, {"list<text>", ["a"]}} = XList.dump(["a"], nil, %{type: :string})
   end
 
   describe "equal?/3" do

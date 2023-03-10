@@ -64,7 +64,7 @@ defmodule Exandra.Types.XList do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(data, _dumper, _opts), do: {:ok, data}
+  def dump(data, _dumper, opts), do: {:ok, {xandra_type(opts), data}}
 
   @impl Ecto.ParameterizedType
   def equal?({_, _}, _, _), do: false

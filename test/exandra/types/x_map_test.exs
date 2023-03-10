@@ -41,7 +41,7 @@ defmodule Exandra.Types.XMapTest do
     assert {:ok, %{}} = Ecto.Type.load(type, :my_atom_xmap)
 
     type = Schema.__schema__(:type, :my_int_xmap)
-    assert {:ok, :my_int_xmap} == Ecto.Type.dump(type, :my_int_xmap)
+    assert {:ok, {"map<int, int>",:my_int_xmap}} == Ecto.Type.dump(type, :my_int_xmap)
   end
 
   test "type/1 returns :x_map" do
