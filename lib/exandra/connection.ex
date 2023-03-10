@@ -9,11 +9,12 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def child_spec(opts) do
+    repo = Keyword.fetch!(opts, :repo)
     keyspace = Keyword.fetch!(opts, :keyspace)
 
     opts = Keyword.put(opts, :after_connect, &Xandra.execute!(&1, "USE #{keyspace};"))
 
-    {Xandra.Cluster, opts}
+    Supervisor.child_spec({Xandra.Cluster, opts}, id: repo)
   end
 
   def in_transaction?(%{sql: Exandra.Connection}), do: true
