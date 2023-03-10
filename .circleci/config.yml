@@ -4,6 +4,8 @@ jobs:
   build:
     docker:
       - image: cimg/elixir:1.14
+    environment:
+      MIX_ENV: test
     steps:
       - checkout
       - run: mix --version
