@@ -38,8 +38,13 @@ defmodule Exandra.AdapterCase do
 
   setup do
     conn = Process.whereis(TestConn)
+    repo =
+      case Exandra.TestRepo.start_link() do
+        {:ok, repo} -> repo
+        {:error, {:already_started, repo}} -> repo
+      end
     
-    {:ok, %{conn: conn}}
+    {:ok, %{conn: conn, repo: repo}}
   end
 end
 
