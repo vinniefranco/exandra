@@ -6,8 +6,11 @@ defmodule Exandra do
 
   @behaviour Ecto.Adapter.Storage
 
+  @doc false
   def autogenerate(:binary_id), do: {"uuid", Ecto.UUID.bingenerate()}
+  def autogenerate(type), do: super(type)
 
+  @doc false
   @impl Ecto.Adapter
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
   def dumpers(:map, _type), do: [&encode_map/1]
@@ -23,10 +26,13 @@ defmodule Exandra do
 
   def dumpers(_, type), do: [type]
 
+  @doc false
   def encode_array({:ok, list}, type), do: {:ok, {"list<#{Types.for(type)}>", list}}
 
+  @doc false
   def encode_datetime(datetime), do: {:ok, {"timestamp", datetime}}
 
+  @doc false
   def encode_enum(encoded) do
     case encoded do
       {:ok, val} -> {:ok, {"text", "#{val}"}}
@@ -34,20 +40,21 @@ defmodule Exandra do
     end
   end
 
+  @doc false
   def encode_map(map) do
     {:ok, {"text", Jason.encode!(map)}}
   end
 
+  @doc false
   def encode_uuid(uuid) do
     {:ok, {"uuid", uuid}}
   end
 
+  @doc false
   @impl Ecto.Adapter
   def loaders({:map, _}, type),
     do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
-
   def loaders(:binary_id, type), do: [&decode_binary_id/1, type]
-
   def loaders(:x_map, type), do: [&Ecto.Type.embedded_load(type, &1, :x_map), type]
   def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
   def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
