@@ -121,6 +121,7 @@ defmodule Exandra.Connection do
       {k, {:add, _}} -> "#{k} = #{k} + ?"
       {k, {:remove, _}} -> "#{k} = #{k} - ?"
       {k, _} -> "#{k} = ?"
+      k -> "#{k} = ?"
     end)
   end
 
