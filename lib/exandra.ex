@@ -31,7 +31,7 @@ defmodule Exandra do
   def encode_array({:ok, list}, type), do: {:ok, {"list<#{Types.for(type)}>", list}}
 
   @doc false
-  def encode_bool(bool), do: {:ok, {"bool", bool}}
+  def encode_bool(bool), do: {:ok, {"boolean", bool}}
 
   @doc false
   def encode_datetime(datetime), do: {:ok, {"timestamp", datetime}}

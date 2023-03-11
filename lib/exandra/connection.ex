@@ -330,8 +330,8 @@ defmodule Exandra.Connection do
   end
 
   defp expr(nil, _sources, _query), do: "NULL"
-  defp expr({"bool", true}, _sources, _query), do: "TRUE"
-  defp expr({"bool", false}, _sources, _query), do: "FALSE"
+  defp expr({"boolean", true}, _sources, _query), do: "TRUE"
+  defp expr({"boolean", false}, _sources, _query), do: "FALSE"
 
   defp expr(literal, _sources, _query) when is_binary(literal) do
     [?', escape_string(literal), ?']

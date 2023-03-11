@@ -59,7 +59,7 @@ defmodule Exandra.QueryingTest do
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
         assert "UPDATE my_schema SET my_bool = ? WHERE id = ?" = stmt
 
-        assert [{"bool", true}, {"uuid", ^uuid}] = values
+        assert [{"boolean", true}, {"uuid", ^uuid}] = values
 
         {:ok, %Xandra.Void{}}
       end)

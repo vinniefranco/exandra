@@ -47,7 +47,7 @@ defmodule ExandraTest do
                  stmt
 
         assert [
-                 {"bool", false},
+                 {"boolean", false},
                  {"text", "foo"},
                  {"list<text>", ~w(a b c)},
                  {"text", ~s({"a":"b"})},
