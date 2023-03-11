@@ -1,11 +1,14 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
+  @repo_url "https://github.com/vinniefranco/exandra"
+
   def project do
     [
       app: :exandra,
       version: "0.1.0",
       elixir: "~> 1.14",
+      package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
@@ -16,6 +19,14 @@ defmodule Exandra.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Vincent Franco"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => @repo_url}
     ]
   end
 
