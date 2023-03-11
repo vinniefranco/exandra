@@ -9,23 +9,33 @@ defmodule Exandra do
   def autogenerate(:binary_id), do: {"uuid", Ecto.UUID.bingenerate()}
 
   @impl Ecto.Adapter
-  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
-  def dumpers(:map, type), do: [type, Types.XJson]
+  def dumpers(:map, _type), do: [&encode_map/1]
+  def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
+  def dumpers(:utc_datetime, _type), do: [&encode_datetime/1]
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
 
-  def dumpers(:string, {:parameterized, Ecto.Enum, _} = type) do
-    [&encode_enum(Ecto.Type.dump(type, &1, :string))]
-  end
+  def dumpers(:string, {:parameterized, Ecto.Enum, _} = type),
+    do: [&encode_enum(Ecto.Type.embedded_dump(type, &1, :string))]
 
-  def dumpers(_, type) do
-    [type]
-  end
+  def dumpers({:array, type}, dumper),
+    do: [&encode_array(Ecto.Type.embedded_dump(type, &1, dumper), type)]
+
+  def dumpers(_, type), do: [type]
+
+  def encode_array({:ok, list}, type), do: {:ok, {"list<#{Types.for(type)}>", list}}
+
+  def encode_datetime(datetime), do: {:ok, {"timestamp", datetime}}
 
   def encode_enum(encoded) do
     case encoded do
-      {:ok, val} -> {:ok, {"text", val}}
+      {:ok, val} -> {:ok, {"text", "#{val}"}}
       :error -> :error
     end
+  end
+
+  def encode_map(map) do
+    {:ok, {"text", Jason.encode!(map)}}
   end
 
   def encode_uuid(uuid) do

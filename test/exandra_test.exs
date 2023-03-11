@@ -4,7 +4,6 @@ defmodule ExandraTest do
   defmodule Schema do
     use Exandra.Table
 
-    alias Exandra.Types.XList
     alias Exandra.Types.XMap
     alias Exandra.Types.XSet
 
@@ -14,11 +13,14 @@ defmodule ExandraTest do
       field(:my_enum, Ecto.Enum, values: [:foo, :bar], default: :bar)
       field(:my_xmap, XMap, key: :string, value: :integer)
       field(:my_xset, XSet, type: :integer)
-      field(:my_xlist, XList, type: :string)
+      field(:my_list, {:array, :string})
+      field(:my_utc, :utc_datetime)
+
+      timestamps(type: :utc_datetime)
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_enum, :my_map, :my_xmap, :my_xset, :my_xlist])
+      cast(%__MODULE__{}, attrs, [:my_enum, :my_map, :my_xmap, :my_xset, :my_list, :my_utc])
     end
   end
 
@@ -29,36 +31,60 @@ defmodule ExandraTest do
   describe "insert/1" do
     test "it coerces as expected for the Xandra driver" do
       set = MapSet.new([1, 2, 3])
+      nowish = DateTime.utc_now()
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_enum, my_map, my_xlist, my_xmap, my_xset, id) VALUES (?, ?, ?, ?, ?, ?) " ==
+        assert "INSERT INTO my_schema (my_enum, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
                  stmt
 
         assert [
                  {"text", "foo"},
-                 {"text", ~s({"a":"b"})},
                  {"list<text>", ~w(a b c)},
+                 {"text", ~s({"a":"b"})},
+                 {"timestamp", %DateTime{}},
                  {"map<text, int>", %{"string" => 1}},
                  {"set<int>", ^set},
+                 {"timestamp", %DateTime{}},
+                 {"timestamp", %DateTime{}},
                  {"uuid", uuid_binary}
                ] = values
 
         {:ok,
          %Xandra.Page{
-           columns: ~w(id my_map my_xmap my_xset my_xlist),
+           columns: ~w(id my_map my_xmap my_xset my_list),
            content: [
-             [uuid_binary, ~s({"a":"b"}), "foo", %{"this" => 1}, [1, 2, 3], ["a", "b", "c"]]
+             [
+               uuid_binary,
+               ~s({"a":"b"}),
+               "foo",
+               %{"this" => 1},
+               [1, 2, 3],
+               ["a", "b", "c"],
+               nowish,
+               nowish,
+               nowish
+             ]
            ]
          }}
       end)
 
-      assert {:ok, %Schema{id: id, my_map: %{a: :b}, my_xset: ^set, my_xlist: ["a", "b", "c"]}} =
+      assert {:ok,
+              %Schema{
+                id: id,
+                my_map: %{a: :b},
+                my_utc: %DateTime{},
+                my_xset: ^set,
+                my_list: ["a", "b", "c"],
+                inserted_at: %DateTime{},
+                updated_at: %DateTime{}
+              }} =
                %{
                  my_map: %{a: :b},
                  my_enum: "foo",
                  my_xmap: %{"string" => 1},
                  my_xset: [1, 2, 3],
-                 my_xlist: ["a", "b", "c"]
+                 my_list: ["a", "b", "c"],
+                 my_utc: nowish
                }
                |> Schema.changeset()
                |> Exandra.TestRepo.insert()
@@ -91,9 +117,13 @@ defmodule ExandraTest do
     end
 
     test "returns hydrated Schema structs when pages exist" do
-      expected_stmt = "SELECT id, my_map, my_enum, my_xmap, my_xset, my_xlist FROM my_schema"
+      expected_stmt =
+        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_list, my_utc, inserted_at, updated_at FROM my_schema"
+
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
+
+      nowish = DateTime.utc_now()
 
       Exandra.Adapter.Mock
       |> expect(:prepare, fn _conn, stmt, _opts ->
@@ -103,15 +133,25 @@ defmodule ExandraTest do
       |> expect(:stream_pages!, fn _conn, _, _opts, _fart ->
         [
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap my_xlist),
+            columns: ~w(id my_map my_xmap my_list),
             content: [
-              [row1_id, %{}, "foo", %{"this" => 1}, [1], ~w(a b c)]
+              [row1_id, %{}, "foo", %{"this" => 1}, [1], ~w(a b c), nowish, nowish, nowish]
             ]
           },
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap my_xlist),
+            columns: ~w(id my_map my_xmap my_list),
             content: [
-              [row2_id, %{"a" => "c"}, "bar", %{"that" => 2}, [1, 2, 3], ~w(1 2 3)]
+              [
+                row2_id,
+                %{"a" => "c"},
+                "bar",
+                %{"that" => 2},
+                [1, 2, 3],
+                ~w(1 2 3),
+                nowish,
+                nowish,
+                nowish
+              ]
             ]
           }
         ]
@@ -126,14 +166,14 @@ defmodule ExandraTest do
                  my_map: %{},
                  my_xmap: %{"this" => 1},
                  my_xset: ^first_set,
-                 my_xlist: ["a", "b", "c"]
+                 my_list: ["a", "b", "c"]
                },
                %Schema{
                  id: ^row2_id,
                  my_map: %{"a" => "c"},
                  my_xmap: %{"that" => 2},
                  my_xset: ^second_set,
-                 my_xlist: ["1", "2", "3"]
+                 my_list: ["1", "2", "3"]
                }
              ] = Exandra.TestRepo.all(Schema)
     end
