@@ -13,6 +13,7 @@ defmodule Exandra do
   @doc false
   @impl Ecto.Adapter
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
+  def dumpers(:boolean, _type), do: [&encode_bool/1]
   def dumpers(:map, _type), do: [&encode_map/1]
   def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
   def dumpers(:utc_datetime, _type), do: [&encode_datetime/1]
@@ -28,6 +29,9 @@ defmodule Exandra do
 
   @doc false
   def encode_array({:ok, list}, type), do: {:ok, {"list<#{Types.for(type)}>", list}}
+
+  @doc false
+  def encode_bool(bool), do: {:ok, {"bool", bool}}
 
   @doc false
   def encode_datetime(datetime), do: {:ok, {"timestamp", datetime}}
@@ -54,6 +58,7 @@ defmodule Exandra do
   @impl Ecto.Adapter
   def loaders({:map, _}, type),
     do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
+
   def loaders(:binary_id, type), do: [&decode_binary_id/1, type]
   def loaders(:x_map, type), do: [&Ecto.Type.embedded_load(type, &1, :x_map), type]
   def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
@@ -61,6 +66,7 @@ defmodule Exandra do
   def loaders(_, type), do: [type]
 
   # Catch strings
+  @doc false
   def decode_binary_id(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = string) do
     {:ok, string}
   end

@@ -15,12 +15,21 @@ defmodule ExandraTest do
       field(:my_xset, XSet, type: :integer)
       field(:my_list, {:array, :string})
       field(:my_utc, :utc_datetime)
+      field(:my_bool, :boolean)
 
       timestamps(type: :utc_datetime)
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_enum, :my_map, :my_xmap, :my_xset, :my_list, :my_utc])
+      cast(%__MODULE__{}, attrs, [
+        :my_enum,
+        :my_map,
+        :my_xmap,
+        :my_xset,
+        :my_list,
+        :my_utc,
+        :my_bool
+      ])
     end
   end
 
@@ -34,10 +43,11 @@ defmodule ExandraTest do
       nowish = DateTime.utc_now()
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_enum, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
+        assert "INSERT INTO my_schema (my_bool, my_enum, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
                  stmt
 
         assert [
+                 {"bool", false},
                  {"text", "foo"},
                  {"list<text>", ~w(a b c)},
                  {"text", ~s({"a":"b"})},
@@ -84,7 +94,8 @@ defmodule ExandraTest do
                  my_xmap: %{"string" => 1},
                  my_xset: [1, 2, 3],
                  my_list: ["a", "b", "c"],
-                 my_utc: nowish
+                 my_utc: nowish,
+                 my_bool: false
                }
                |> Schema.changeset()
                |> Exandra.TestRepo.insert()
@@ -118,7 +129,7 @@ defmodule ExandraTest do
 
     test "returns hydrated Schema structs when pages exist" do
       expected_stmt =
-        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_list, my_utc, inserted_at, updated_at FROM my_schema"
+        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_list, my_utc, my_bool, inserted_at, updated_at FROM my_schema"
 
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
@@ -133,13 +144,13 @@ defmodule ExandraTest do
       |> expect(:stream_pages!, fn _conn, _, _opts, _fart ->
         [
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap my_list),
+            columns: ~w(id my_map my_xmap my_list my_bool),
             content: [
-              [row1_id, %{}, "foo", %{"this" => 1}, [1], ~w(a b c), nowish, nowish, nowish]
+              [row1_id, %{}, "foo", %{"this" => 1}, [1], ~w(a b c), nowish, true, nowish, nowish]
             ]
           },
           %Xandra.Page{
-            columns: ~w(id my_map my_xmap my_list),
+            columns: ~w(id my_map my_xmap my_list my_bool),
             content: [
               [
                 row2_id,
@@ -149,6 +160,7 @@ defmodule ExandraTest do
                 [1, 2, 3],
                 ~w(1 2 3),
                 nowish,
+                false,
                 nowish,
                 nowish
               ]
@@ -166,14 +178,16 @@ defmodule ExandraTest do
                  my_map: %{},
                  my_xmap: %{"this" => 1},
                  my_xset: ^first_set,
-                 my_list: ["a", "b", "c"]
+                 my_list: ["a", "b", "c"],
+                 my_bool: true
                },
                %Schema{
                  id: ^row2_id,
                  my_map: %{"a" => "c"},
                  my_xmap: %{"that" => 2},
                  my_xset: ^second_set,
-                 my_list: ["1", "2", "3"]
+                 my_list: ["1", "2", "3"],
+                 my_bool: false
                }
              ] = Exandra.TestRepo.all(Schema)
     end
