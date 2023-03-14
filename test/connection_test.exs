@@ -18,14 +18,6 @@ defmodule Exandra.ConnectionTest do
     end
   end
 
-  defmodule Schema3 do
-    use Ecto.Schema
-
-    schema "schema3" do
-      field(:binary, :binary)
-    end
-  end
-
   defp plan(query, operation \\ :all) do
     {query, _cast_params, _dump_params} =
       Ecto.Adapter.Queryable.plan_query(operation, Exandra, query)
@@ -720,32 +712,149 @@ defmodule Exandra.ConnectionTest do
            ]
   end
 
-  test "create table with a map column, and a map default with values" do
+  test "create table with no primary/partition or clustering key raises an error" do
     create =
       {:create, table(:posts),
        [
          {:add, :a, :map, []}
        ]}
 
-    # TODO: This should blow up
-    assert execute_ddl(create) == [
-             """
-             CREATE TABLE posts (a text, PRIMARY KEY ())
-             """
-             |> remove_newlines
-           ]
+    assert_raise ArgumentError,
+                 "you must define at least one primary, partition, or clustering key",
+                 fn ->
+                   execute_ddl(create)
+                 end
+  end
+
+  describe "primary/cluster/partition keys" do
+    test "supports simple primary key" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true]},
+           {:add, :race_name, :text, []},
+           {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, []}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               PRIMARY KEY (race_year))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "supports composite primary key" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true]},
+           {:add, :race_name, :text, [primary_key: true]},
+           {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, [partition_key: true]}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               PRIMARY KEY ((race_year, race_name), rank))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "supports composite primary key with ordering in PK definition" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true, primary_order: 1]},
+           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
+           {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, [partition_key: true]}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               PRIMARY KEY ((race_name, race_year), rank))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "supports composite primary key with ordering in parition definition" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true, primary_order: 1]},
+           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
+           {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, [partition_key: true, partition_order: 1]},
+           {:add, :region, :text, [partition_key: true, partition_order: 0]}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               region text,
+               PRIMARY KEY ((race_name, race_year), region, rank))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "supports clustering order by" do
+
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true, primary_order: 1, cluster_ordering: :desc]},
+           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
+           {:add, :cyclist_name, :text, []},
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               PRIMARY KEY (race_name, race_year)) WITH CLUSTERING ORDER BY (race_year DESC)
+               """
+               |> remove_newlines
+             ]
+
+    end
   end
 
   test "create table with time columns" do
     create =
       {:create, table(:posts),
-       [{:add, :published_at, :time, []}, {:add, :submitted_at, :time, []}]}
+       [{:add, :published_at, :time, [primary_key: true]}, {:add, :submitted_at, :time, []}]}
 
     assert execute_ddl(create) == [
              """
              CREATE TABLE posts
              (published_at time,
-             submitted_at time, PRIMARY KEY ())
+             submitted_at time, PRIMARY KEY (published_at))
              """
              |> remove_newlines
            ]
@@ -756,14 +865,14 @@ defmodule Exandra.ConnectionTest do
       {:create, table(:posts),
        [
          {:add, :published_at, :utc_datetime, [precision: 3]},
-         {:add, :submitted_at, :utc_datetime, []}
+         {:add, :submitted_at, :utc_datetime, [primary_key: true]}
        ]}
 
     assert execute_ddl(create) == [
              """
              CREATE TABLE posts
              (published_at timestamp,
-             submitted_at timestamp, PRIMARY KEY ())
+             submitted_at timestamp, PRIMARY KEY (submitted_at))
              """
              |> remove_newlines
            ]
@@ -773,16 +882,16 @@ defmodule Exandra.ConnectionTest do
     create =
       {:create, table(:posts),
        [
-         {:add, :published_at, :naive_datetime, [precision: 3]},
-         {:add, :submitted_at, :naive_datetime, []}
+         {:add, :published_at, :naive_datetime,
+          [precision: 3, partition_key: true]},
+         {:add, :submitted_at, :naive_datetime, [primary_key: true]}
        ]}
 
-    # TODO: Blow up with naive datetimes?
     assert execute_ddl(create) == [
              """
              CREATE TABLE posts
              (published_at timestamp,
-             submitted_at timestamp, PRIMARY KEY ())
+             submitted_at timestamp, PRIMARY KEY ((submitted_at), published_at))
              """
              |> remove_newlines
            ]

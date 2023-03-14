@@ -124,18 +124,17 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
+  def update_all(_), do: raise("not implemented")
+
+  @impl Ecto.Adapters.SQL.Connection
   def delete(prefix, table, filters, _returning) do
     "DELETE FROM #{quote_table(prefix, table)} WHERE #{where(filters)}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def update_all(_), do: raise("not implemented")
-
-  @impl Ecto.Adapters.SQL.Connection
   def delete_all(query) do
     sources = create_names(query, [])
 
-    # Call to throw exceptions on attempted CTEs/Combinations/Joins
     cte(query, sources)
     combinations(query)
 
@@ -144,10 +143,82 @@ defmodule Exandra.Connection do
     ["DELETE", from, where]
   end
 
-  defp combinations(%{combinations: combinations}) do
-    Enum.map(combinations, fn
-      {union_type, query} -> error!(query, "`#{union_type}` is not supported by Exandra")
+  defp distinct(nil, _sources, _query), do: []
+  defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
+  defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+
+  defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+    error!(query, "DISTINCT with multiple columns is not supported by MySQL")
+  end
+
+  defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
+    ["SELECT ", distinct(distinct, sources, query) | select(fields, sources, query)]
+  end
+
+  defp select([], _sources, _query),
+    do: "TRUE"
+
+  defp select(fields, sources, query) do
+    intersperse_map(fields, ", ", fn
+      {:&, _, [idx]} ->
+        case elem(sources, idx) do
+          {source, _, nil} ->
+            error!(
+              query,
+              "Scylla does not support selecting all fields from #{source} without a schema. " <>
+                "Please specify a schema or specify exactly which fields you want to select"
+            )
+
+          {_, source, _} ->
+            source
+        end
+
+      {key, value} ->
+        [expr(value, sources, query), " AS ", quote_name(key)]
+
+      value ->
+        expr(value, sources, query)
     end)
+  end
+
+  defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
+    [" FROM ", from, Enum.map(hints, &[?\s | &1])]
+  end
+
+  defp from(query, _) do
+    error!(
+      query,
+      "Scylla Adapter does not support subqueries at this time."
+    )
+  end
+
+  defp cte(
+         %{with_ctes: %WithExpr{recursive: _recursive, queries: [_ | _] = _queries}} = query,
+         _sources
+       ) do
+    error!(
+      query,
+      "Scylla Adapter does not support cte at this time."
+    )
+  end
+
+  defp cte(_, _), do: []
+
+  defp lock(%{lock: nil}, _sources), do: []
+
+  defp lock(%{lock: _expr} = query, _sources),
+    do: error!(query, "`lock` is not supported by Exandra")
+
+  defp window(%{windows: []}, _sources), do: []
+  defp window(query, _sources), do: error!(query, "window is not supported by Exandra")
+
+  defp join(%{joins: []}, _sources), do: []
+  defp join(query, _sources), do: error!(query, "join is not supported by Exandra")
+
+  defp limit(%{limit: nil}, _sources), do: []
+
+  defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
+    [" LIMIT " | expr(expr, sources, query)]
   end
 
   defp offset(%{offset: nil}, _sources), do: []
@@ -156,10 +227,16 @@ defmodule Exandra.Connection do
     error!(query, "`offset` is not supported by Exandra")
   end
 
-  defp lock(%{lock: nil}, _sources), do: []
+  defp order_by(%{order_bys: []}, _sources), do: []
 
-  defp lock(%{lock: _expr} = query, _sources),
-    do: error!(query, "`lock` is not supported by Exandra")
+  defp order_by(%{order_bys: order_bys} = query, sources) do
+    [
+      " ORDER BY "
+      | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+          intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
+        end)
+    ]
+  end
 
   defp set(fields) do
     Enum.map_join(fields, ", ", fn
@@ -202,28 +279,28 @@ defmodule Exandra.Connection do
     end
   end
 
-  defp limit(%{limit: nil}, _sources), do: []
+  defp boolean(_name, [], _sources, _query), do: []
 
-  defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
-    [" LIMIT " | expr(expr, sources, query)]
-  end
-
-  defp order_by(%{order_bys: []}, _sources), do: []
-
-  defp order_by(%{order_bys: order_bys} = query, sources) do
+  defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
     [
-      " ORDER BY "
-      | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
-          intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
-        end)
+      name,
+      query_exprs
+      |> Enum.reduce({op, paren_expr(expr, sources, query)}, fn
+        %BooleanExpr{expr: expr, op: op}, {op, acc} ->
+          {op, [acc, operator_to_boolean(op) | paren_expr(expr, sources, query)]}
+
+        %BooleanExpr{expr: expr, op: op}, {_, acc} ->
+          {op, [?(, acc, ?), operator_to_boolean(op) | paren_expr(expr, sources, query)]}
+      end)
+      |> elem(1)
     ]
   end
 
-  defp window(%{windows: []}, _sources), do: []
-  defp window(query, _sources), do: error!(query, "window is not supported by Exandra")
-
-  defp join(%{joins: []}, _sources), do: []
-  defp join(query, _sources), do: error!(query, "join is not supported by Exandra")
+  defp combinations(%{combinations: combinations}) do
+    Enum.map(combinations, fn
+      {union_type, query} -> error!(query, "`#{union_type}` is not supported by Exandra")
+    end)
+  end
 
   defp order_by_expr({dir, expr}, sources, query) do
     str = expr(expr, sources, query)
@@ -243,23 +320,6 @@ defmodule Exandra.Connection do
       | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
           intersperse_map(expr, ", ", &expr(&1, sources, query))
         end)
-    ]
-  end
-
-  defp boolean(_name, [], _sources, _query), do: []
-
-  defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
-    [
-      name,
-      query_exprs
-      |> Enum.reduce({op, paren_expr(expr, sources, query)}, fn
-        %BooleanExpr{expr: expr, op: op}, {op, acc} ->
-          {op, [acc, operator_to_boolean(op) | paren_expr(expr, sources, query)]}
-
-        %BooleanExpr{expr: expr, op: op}, {_, acc} ->
-          {op, [?(, acc, ?), operator_to_boolean(op) | paren_expr(expr, sources, query)]}
-      end)
-      |> elem(1)
     ]
   end
 
@@ -311,10 +371,6 @@ defmodule Exandra.Connection do
     ["CAST(", expr(other, sources, query), " AS ", ecto_cast_to_db(type, query), ?)]
   end
 
-  defp expr(%Ecto.Query.Tagged{value: value}, sources, query) do
-    expr(value, sources, query)
-  end
-
   defp expr({:^, [], [_ix]}, _sources, _query) do
     '?'
   end
@@ -324,35 +380,9 @@ defmodule Exandra.Connection do
     [quote_name(field)]
   end
 
-  defp expr({:&, _, [idx]}, sources, _query) do
-    {_, source, _} = elem(sources, idx)
-    source
-  end
-
-  defp expr({:in, _, [_left, []]}, _sources, _query) do
-    "false"
-  end
-
-  defp expr({:in, _, [left, right]}, sources, query) when is_list(right) do
-    args = intersperse_map(right, ?,, &expr(&1, sources, query))
-    [expr(left, sources, query), " IN (", args, ?)]
-  end
-
-  defp expr({:in, _, [_, {:^, _, [_, 0]}]}, _sources, _query) do
-    "false"
-  end
-
   defp expr({:in, _, [left, {:^, _, [_, length]}]}, sources, query) do
     args = Enum.intersperse(List.duplicate(??, length), ?,)
     [expr(left, sources, query), " IN (", args, ?)]
-  end
-
-  defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
-    [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
-  end
-
-  defp expr({:in, _, [left, right]}, sources, query) do
-    [expr(left, sources, query), " = ANY(", expr(right, sources, query), ?)]
   end
 
   defp expr({:is_nil, _, [arg]}, sources, query) do
@@ -474,67 +504,6 @@ defmodule Exandra.Connection do
   defp intersperse_map([elem | rest], separator, mapper, acc),
     do: intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
 
-  defp distinct(nil, _sources, _query), do: []
-  defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
-  defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
-
-  defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
-    error!(query, "DISTINCT with multiple columns is not supported by MySQL")
-  end
-
-  defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
-    ["SELECT ", distinct(distinct, sources, query) | select(fields, sources, query)]
-  end
-
-  defp select([], _sources, _query),
-    do: "TRUE"
-
-  defp select(fields, sources, query) do
-    intersperse_map(fields, ", ", fn
-      {:&, _, [idx]} ->
-        case elem(sources, idx) do
-          {source, _, nil} ->
-            error!(
-              query,
-              "Scylla does not support selecting all fields from #{source} without a schema. " <>
-                "Please specify a schema or specify exactly which fields you want to select"
-            )
-
-          {_, source, _} ->
-            source
-        end
-
-      {key, value} ->
-        [expr(value, sources, query), " AS ", quote_name(key)]
-
-      value ->
-        expr(value, sources, query)
-    end)
-  end
-
-  defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
-    [" FROM ", from, Enum.map(hints, &[?\s | &1])]
-  end
-
-  defp from(query, _) do
-    error!(
-      query,
-      "Scylla Adapter does not support subqueries at this time."
-    )
-  end
-
-  defp cte(
-         %{with_ctes: %WithExpr{recursive: _recursive, queries: [_ | _] = _queries}} = query,
-         _sources
-       ) do
-    error!(
-      query,
-      "Scylla Adapter does not support cte at this time."
-    )
-  end
-
-  defp cte(_, _), do: []
-
   defp create_names(%{sources: sources}, as_prefix) do
     sources |> create_names(0, tuple_size(sources), as_prefix) |> List.to_tuple()
   end
@@ -568,99 +537,6 @@ defmodule Exandra.Connection do
 
   defp create_alias(_), do: ?t
 
-  defp process_page(%Xandra.Page{columns: [{_, _, "[applied]", _} | _], content: content}) do
-    rows =
-      content
-      |> Enum.reject(&match?([false | _], &1))
-      |> Enum.map(fn [_ | row] -> row end)
-
-    %{rows: rows, num_rows: length(rows)}
-  end
-
-  defp process_page(%Xandra.Page{
-         columns: [{_, _, "system.count" <> _, _} | _],
-         content: [[count]]
-       }) do
-    %{rows: [[count]], num_rows: 1}
-  end
-
-  defp process_page(%Xandra.Page{columns: [{_, _, "count" <> _, _} | _], content: [[count]]}) do
-    %{rows: [[count]], num_rows: 1}
-  end
-
-  defp process_page(%Xandra.Page{content: content}) do
-    %{rows: content, num_rows: length(content)}
-  end
-
-  defp key_definitions(columns) do
-    primary_keys =
-      for {_, name, _, opts} <- columns,
-          opts[:primary_key],
-          do: name
-
-    partition_keys =
-      for {_, name, _, opts} <- columns,
-          opts[:partition_key],
-          do: name
-
-    clustering_keys =
-      for {_, name, _, opts} <- columns,
-          opts[:clustering_key],
-          do: name
-
-    case {primary_keys, clustering_keys} do
-      {[], []} ->
-        "PRIMARY KEY (#{Enum.join(partition_keys, ", ")})"
-
-      {[], _} ->
-        "PRIMARY KEY ((#{Enum.join(partition_keys, ", ")}), #{Enum.join(clustering_keys, ", ")})"
-
-      _ ->
-        "PRIMARY KEY (#{Enum.join(primary_keys, ", ")})"
-    end
-  end
-
-  def column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
-
-  def column_definitions(columns, alter \\ false) do
-    Enum.map_join(columns, ", ", &column_definition(&1, alter))
-  end
-
-  defp column_definition({:add, name, type, opts}, true) do
-    if Keyword.has_key?(opts, :primary_key) do
-      raise ArgumentError, "altering PRIMARY KEY columns is not supported"
-    else
-      "ADD #{quote_name(name)} #{Types.for(type)}"
-    end
-  end
-
-  defp column_definition({_op, name, %Reference{}, _opts}, _) do
-    raise RuntimeError, "Illegal reference `#{name}` Exandra does not support associations"
-  end
-
-  defp column_definition({:add, name, type, _opts}, alter) do
-    prefix = if alter, do: "ADD ", else: ""
-    prefix <> "#{quote_name(name)} #{Types.for(type)}"
-  rescue
-    _err ->
-      raise ArgumentError,
-            "unsupported type `#{inspect(type)}`. " <>
-              "The type can either be an atom, a string or a tuple of the form " <>
-              "`{:map, t}` where `t` itself follows the same conditions."
-  end
-
-  defp column_definition({:modify, name, type, _opts}, _) do
-    "ALTER #{quote_name(name)} TYPE #{Types.for(type)}"
-  end
-
-  defp column_definition({:remove, name, _type, _opts}, _) do
-    "DROP #{quote_name(name)}"
-  end
-
-  defp column_definition({:remove, name}, _) do
-    "DROP #{quote_name(name)}"
-  end
-
   @impl Ecto.Adapters.SQL.Connection
   def ddl_logs(_), do: []
 
@@ -672,15 +548,16 @@ defmodule Exandra.Connection do
         end
       end
 
-    " WITH " <> Enum.join(with_opts, "") <> clustering_opts
+
+    " WITH #{clustering_opts}" <> Enum.join(with_opts, " AND ")
   end
 
   def table_options(opts, clustering_opts) when is_bitstring(opts) do
     " " <> opts <> clustering_opts
   end
 
-  def table_options(nil, _clustering_opts) do
-    ""
+  def table_options(nil, clustering_opts) do
+    clustering_opts
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -734,39 +611,138 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl(string) when is_binary(string), do: [string]
 
-  defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
-  defp quote_name(name), do: [name]
+  defp key_definitions(columns) do
+    primary_keys = columns_with_opts(columns, :primary_key)
+    partition_keys = columns_with_opts(columns, :partition_key)
 
-  defp quote_table(nil, name), do: quote_table(name)
-  defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
+    if [[], []] == [primary_keys, partition_keys] do
+      raise ArgumentError, "you must define at least one primary, partition, or clustering key"
+    end
 
-  defp quote_table(name) when is_atom(name),
-    do: quote_table(Atom.to_string(name))
+    case {primary_keys, partition_keys} do
+      {primary_keys, []} when primary_keys != [] ->
+        "PRIMARY KEY (#{key_join(primary_keys)})"
 
-  defp quote_table(name) do
-    [name]
+      _ ->
+        "PRIMARY KEY ((#{key_join(primary_keys)}), #{key_join(partition_keys)})"
+    end
   end
 
-  defp ordering_bys(columns) do
-    ordering_bys =
-      for {_, name, _, opts} <- columns,
-          opts[:clustering_key] && opts[:ordering_by],
-          do: {name, ordering_by(opts[:ordering_by])}
+  defp key_join([%{opts: opts} | _] = keys) do
+    keys_join_by_name(
+      cond do
+        opts[:primary_order] ->
+          Enum.sort_by(keys, fn key -> key.opts[:primary_order] end)
 
-    case ordering_bys do
+        opts[:partition_order] ->
+          Enum.sort_by(keys, fn key -> key.opts[:partition_order] end)
+
+        true ->
+          keys
+      end
+    )
+  end
+
+  defp key_join([]), do: ""
+
+  defp keys_join_by_name(keys), do: Enum.map_join(keys, ", ", fn key -> key.name end)
+
+  defp columns_with_opts(columns, key) do
+    columns
+    |> Enum.filter(fn {_, _, _, opts} -> opts[key] end)
+    |> Enum.map(fn {_, name, _, opts} -> %{name: name, opts: opts} end)
+  end
+
+  def column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
+
+  def column_definitions(columns, alter \\ false) do
+    Enum.map_join(columns, ", ", &column_definition(&1, alter))
+  end
+
+  defp column_definition({:add, name, type, opts}, true) do
+    if Keyword.has_key?(opts, :primary_key) do
+      raise ArgumentError, "altering PRIMARY KEY columns is not supported"
+    else
+      "ADD #{quote_name(name)} #{Types.for(type)}"
+    end
+  end
+
+  defp column_definition({_op, name, %Reference{}, _opts}, _) do
+    raise RuntimeError, "Illegal reference `#{name}` Exandra does not support associations"
+  end
+
+  defp column_definition({:add, name, type, _opts}, alter) do
+    prefix = if alter, do: "ADD ", else: ""
+    prefix <> "#{quote_name(name)} #{Types.for(type)}"
+  rescue
+    _err ->
+      raise ArgumentError,
+            "unsupported type `#{inspect(type)}`. " <>
+              "The type can either be an atom, a string or a tuple of the form " <>
+              "`{:map, t}` where `t` itself follows the same conditions."
+  end
+
+  defp column_definition({:modify, name, type, _opts}, _) do
+    "ALTER #{quote_name(name)} TYPE #{Types.for(type)}"
+  end
+
+  defp column_definition({:remove, name, _type, _opts}, _) do
+    "DROP #{quote_name(name)}"
+  end
+
+  defp column_definition({:remove, name}, _) do
+    "DROP #{quote_name(name)}"
+  end
+
+  defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
+  defp quote_name(name), do: [name]
+  defp quote_table(nil, name), do: quote_table(name)
+  defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
+  defp quote_table(name) when is_atom(name), do: quote_table(Atom.to_string(name))
+  defp quote_table(name), do: [name]
+
+  defp ordering_bys(columns) do
+    order_bys =
+      for {_, name, _, opts} <- columns,
+          opts[:cluster_ordering] && opts[:primary_key],
+          into: [],
+          do: "#{name} #{ordering_by(opts[:cluster_ordering])}"
+
+    case order_bys do
       [] ->
         ""
 
-      _ ->
-        ordering_bys =
-          Enum.map_join(ordering_bys, ", ", fn {name, order} -> "#{name} #{order}" end)
-
-        " WITH CLUSTERING ORDER BY (#{ordering_bys})"
+      orderings ->
+        " WITH CLUSTERING ORDER BY (#{Enum.join(orderings, ",")})"
     end
   end
 
   defp ordering_by(:asc), do: "ASC"
   defp ordering_by(:desc), do: "DESC"
+
+  defp process_page(%Xandra.Page{columns: [{_, _, "[applied]", _} | _], content: content}) do
+    rows =
+      content
+      |> Enum.reject(&match?([false | _], &1))
+      |> Enum.map(fn [_ | row] -> row end)
+
+    %{rows: rows, num_rows: length(rows)}
+  end
+
+  defp process_page(%Xandra.Page{
+         columns: [{_, _, "system.count" <> _, _} | _],
+         content: [[count]]
+       }) do
+    %{rows: [[count]], num_rows: 1}
+  end
+
+  defp process_page(%Xandra.Page{columns: [{_, _, "count" <> _, _} | _], content: [[count]]}) do
+    %{rows: [[count]], num_rows: 1}
+  end
+
+  defp process_page(%Xandra.Page{content: content}) do
+    %{rows: content, num_rows: length(content)}
+  end
 
   defp ecto_cast_to_db(:binary_id, _query), do: "uuid"
   defp ecto_cast_to_db(:decimal, _query), do: "decimal"
