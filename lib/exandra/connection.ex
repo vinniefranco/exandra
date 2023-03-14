@@ -1,15 +1,9 @@
 defmodule Exandra.Connection do
   @behaviour Ecto.Adapters.SQL.Connection
 
-  alias Ecto.Migration.Constraint
-  alias Ecto.Migration.Index
-  alias Ecto.Migration.Reference
-  alias Ecto.Migration.Table
-  alias Ecto.Query.BooleanExpr
-  alias Ecto.Query.QueryExpr
-  alias Ecto.Query.WithExpr
-  alias Exandra.Adapter
-  alias Exandra.Types
+  alias Ecto.Migration.{Constraint, Index, Reference, Table}
+  alias Ecto.Query.{BooleanExpr, QueryExpr, WithExpr}
+  alias Exandra.{Adapter, Types}
   alias Xandra.Prepared
 
   def build_explain_query(_, _) do
@@ -530,8 +524,8 @@ defmodule Exandra.Connection do
   end
 
   defp cte(
-         %{with_ctes: %WithExpr{recursive: recursive, queries: [_ | _] = queries}} = query,
-         sources
+         %{with_ctes: %WithExpr{recursive: _recursive, queries: [_ | _] = _queries}} = query,
+         _sources
        ) do
     error!(
       query,
@@ -685,7 +679,7 @@ defmodule Exandra.Connection do
     " " <> opts <> clustering_opts
   end
 
-  def table_options(nil, clustering_opts) do
+  def table_options(nil, _clustering_opts) do
     ""
   end
 
@@ -706,7 +700,7 @@ defmodule Exandra.Connection do
     ]
   end
 
-  @imple Ecto.Adapters.SQL.Connection
+  @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({:alter, %Table{} = table, columns}) do
     structure = column_definitions(columns, _modify = true)
 
