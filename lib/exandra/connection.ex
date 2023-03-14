@@ -238,14 +238,7 @@ defmodule Exandra.Connection do
     ]
   end
 
-  defp set(fields) do
-    Enum.map_join(fields, ", ", fn
-      {k, {:add, _}} -> "#{k} = #{k} + ?"
-      {k, {:remove, _}} -> "#{k} = #{k} - ?"
-      {k, _} -> "#{k} = ?"
-      k -> "#{k} = ?"
-    end)
-  end
+  defp set(fields), do: Enum.map_join(fields, ", ", & "#{&1} = ?")
 
   @impl Ecto.Adapters.SQL.Connection
   def to_constraints(_, _), do: []
@@ -467,19 +460,12 @@ defmodule Exandra.Connection do
     ["(0 + ", Float.to_string(literal), ?)]
   end
 
-  defp expr(expr, _sources, query) do
-    error!(query, "unsupported expression: #{inspect(expr)}")
-  end
-
   defp error!(query, message) do
     raise Ecto.QueryError, query: query, message: message
   end
 
   defp operator_to_boolean(:and), do: " AND "
   defp operator_to_boolean(:or), do: " OR "
-
-  defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
-    do: paren_expr(expr, sources, query)
 
   defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
     do: paren_expr(expr, sources, query)
@@ -494,9 +480,6 @@ defmodule Exandra.Connection do
   end
 
   defp intersperse_map(list, separator, mapper, acc \\ [])
-
-  defp intersperse_map([], _separator, _mapper, acc),
-    do: acc
 
   defp intersperse_map([elem], _separator, mapper, acc),
     do: [acc | mapper.(elem)]
