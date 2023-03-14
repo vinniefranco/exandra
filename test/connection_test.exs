@@ -1,0 +1,908 @@
+defmodule Exandra.ConnectionTest do
+  use ExUnit.Case, async: true
+
+  import Ecto.Query
+
+  alias Ecto.Queryable
+  alias Exandra.Connection, as: SQL
+  alias Ecto.Migration.Reference
+
+  defmodule Schema do
+    use Ecto.Schema
+
+    schema "schema" do
+      field(:x, :integer)
+      field(:y, :integer)
+      field(:z, :integer)
+      field(:meta, :map)
+    end
+  end
+
+  defmodule Schema3 do
+    use Ecto.Schema
+
+    schema "schema3" do
+      field(:binary, :binary)
+    end
+  end
+
+  defp plan(query, operation \\ :all) do
+    {query, _cast_params, _dump_params} =
+      Ecto.Adapter.Queryable.plan_query(operation, Exandra, query)
+
+    query
+  end
+
+  defp all(query), do: query |> SQL.all() |> IO.iodata_to_binary()
+  defp update_all(query), do: query |> SQL.update_all() |> IO.iodata_to_binary()
+  defp delete_all(query), do: query |> SQL.delete_all() |> IO.iodata_to_binary()
+  defp execute_ddl(query), do: query |> SQL.execute_ddl() |> Enum.map(&IO.iodata_to_binary/1)
+
+  defp insert(prefx, table, header, rows, on_conflict, returning) do
+    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
+  end
+
+  defp update(prefx, table, fields, filter, returning) do
+    IO.iodata_to_binary(SQL.update(prefx, table, fields, filter, returning))
+  end
+
+  defp delete(prefx, table, filter, returning) do
+    IO.iodata_to_binary(SQL.delete(prefx, table, filter, returning))
+  end
+
+  test "from" do
+    query = Schema |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema}
+  end
+
+  test "from without schema" do
+    query = "posts" |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM posts}
+
+    query = "Posts" |> select([:x]) |> plan()
+    assert all(query) == ~s{SELECT x FROM Posts}
+
+    query = "0posts" |> select([:x]) |> plan()
+    assert all(query) == ~s{SELECT x FROM 0posts}
+
+    assert_raise Ecto.QueryError,
+                 ~r"Scylla does not support selecting all fields from posts without a schema",
+                 fn ->
+                   all(from(p in "posts", select: p) |> plan())
+                 end
+  end
+
+  test "from with subquery" do
+    query = subquery("posts" |> select([r], %{x: r.x, y: r.y})) |> select([r], r.x) |> plan()
+
+    assert_raise Ecto.QueryError,
+                 ~r"Scylla Adapter does not support subqueries at this time",
+                 fn ->
+                   all(query)
+                 end
+  end
+
+  test "from with fragment" do
+    query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
+
+    assert_raise Ecto.QueryError,
+                 ~r"Scylla Adapter does not support subqueries at this time",
+                 fn ->
+                   all(query)
+                 end
+  end
+
+  test "from with hints" do
+    query =
+      Schema
+      |> from(hints: ["ALLOW FILTERING", "PER PARTITION LIMIT 1"])
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) == "SELECT x FROM schema ALLOW FILTERING PER PARTITION LIMIT 1"
+  end
+
+  test "CTE" do
+    initial_query =
+      "categories"
+      |> where([c], is_nil(c.parent_id))
+      |> select([c], %{id: c.id, depth: fragment("1")})
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.id == c.parent_id)
+      |> select([c, t], %{id: c.id, depth: fragment("? + 1", t.depth)})
+
+    cte_query = initial_query |> union_all(^iteration_query)
+
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query)
+      |> join(:inner, [r], t in "tree", on: t.id == r.category_id)
+      |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
+      |> plan()
+
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+      all(query)
+    end
+  end
+
+  @raw_sql_cte """
+  SELECT * FROM categories WHERE c.parent_id IS NULL
+  UNION ALL
+  SELECT * FROM categories AS c, category_tree AS ct WHERE ct.id = c.parent_id
+  """
+
+  test "reference CTE in union" do
+    comments_scope_query =
+      "comments"
+      |> where([c], is_nil(c.deleted_at))
+      |> select([c], %{entity_id: c.entity_id, text: c.text})
+
+    posts_query =
+      "posts"
+      |> join(:inner, [p], c in "comments_scope", on: c.entity_id == p.guid)
+      |> select([p, c], [p.title, c.text])
+
+    videos_query =
+      "videos"
+      |> join(:inner, [v], c in "comments_scope", on: c.entity_id == v.guid)
+      |> select([v, c], [v.title, c.text])
+
+    query =
+      posts_query
+      |> union_all(^videos_query)
+      |> with_cte("comments_scope", as: ^comments_scope_query)
+      |> plan()
+
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+      all(query)
+    end
+  end
+
+  test "fragment CTE" do
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: fragment(@raw_sql_cte))
+      |> join(:inner, [p], c in "tree", on: c.id == p.category_id)
+      |> select([r], r.x)
+      |> plan()
+
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+      all(query)
+    end
+  end
+
+  test "CTE update_all" do
+    cte_query =
+      from(x in Schema,
+        order_by: [asc: :id],
+        limit: 10,
+        lock: "FOR UPDATE SKIP LOCKED",
+        select: %{id: x.id}
+      )
+
+    query =
+      Schema
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> update(set: [x: 123])
+      |> plan(:update_all)
+
+    assert_raise RuntimeError, fn ->
+      update_all(query)
+    end
+  end
+
+  test "CTE delete_all" do
+    cte_query =
+      from(x in Schema,
+        order_by: [asc: :id],
+        limit: 10,
+        lock: "FOR UPDATE SKIP LOCKED",
+        select: %{id: x.id}
+      )
+
+    query =
+      Schema
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> plan(:delete_all)
+
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+      assert delete_all(query)
+    end
+  end
+
+  test "select" do
+    query = Schema |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT x, y FROM schema}
+
+    query = Schema |> select([r], [r.x, r.y]) |> plan()
+    assert all(query) == ~s{SELECT x, y FROM schema}
+
+    query = Schema |> select([r], struct(r, [:x, :y])) |> plan()
+    assert all(query) == ~s{SELECT x, y FROM schema}
+  end
+
+  test "aggregates" do
+    query = Schema |> select(count()) |> plan()
+    assert all(query) == ~s{SELECT count(*) FROM schema}
+  end
+
+  test "aggregate filters" do
+    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
+
+    assert_raise Ecto.QueryError, ~r/Exandra does not support aggregate filters in query/, fn ->
+      all(query)
+    end
+  end
+
+  test "distinct" do
+    query = Schema |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT DISTINCT x, y FROM schema}
+
+    query = Schema |> distinct([r], false) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT x, y FROM schema}
+
+    query = Schema |> distinct(true) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT DISTINCT x, y FROM schema}
+
+    query = Schema |> distinct(false) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT x, y FROM schema}
+
+    assert_raise Ecto.QueryError,
+                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 fn ->
+                   query =
+                     Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
+
+                   all(query)
+                 end
+  end
+
+  test "coalesce" do
+    query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"COALESCE function is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "where" do
+    query = Schema |> where([r], r.x == 42) |> where([r], r.y != 43) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema WHERE x = 42 AND y != 43}
+
+    query = Schema |> where([r], {r.x, r.y} > {1, 2}) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema WHERE (x,y) > (1,2)}
+  end
+
+  test "or_where" do
+    query =
+      Schema |> or_where([r], r.x == 42) |> or_where([r], r.y != 43) |> select([r], r.x) |> plan()
+
+    assert all(query) == ~s{SELECT x FROM schema WHERE x = 42 OR y != 43}
+  end
+
+  test "order by" do
+    query = Schema |> order_by([r], r.x) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema ORDER BY x ASC}
+
+    query = Schema |> order_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema ORDER BY x ASC, y ASC}
+
+    query = Schema |> order_by([r], asc: r.x, desc: r.y) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema ORDER BY x ASC, y DESC}
+
+    query = Schema |> order_by([r], []) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema}
+
+    for dir <- [:asc_nulls_first, :asc_nulls_last, :desc_nulls_first, :desc_nulls_last] do
+      assert_raise Ecto.QueryError, ~r"#{dir} is not supported in ORDER BY in Exandra", fn ->
+        Schema |> order_by([r], [{^dir, r.x}]) |> select([r], r.x) |> plan() |> all()
+      end
+    end
+  end
+
+  test "union and union all" do
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
+    union_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    union_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> union(^union_query1) |> union(^union_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`union` is not supported by Exandra", fn ->
+      all(query)
+    end
+
+    query = base_query |> union_all(^union_query1) |> union_all(^union_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`union_all` is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "except and except all" do
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
+    except_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    except_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> except(^except_query1) |> except(^except_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`except` is not supported by Exandra", fn ->
+      all(query)
+    end
+
+    query = base_query |> except_all(^except_query1) |> except_all(^except_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`except_all` is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "intersect and intersect all" do
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
+    intersect_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    intersect_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> intersect(^intersect_query1) |> intersect(^intersect_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`intersect` is not supported by Exandra", fn ->
+      all(query)
+    end
+
+    query =
+      base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`intersect_all` is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "limit and offset" do
+    query = Schema |> limit([r], 3) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM schema LIMIT 3}
+
+    query = Schema |> offset([r], 5) |> select([], true) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`offset` is not supported by Exandra", fn ->
+      all(query)
+    end
+
+    assert_raise Ecto.QueryError, ~r"`offset` is not supported by Exandra", fn ->
+      query = Schema |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
+      all(query)
+    end
+  end
+
+  test "lock" do
+    query = Schema |> lock("LOCK IN SHARE MODE") |> select([], true) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`lock` is not supported by Exandra", fn ->
+      all(query)
+    end
+
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"`lock` is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "string escape" do
+    query = "schema" |> where(foo: "'\\  ") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM schema WHERE foo = '''\\\\  '}
+
+    query = "schema" |> where(foo: "'") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM schema WHERE foo = ''''}
+  end
+
+  test "binary ops" do
+    query = Schema |> select([r], r.x == 2) |> plan()
+    assert all(query) == ~s{SELECT x = 2 FROM schema}
+
+    query = Schema |> select([r], r.x != 2) |> plan()
+    assert all(query) == ~s{SELECT x != 2 FROM schema}
+
+    query = Schema |> select([r], r.x <= 2) |> plan()
+    assert all(query) == ~s{SELECT x <= 2 FROM schema}
+
+    query = Schema |> select([r], r.x >= 2) |> plan()
+    assert all(query) == ~s{SELECT x >= 2 FROM schema}
+
+    query = Schema |> select([r], r.x < 2) |> plan()
+    assert all(query) == ~s{SELECT x < 2 FROM schema}
+
+    query = Schema |> select([r], r.x > 2) |> plan()
+    assert all(query) == ~s{SELECT x > 2 FROM schema}
+
+    query = Schema |> select([r], r.x + 2) |> plan()
+    assert all(query) == ~s{SELECT x + 2 FROM schema}
+  end
+
+  test "is_nil" do
+    query = Schema |> select([r], is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT x IS NULL FROM schema}
+
+    query = Schema |> select([r], not is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT NOT (x IS NULL) FROM schema}
+
+    query = "schema" |> select([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT x = y IS NULL FROM schema}
+  end
+
+  test "fragments" do
+    query = Schema |> select([r], fragment("now")) |> plan()
+    assert all(query) == ~s{SELECT now FROM schema}
+
+    query = Schema |> select([r], fragment("intAsBlob(?) AS one", 1)) |> plan()
+    assert all(query) == ~s{SELECT intAsBlob(1) AS one FROM schema}
+
+    query = Schema |> select([r], fragment("intAsBlob(?)", r.x)) |> plan()
+    assert all(query) == ~s{SELECT intAsBlob(x) FROM schema}
+
+    query = Schema |> select([r], r.x) |> where([], fragment("? = \"query\\?\"", ^10)) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema WHERE ? = \"query?\"}
+
+    query = Schema |> select([], fragment(title: 2)) |> plan()
+
+    assert_raise Ecto.QueryError, fn ->
+      all(query)
+    end
+  end
+
+  test "aliasing a selected value with selected_as/2" do
+    query = "schema" |> select([s], selected_as(s.x, :integer)) |> plan()
+    assert all(query) == ~s{SELECT x AS integer FROM schema}
+  end
+
+  test "group_by cannot reference the alias of a selected value with selected_as/1" do
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> group_by(selected_as(:integer))
+      |> plan()
+
+    assert all(query) == ~s{SELECT x AS integer FROM schema GROUP BY integer}
+  end
+
+  test "order_by can reference the alias of a selected value with selected_as/1" do
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> order_by(selected_as(:integer))
+      |> plan()
+
+    assert all(query) == ~s{SELECT x AS integer FROM schema ORDER BY integer ASC}
+
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> order_by(desc: selected_as(:integer))
+      |> plan()
+
+    assert all(query) == ~s{SELECT x AS integer FROM schema ORDER BY integer DESC}
+  end
+
+  test "having can reference the alias of a selected value with selected_as/1" do
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> group_by(selected_as(:integer))
+      |> having(selected_as(:integer) > 0)
+      |> plan()
+
+    assert_raise Ecto.QueryError, ~r"HAVING is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  test "tagged type" do
+    query =
+      Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
+
+    assert all(query) == ~s{SELECT CAST(? AS uuid) FROM schema}
+  end
+
+  test "string type" do
+    query = Schema |> select([], type(^"test", :string)) |> plan()
+    assert all(query) == ~s{SELECT CAST(? AS text) FROM schema}
+  end
+
+  test "in expression" do
+    query = Schema |> select([s], s.x) |> where([s], s.id in ^[1, 2, 3]) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema WHERE id IN (?,?,?)}
+  end
+
+  test "group by" do
+    query = Schema |> group_by([r], r.x) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema GROUP BY x}
+
+    query = Schema |> group_by([r], 2) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema GROUP BY 2}
+
+    query = Schema |> group_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema GROUP BY x, y}
+
+    query = Schema |> group_by([r], []) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM schema}
+  end
+
+  test "fragments allow ? to be escaped with backslash" do
+    query =
+      plan(
+        from(e in "schema",
+          where: fragment("? = \"query\\?\"", e.start_time),
+          select: true
+        )
+      )
+
+    result = "SELECT TRUE FROM schema WHERE start_time = \"query?\""
+
+    assert all(query) == String.trim(result)
+  end
+
+  test "build_explain_query" do
+    assert_raise RuntimeError, fn ->
+      SQL.build_explain_query("SELECT 1", [])
+    end
+  end
+
+  ## *_all
+
+  test "update all" do
+    query = from(m in Schema, update: [set: [x: 0]]) |> plan(:update_all)
+
+    assert_raise RuntimeError, fn ->
+      update_all(query)
+    end
+  end
+
+  test "delete all" do
+    query = Schema |> Queryable.to_query() |> plan()
+    assert delete_all(query) == ~s{DELETE FROM schema}
+
+    query = from(e in Schema, where: e.x == 123) |> plan()
+
+    assert delete_all(query) ==
+             ~s{DELETE FROM schema WHERE x = 123}
+  end
+
+  ## Partitions and windows
+
+  describe "windows" do
+    test "one window" do
+      query =
+        Schema
+        |> select([r], r.x)
+        |> windows([r], w: [partition_by: r.x])
+        |> plan
+
+      assert_raise Ecto.QueryError, ~r"window is not supported by Exandra", fn ->
+        all(query)
+      end
+    end
+  end
+
+  ## Joins
+
+  test "join without schema" do
+    query =
+      "posts" |> join(:inner, [p], q in "comments", on: p.x == q.z) |> select([], true) |> plan()
+
+    assert_raise Ecto.QueryError, ~r"join is not supported by Exandra", fn ->
+      all(query)
+    end
+  end
+
+  # Schema based
+
+  test "insert" do
+    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO schema (x, y) VALUES (?, ?) }
+
+    query = insert(nil, "schema", [], [[]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO schema () VALUES () }
+  end
+
+  test "update" do
+    query = update(nil, "schema", [:id], [x: 1, y: 2], [])
+    assert query == ~s{UPDATE schema SET id = ? WHERE x = ? AND y = ?}
+  end
+
+  test "delete" do
+    query = delete(nil, "schema", [x: 1, y: 2], [])
+    assert query == ~s{DELETE FROM schema WHERE x = ? AND y = ?}
+  end
+
+  # DDL
+
+  import Ecto.Migration, only: [table: 1, table: 2, index: 3, constraint: 3]
+
+  test "executing a string during migration" do
+    assert execute_ddl("example") == ["example"]
+  end
+
+  test "create table" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :binary_id, [primary_key: true]},
+         {:add, :name, :string, []},
+         {:add, :token, :binary, []},
+         {:add, :price, :decimal, []},
+         {:add, :on_hand, :integer, []},
+         {:add, :likes, :bigint, []},
+         {:add, :published_at, :utc_datetime, []},
+         {:add, :is_active, :boolean, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts (id uuid,
+             name text,
+             token blob,
+             price decimal,
+             on_hand int,
+             likes bigint,
+             published_at timestamp,
+             is_active boolean,
+             PRIMARY KEY (id))
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create empty table raises an exception" do
+    create = {:create, table(:posts), []}
+
+    assert_raise RuntimeError, "you must define at least one column", fn ->
+      execute_ddl(create)
+    end
+  end
+
+  test "create table with reference raises an exception" do
+    create =
+      {:create, table(:posts, prefix: :foo),
+       [{:add, :category_0, %Reference{table: :categories}, []}]}
+
+    assert_raise RuntimeError,
+                 "Illegal reference `category_0` Exandra does not support associations",
+                 fn ->
+                   execute_ddl(create)
+                 end
+  end
+
+  test "create table with caching" do
+    create =
+      {:create, table(:posts, options: [caching: true]),
+       [{:add, :id, :uuid, [primary_key: true]}]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE posts (id uuid, PRIMARY KEY (id)) WITH caching = {'enabled': 'true'}|
+             ]
+  end
+
+  test "create table with string opts" do
+    create =
+      {:create, table(:posts, options: "WITH FOO=BAR"),
+       [{:add, :id, :uuid, [primary_key: true]}, {:add, :created_at, :datetime, []}]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE posts (id uuid, created_at timestamp, PRIMARY KEY (id)) WITH FOO=BAR|
+             ]
+  end
+
+  test "create table with composite key" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :a, :integer, [primary_key: true]},
+         {:add, :b, :integer, [primary_key: true]},
+         {:add, :name, :string, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts (a int, b int, name text, PRIMARY KEY (a, b))
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with a map column, and a map default with values" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :a, :map, []}
+       ]}
+
+    # TODO: This should blow up
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts (a text, PRIMARY KEY ())
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with time columns" do
+    create =
+      {:create, table(:posts),
+       [{:add, :published_at, :time, []}, {:add, :submitted_at, :time, []}]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts
+             (published_at time,
+             submitted_at time, PRIMARY KEY ())
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with utc_datetime columns" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :published_at, :utc_datetime, [precision: 3]},
+         {:add, :submitted_at, :utc_datetime, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts
+             (published_at timestamp,
+             submitted_at timestamp, PRIMARY KEY ())
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with naive_datetime columns" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :published_at, :naive_datetime, [precision: 3]},
+         {:add, :submitted_at, :naive_datetime, []}
+       ]}
+
+    # TODO: Blow up with naive datetimes?
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE posts
+             (published_at timestamp,
+             submitted_at timestamp, PRIMARY KEY ())
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with an unsupported type" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :a, {:a, :b, :c}, [default: %{}]}
+       ]}
+
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                   "The type can either be an atom, a string or a tuple of the form " <>
+                   "`{:map, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
+  end
+
+  test "drop table" do
+    drop = {:drop, table(:posts), :restrict}
+    assert execute_ddl(drop) == [~s|DROP TABLE posts|]
+  end
+
+  test "drop table with prefixes" do
+    drop = {:drop, table(:posts, prefix: :foo), :restrict}
+    assert execute_ddl(drop) == [~s|DROP TABLE foo.posts|]
+  end
+
+  test "drop constraint" do
+    assert_raise ArgumentError, ~r/constraints are not supported by Exandra/, fn ->
+      execute_ddl(
+        {:drop, constraint(:products, "price_must_be_positive", prefix: :foo), :restrict}
+      )
+    end
+  end
+
+  test "drop_if_exists constraint" do
+    assert_raise ArgumentError, ~r/constraints are not supported by Exandra/, fn ->
+      execute_ddl(
+        {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: :foo),
+         :restrict}
+      )
+    end
+  end
+
+  test "alter table" do
+    alter =
+      {:alter, table(:posts),
+       [
+         {:add, :title, :string, [default: "Untitled", size: 100, null: false]},
+         {:modify, :price, :decimal, [precision: 8, scale: 2, null: true]},
+         {:modify, :cost, :integer, [null: false, default: nil]},
+         {:modify, :status, :string, from: :integer},
+         {:remove, :summary},
+         {:remove, :body, :text, []},
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE posts ADD title text,
+             ALTER price TYPE decimal,
+             ALTER cost TYPE int,
+             ALTER status TYPE text,
+             DROP summary,
+             DROP body
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "alter table with prefix" do
+    alter =
+      {:alter, table(:posts, prefix: :foo),
+       [
+         {:add, :author_id, :uuid, []},
+         {:modify, :permalink_id, :string, []}
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE foo.posts ADD author_id uuid,
+             ALTER permalink_id TYPE text
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "alter table with primary key" do
+    alter = {:alter, table(:posts), [{:add, :my_pk, :uuid, [primary_key: true, clustering_key: true]}]}
+
+    assert_raise ArgumentError, "altering PRIMARY KEY columns is not supported", fn ->
+      execute_ddl(alter)
+    end
+  end
+
+  test "create constraints" do
+    assert_raise ArgumentError, "constraints are not supported by Exandra", fn ->
+      create = {:create, constraint(:products, "foo", check: "price")}
+      assert execute_ddl(create)
+    end
+  end
+
+  test "drop index" do
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
+    assert_raise ArgumentError, "indexes are not supported by Exandra", fn ->
+      execute_ddl(drop)
+    end
+  end
+
+  # Unsupported types and clauses
+
+  test "arrays" do
+    assert_raise Ecto.QueryError, ~r"Array type is not supported by Exandra", fn ->
+      query = Schema |> select([], fragment("?", [1, 2, 3])) |> plan()
+      all(query)
+    end
+  end
+
+  defp remove_newlines(string) do
+    string |> String.trim() |> String.replace("\n", " ")
+  end
+end

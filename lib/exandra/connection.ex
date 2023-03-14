@@ -1,12 +1,20 @@
 defmodule Exandra.Connection do
   @behaviour Ecto.Adapters.SQL.Connection
 
+  alias Ecto.Migration.Constraint
+  alias Ecto.Migration.Index
+  alias Ecto.Migration.Reference
   alias Ecto.Migration.Table
   alias Ecto.Query.BooleanExpr
   alias Ecto.Query.QueryExpr
+  alias Ecto.Query.WithExpr
   alias Exandra.Adapter
   alias Exandra.Types
   alias Xandra.Prepared
+
+  def build_explain_query(_, _) do
+    raise RuntimeError, "not supported"
+  end
 
   @impl Ecto.Adapters.SQL.Connection
   def child_spec(opts) do
@@ -64,7 +72,7 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def query_many(_cluster, _sql, _params, _opts) do
-    raise RuntimeError, "query_many is not supported in the Exandra adapter"
+    raise RuntimeError, "query_many is not supported in Exandra"
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -74,15 +82,36 @@ defmodule Exandra.Connection do
   def explain_query(_, _, _, _), do: raise("not implemented")
 
   @impl Ecto.Adapters.SQL.Connection
-  def all(stmt, as_prefix \\ []) do
-    sources = create_names(stmt, as_prefix)
+  def all(query, as_prefix \\ []) do
+    sources = create_names(query, as_prefix)
+
+    cte = cte(query, sources)
+    from = from(query, sources)
+    select = select(query, sources)
+    join = join(query, sources)
+    where = where(query, sources)
+    group_by = group_by(query, sources)
+    having = having(query, sources)
+    window = window(query, sources)
+    combinations = combinations(query)
+    order_by = order_by(query, sources)
+    limit = limit(query, sources)
+    offset = offset(query, sources)
+    lock = lock(query, sources)
 
     [
-      select(stmt, sources),
-      from(stmt, sources),
-      where(stmt, sources),
-      order_by(stmt, sources),
-      limit(stmt, sources)
+      cte,
+      select,
+      from,
+      join,
+      where,
+      group_by,
+      having,
+      window,
+      combinations,
+      order_by,
+      limit,
+      offset | lock
     ]
   end
 
@@ -111,10 +140,32 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def delete_all(query) do
     sources = create_names(query, [])
+
+    # Call to throw exceptions on attempted CTEs/Combinations/Joins
+    cte(query, sources)
+    combinations(query)
+
     from = from(query, sources)
     where = where(query, sources)
     ["DELETE", from, where]
   end
+
+  defp combinations(%{combinations: combinations}) do
+    Enum.map(combinations, fn
+      {union_type, query} -> error!(query, "`#{union_type}` is not supported by Exandra")
+    end)
+  end
+
+  defp offset(%{offset: nil}, _sources), do: []
+
+  defp offset(%{offset: %QueryExpr{expr: _}} = query, _sources) do
+    error!(query, "`offset` is not supported by Exandra")
+  end
+
+  defp lock(%{lock: nil}, _sources), do: []
+
+  defp lock(%{lock: _expr} = query, _sources),
+    do: error!(query, "`lock` is not supported by Exandra")
 
   defp set(fields) do
     Enum.map_join(fields, ", ", fn
@@ -174,14 +225,31 @@ defmodule Exandra.Connection do
     ]
   end
 
+  defp window(%{windows: []}, _sources), do: []
+  defp window(query, _sources), do: error!(query, "window is not supported by Exandra")
+
+  defp join(%{joins: []}, _sources), do: []
+  defp join(query, _sources), do: error!(query, "join is not supported by Exandra")
+
   defp order_by_expr({dir, expr}, sources, query) do
     str = expr(expr, sources, query)
 
     case dir do
-      :asc -> str
+      :asc -> [str | " ASC"]
       :desc -> [str | " DESC"]
       _ -> error!(query, "#{dir} is not supported in ORDER BY in Exandra")
     end
+  end
+
+  defp group_by(%{group_bys: []}, _sources), do: []
+
+  defp group_by(%{group_bys: group_bys} = query, sources) do
+    [
+      " GROUP BY "
+      | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+          intersperse_map(expr, ", ", &expr(&1, sources, query))
+        end)
+    ]
   end
 
   defp boolean(_name, [], _sources, _query), do: []
@@ -206,7 +274,13 @@ defmodule Exandra.Connection do
   end
 
   defp where(filters) when is_list(filters) do
-    Enum.map_join(filters, " and ", fn {k, _} -> "#{k} = ?" end)
+    Enum.map_join(filters, " AND ", fn {k, _} -> "#{k} = ?" end)
+  end
+
+  defp having(%{havings: []}, _sources), do: []
+
+  defp having(%{havings: _} = query, _sources) do
+    error!(query, "HAVING is not supported by Exandra")
   end
 
   ## Query generation helpers
@@ -237,6 +311,10 @@ defmodule Exandra.Connection do
 
   defp paren_expr(expr, sources, query) do
     [expr(expr, sources, query)]
+  end
+
+  defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
+    ["CAST(", expr(other, sources, query), " AS ", ecto_cast_to_db(type, query), ?)]
   end
 
   defp expr(%Ecto.Query.Tagged{value: value}, sources, query) do
@@ -275,6 +353,10 @@ defmodule Exandra.Connection do
     [expr(left, sources, query), " IN (", args, ?)]
   end
 
+  defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
+    [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
+  end
+
   defp expr({:in, _, [left, right]}, sources, query) do
     [expr(left, sources, query), " = ANY(", expr(right, sources, query), ?)]
   end
@@ -288,7 +370,7 @@ defmodule Exandra.Connection do
   end
 
   defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
-    error!(query, "Cassandra adapter does not support keyword or interpolated fragments")
+    error!(query, "Exandra does not support keyword or interpolated fragments")
   end
 
   defp expr({:fragment, _, parts}, sources, query) do
@@ -298,11 +380,19 @@ defmodule Exandra.Connection do
     end)
   end
 
+  defp expr({:filter, _, _}, _sources, query) do
+    error!(query, "Exandra does not support aggregate filters")
+  end
+
   defp expr({:{}, _, elems}, sources, query) do
     [?(, intersperse_map(elems, ?,, &expr(&1, sources, query)), ?)]
   end
 
   defp expr({:count, _, []}, _sources, _query), do: "count(*)"
+
+  defp expr({:selected_as, _, [name]}, _sources, _query) do
+    [quote_name(name)]
+  end
 
   defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
     {modifier, args} =
@@ -316,13 +406,20 @@ defmodule Exandra.Connection do
         [left, right] = args
         [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
+      {:fun, "coalesce"} ->
+        error!(query, "COALESCE function is not supported by Exandra")
+
       {:fun, fun} ->
         [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
     end
   end
 
+  defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
+    ["CAST(", expr(other, sources, query), " AS ", ecto_cast_to_db(type, query), ?)]
+  end
+
   defp expr(list, _sources, query) when is_list(list) do
-    error!(query, "Array type is not supported by Cassandra")
+    error!(query, "Array type is not supported by Exandra")
   end
 
   defp expr(%Decimal{} = decimal, _sources, _query) do
@@ -344,6 +441,10 @@ defmodule Exandra.Connection do
   defp expr(literal, _sources, _query) when is_float(literal) do
     # Scylla doesn't support float cast
     ["(0 + ", Float.to_string(literal), ?)]
+  end
+
+  defp expr(expr, _sources, query) do
+    error!(query, "unsupported expression: #{inspect(expr)}")
   end
 
   defp error!(query, message) do
@@ -379,8 +480,16 @@ defmodule Exandra.Connection do
   defp intersperse_map([elem | rest], separator, mapper, acc),
     do: intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
 
-  defp select(%{select: %{fields: fields}} = query, sources) do
-    ["SELECT ", select(fields, sources, query)]
+  defp distinct(nil, _sources, _query), do: []
+  defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
+  defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+
+  defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+    error!(query, "DISTINCT with multiple columns is not supported by MySQL")
+  end
+
+  defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
+    ["SELECT ", distinct(distinct, sources, query) | select(fields, sources, query)]
   end
 
   defp select([], _sources, _query),
@@ -409,9 +518,28 @@ defmodule Exandra.Connection do
     end)
   end
 
-  defp from(%{from: %{source: {from, _schema}}}, _sources) do
-    [" FROM ", from]
+  defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
+    [" FROM ", from, Enum.map(hints, &[?\s | &1])]
   end
+
+  defp from(query, _) do
+    error!(
+      query,
+      "Scylla Adapter does not support subqueries at this time."
+    )
+  end
+
+  defp cte(
+         %{with_ctes: %WithExpr{recursive: recursive, queries: [_ | _] = queries}} = query,
+         sources
+       ) do
+    error!(
+      query,
+      "Scylla Adapter does not support cte at this time."
+    )
+  end
+
+  defp cte(_, _), do: []
 
   defp create_names(%{sources: sources}, as_prefix) do
     sources |> create_names(0, tuple_size(sources), as_prefix) |> List.to_tuple()
@@ -470,10 +598,6 @@ defmodule Exandra.Connection do
     %{rows: content, num_rows: length(content)}
   end
 
-  def column_definitions(columns) do
-    Enum.map_join(columns, ", ", &column_definition/1)
-  end
-
   defp key_definitions(columns) do
     primary_keys =
       for {_, name, _, opts} <- columns,
@@ -492,33 +616,105 @@ defmodule Exandra.Connection do
 
     case {primary_keys, clustering_keys} do
       {[], []} ->
-        "PRIMARY KEY ((#{Enum.join(partition_keys, ", ")}))"
+        "PRIMARY KEY (#{Enum.join(partition_keys, ", ")})"
 
       {[], _} ->
         "PRIMARY KEY ((#{Enum.join(partition_keys, ", ")}), #{Enum.join(clustering_keys, ", ")})"
 
       _ ->
-        "PRIMARY KEY ((#{Enum.join(primary_keys, ", ")}))"
+        "PRIMARY KEY (#{Enum.join(primary_keys, ", ")})"
     end
   end
 
-  defp column_definition({:add, name, type, _opts}) do
-    "#{quote_name(name)} #{Types.for(type)}"
+  def column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
+
+  def column_definitions(columns, alter \\ false) do
+    Enum.map_join(columns, ", ", &column_definition(&1, alter))
+  end
+
+  defp column_definition({:add, name, type, opts}, true) do
+    if Keyword.has_key?(opts, :primary_key) do
+      raise ArgumentError, "altering PRIMARY KEY columns is not supported"
+    else
+      "ADD #{quote_name(name)} #{Types.for(type)}"
+    end
+  end
+
+  defp column_definition({_op, name, %Reference{}, _opts}, _) do
+    raise RuntimeError, "Illegal reference `#{name}` Exandra does not support associations"
+  end
+
+  defp column_definition({:add, name, type, _opts}, alter) do
+    prefix = if alter, do: "ADD ", else: ""
+    prefix <> "#{quote_name(name)} #{Types.for(type)}"
+  rescue
+    _err ->
+      raise ArgumentError,
+            "unsupported type `#{inspect(type)}`. " <>
+              "The type can either be an atom, a string or a tuple of the form " <>
+              "`{:map, t}` where `t` itself follows the same conditions."
+  end
+
+  defp column_definition({:modify, name, type, _opts}, _) do
+    "ALTER #{quote_name(name)} TYPE #{Types.for(type)}"
+  end
+
+  defp column_definition({:remove, name, _type, _opts}, _) do
+    "DROP #{quote_name(name)}"
+  end
+
+  defp column_definition({:remove, name}, _) do
+    "DROP #{quote_name(name)}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
   def ddl_logs(_), do: []
+
+  def table_options(opts, clustering_opts) when is_list(opts) do
+    with_opts =
+      for {with_opt, config} <- opts, into: [] do
+        case {with_opt, config} do
+          {:caching, true} -> "caching = {'enabled': 'true'}"
+        end
+      end
+
+    " WITH " <> Enum.join(with_opts, "") <> clustering_opts
+  end
+
+  def table_options(opts, clustering_opts) when is_bitstring(opts) do
+    " " <> opts <> clustering_opts
+  end
+
+  def table_options(nil, clustering_opts) do
+    ""
+  end
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Table{} = table, columns})
       when command in [:create, :create_if_not_exists] do
     structure = column_definitions(columns) <> ", " <> key_definitions(columns)
     orderings = ordering_bys(columns)
+    with_options = table_options(table.options, orderings)
 
     guard = if command == :create_if_not_exists, do: " IF NOT EXISTS ", else: ""
 
-    "CREATE TABLE#{guard} #{quote_table(table.prefix, table.name)} (#{structure})" <>
-      orderings
+    [
+      [
+        "CREATE TABLE#{guard} #{quote_table(table.prefix, table.name)} (#{structure})" <>
+          with_options
+      ]
+    ]
+  end
+
+  @imple Ecto.Adapters.SQL.Connection
+  def execute_ddl({:alter, %Table{} = table, columns}) do
+    structure = column_definitions(columns, _modify = true)
+
+    [
+      [
+        "ALTER TABLE #{quote_table(table.prefix, table.name)} #{structure}"
+      ]
+    ]
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -526,8 +722,21 @@ defmodule Exandra.Connection do
       when command in [:drop, :drop_if_not_exists] do
     guard = if command == :drop_if_not_exists, do: " IF NOT EXISTS ", else: ""
 
-    "DROP TABLE#{guard} #{quote_table(table.prefix, table.name)}"
+    [["DROP TABLE#{guard} #{quote_table(table.prefix, table.name)}"]]
   end
+
+  @impl Ecto.Adapters.SQL.Connection
+  def execute_ddl({_command, %Constraint{}, _}),
+    do: raise(ArgumentError, "constraints are not supported by Exandra")
+
+  @impl Ecto.Adapters.SQL.Connection
+  def execute_ddl({_command, %Constraint{}}),
+    do: raise(ArgumentError, "constraints are not supported by Exandra")
+
+  @impl Ecto.Adapters.SQL.Connection
+  def execute_ddl({_command, %Index{}, _}),
+    do: raise(ArgumentError, "indexes are not supported by Exandra")
+    
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl(string) when is_binary(string), do: [string]
@@ -565,4 +774,10 @@ defmodule Exandra.Connection do
 
   defp ordering_by(:asc), do: "ASC"
   defp ordering_by(:desc), do: "DESC"
+
+  defp ecto_cast_to_db(:binary_id, _query), do: "uuid"
+  defp ecto_cast_to_db(:decimal, _query), do: "decimal"
+  defp ecto_cast_to_db(:id, _query), do: "uuid"
+  defp ecto_cast_to_db(:string, _query), do: "text"
+  defp ecto_cast_to_db(:uuid, _query), do: "uuid"
 end

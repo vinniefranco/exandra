@@ -20,8 +20,9 @@ defmodule Exandra.Types do
   def for(:integer), do: :int
   def for(:string), do: :text
   def for(:binary), do: :blob
+  def for(:map), do: :text
 
-  def for(t) when t in [:naive_datetime, :utc_datetime, :utc_datetime_usec],
+  def for(t) when t in [:datetime, :naive_datetime, :utc_datetime, :utc_datetime_usec],
     do: :timestamp
 
   def for({:parameterized, Ecto.Embedded, _}), do: :text
