@@ -8,7 +8,8 @@ defmodule Exandra.MixProject do
       app: :exandra,
       version: "0.1.0",
       elixir: "~> 1.14",
-      description: "Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. It is still in its very early stages and is not yet ready for production use. Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a backend for their Elixir applications.",
+      description:
+        "Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. It is still in its very early stages and is not yet ready for production use. Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a backend for their Elixir applications.",
       package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),

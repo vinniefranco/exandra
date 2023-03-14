@@ -838,7 +838,7 @@ defmodule Exandra.ConnectionTest do
          {:modify, :cost, :integer, [null: false, default: nil]},
          {:modify, :status, :string, from: :integer},
          {:remove, :summary},
-         {:remove, :body, :text, []},
+         {:remove, :body, :text, []}
        ]}
 
     assert execute_ddl(alter) == [
@@ -872,7 +872,8 @@ defmodule Exandra.ConnectionTest do
   end
 
   test "alter table with primary key" do
-    alter = {:alter, table(:posts), [{:add, :my_pk, :uuid, [primary_key: true, clustering_key: true]}]}
+    alter =
+      {:alter, table(:posts), [{:add, :my_pk, :uuid, [primary_key: true, clustering_key: true]}]}
 
     assert_raise ArgumentError, "altering PRIMARY KEY columns is not supported", fn ->
       execute_ddl(alter)
@@ -888,6 +889,7 @@ defmodule Exandra.ConnectionTest do
 
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
+
     assert_raise ArgumentError, "indexes are not supported by Exandra", fn ->
       execute_ddl(drop)
     end

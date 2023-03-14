@@ -730,7 +730,6 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({_command, %Index{}, _}),
     do: raise(ArgumentError, "indexes are not supported by Exandra")
-    
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl(string) when is_binary(string), do: [string]
