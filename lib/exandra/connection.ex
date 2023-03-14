@@ -238,7 +238,7 @@ defmodule Exandra.Connection do
     ]
   end
 
-  defp set(fields), do: Enum.map_join(fields, ", ", & "#{&1} = ?")
+  defp set(fields), do: Enum.map_join(fields, ", ", &"#{&1} = ?")
 
   @impl Ecto.Adapters.SQL.Connection
   def to_constraints(_, _), do: []
@@ -348,8 +348,6 @@ defmodule Exandra.Connection do
     like: " LIKE "
   ]
 
-  @binary_ops Keyword.keys(binary_ops)
-
   Enum.map(binary_ops, fn {op, str} ->
     defp handle_call(unquote(op), 2), do: {:binary_op, unquote(str)}
   end)
@@ -429,10 +427,6 @@ defmodule Exandra.Connection do
       {:fun, fun} ->
         [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
     end
-  end
-
-  defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
-    ["CAST(", expr(other, sources, query), " AS ", ecto_cast_to_db(type, query), ?)]
   end
 
   defp expr(list, _sources, query) when is_list(list) do
@@ -531,7 +525,6 @@ defmodule Exandra.Connection do
         end
       end
 
-
     " WITH #{clustering_opts}" <> Enum.join(with_opts, " AND ")
   end
 
@@ -614,11 +607,11 @@ defmodule Exandra.Connection do
   defp key_join([%{opts: opts} | _] = keys) do
     keys_join_by_name(
       cond do
-        opts[:primary_order] ->
-          Enum.sort_by(keys, fn key -> key.opts[:primary_order] end)
+        opts[:primary_key_order] ->
+          Enum.sort_by(keys, fn key -> key.opts[:primary_key_order] end)
 
-        opts[:partition_order] ->
-          Enum.sort_by(keys, fn key -> key.opts[:partition_order] end)
+        opts[:partition_key_order] ->
+          Enum.sort_by(keys, fn key -> key.opts[:partition_key_order] end)
 
         true ->
           keys
@@ -685,20 +678,28 @@ defmodule Exandra.Connection do
   defp quote_table(name), do: [name]
 
   defp ordering_bys(columns) do
-    order_bys =
-      for {_, name, _, opts} <- columns,
-          opts[:cluster_ordering] && opts[:primary_key],
-          into: [],
-          do: "#{name} #{ordering_by(opts[:cluster_ordering])}"
-
-    case order_bys do
+    columns
+    |> columns_with_opts(:cluster_ordering)
+    |> cluster_key_sort()
+    |> Enum.map(&"#{&1.name} #{ordering_by(&1.opts[:cluster_ordering])}")
+    |> case do
       [] ->
         ""
 
       orderings ->
-        " WITH CLUSTERING ORDER BY (#{Enum.join(orderings, ",")})"
+        " WITH CLUSTERING ORDER BY (#{Enum.join(orderings, ", ")})"
     end
   end
+
+  def cluster_key_sort([%{opts: opts} | _] = cols) do
+    if opts[:cluster_key_order] do
+      Enum.sort_by(cols, fn key -> key.opts[:cluster_key_order] end)
+    else
+      cols
+    end
+  end
+
+  def cluster_key_sort([]), do: []
 
   defp ordering_by(:asc), do: "ASC"
   defp ordering_by(:desc), do: "DESC"

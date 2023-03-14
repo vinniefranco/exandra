@@ -777,8 +777,8 @@ defmodule Exandra.ConnectionTest do
       create =
         {:create, table(:cycling),
          [
-           {:add, :race_year, :integer, [primary_key: true, primary_order: 1]},
-           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
+           {:add, :race_year, :integer, [primary_key: true, primary_key_order: 1]},
+           {:add, :race_name, :text, [primary_key: true, primary_key_order: 0]},
            {:add, :cyclist_name, :text, []},
            {:add, :rank, :integer, [partition_key: true]}
          ]}
@@ -800,11 +800,11 @@ defmodule Exandra.ConnectionTest do
       create =
         {:create, table(:cycling),
          [
-           {:add, :race_year, :integer, [primary_key: true, primary_order: 1]},
-           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
+           {:add, :race_year, :integer, [primary_key: true, primary_key_order: 1]},
+           {:add, :race_name, :text, [primary_key: true, primary_key_order: 0]},
            {:add, :cyclist_name, :text, []},
-           {:add, :rank, :integer, [partition_key: true, partition_order: 1]},
-           {:add, :region, :text, [partition_key: true, partition_order: 0]}
+           {:add, :rank, :integer, [partition_key: true, partition_key_order: 1]},
+           {:add, :region, :text, [partition_key: true, partition_key_order: 0]}
          ]}
 
       assert execute_ddl(create) == [
@@ -821,14 +821,14 @@ defmodule Exandra.ConnectionTest do
              ]
     end
 
-    test "supports clustering order by" do
-
+    test "support clustering order by" do
       create =
         {:create, table(:cycling),
          [
-           {:add, :race_year, :integer, [primary_key: true, primary_order: 1, cluster_ordering: :desc]},
-           {:add, :race_name, :text, [primary_key: true, primary_order: 0]},
-           {:add, :cyclist_name, :text, []},
+           {:add, :race_year, :integer,
+            [primary_key: true, primary_key_order: 1, cluster_ordering: :desc]},
+           {:add, :race_name, :text, [primary_key: true, primary_key_order: 0]},
+           {:add, :cyclist_name, :text, []}
          ]}
 
       assert execute_ddl(create) == [
@@ -842,6 +842,36 @@ defmodule Exandra.ConnectionTest do
                |> remove_newlines
              ]
 
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer,
+            [
+              primary_key: true,
+              primary_key_order: 1,
+              cluster_ordering: :desc,
+              cluster_key_order: 1
+            ]},
+           {:add, :race_name, :text,
+            [
+              primary_key: true,
+              primary_key_order: 0,
+              cluster_ordering: :asc,
+              cluster_key_order: 0
+            ]},
+           {:add, :cyclist_name, :text, []}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               PRIMARY KEY (race_name, race_year)) WITH CLUSTERING ORDER BY (race_name ASC, race_year DESC)
+               """
+               |> remove_newlines
+             ]
     end
   end
 
@@ -882,8 +912,7 @@ defmodule Exandra.ConnectionTest do
     create =
       {:create, table(:posts),
        [
-         {:add, :published_at, :naive_datetime,
-          [precision: 3, partition_key: true]},
+         {:add, :published_at, :naive_datetime, [precision: 3, partition_key: true]},
          {:add, :submitted_at, :naive_datetime, [primary_key: true]}
        ]}
 
