@@ -14,10 +14,11 @@ defmodule Exandra.QueryingTest do
       field(:my_string, :string)
       field(:my_dt, :utc_datetime)
       field(:my_bool, :boolean)
+      field(:my_udt, Exandra.Types.UDT, type: :fullname)
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_string, :my_bool])
+      cast(%__MODULE__{}, attrs, [:my_string, :my_bool, :my_udt])
     end
   end
 
@@ -35,7 +36,7 @@ defmodule Exandra.QueryingTest do
     end
 
     test "where" do
-      assert {"SELECT id, my_string, my_dt, my_bool FROM my_schema WHERE my_bool = TRUE LIMIT 1",
+      assert {"SELECT id, my_string, my_dt, my_bool, my_udt FROM my_schema WHERE my_bool = TRUE LIMIT 1",
               []} =
                Schema
                |> where([s], s.my_bool == true)
@@ -44,7 +45,7 @@ defmodule Exandra.QueryingTest do
 
       nowish = DateTime.utc_now()
 
-      assert {"SELECT id, my_string, my_dt, my_bool FROM my_schema WHERE my_dt < ? LIMIT 1",
+      assert {"SELECT id, my_string, my_dt, my_bool, my_udt FROM my_schema WHERE my_dt < ? LIMIT 1",
               [{"timestamp", %DateTime{}}]} =
                Schema
                |> where([s], s.my_dt < ^nowish)
@@ -57,15 +58,22 @@ defmodule Exandra.QueryingTest do
       record = %Schema{id: uuid, my_bool: false}
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
-        assert "UPDATE my_schema SET my_bool = ? WHERE id = ?" = stmt
+        assert "UPDATE my_schema SET my_bool = ?, my_udt = ? WHERE id = ?" = stmt
 
-        assert [{"boolean", true}, {"uuid", ^uuid}] = values
+        assert [
+                 {"boolean", true},
+                 {"fullname", %{"first_name" => "frank", "last_name" => "beans"}},
+                 {"uuid", ^uuid}
+               ] = values
 
         {:ok, %Xandra.Void{}}
       end)
 
       record
-      |> Ecto.Changeset.cast(%{my_bool: "true"}, [:my_bool])
+      |> Ecto.Changeset.cast(
+        %{my_bool: "true", my_udt: %{"first_name" => "frank", "last_name" => "beans"}},
+        [:my_bool, :my_udt]
+      )
       |> Exandra.TestRepo.update()
     end
 

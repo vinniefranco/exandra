@@ -3,9 +3,11 @@ defmodule Exandra.ConnectionTest do
 
   import Ecto.Query
 
-  alias Ecto.Queryable
-  alias Exandra.Connection, as: SQL
   alias Ecto.Migration.Reference
+  alias Ecto.Queryable
+
+  alias Exandra.Connection, as: SQL
+  alias Exandra.Types
 
   defmodule Schema do
     use Ecto.Schema
@@ -673,14 +675,81 @@ defmodule Exandra.ConnectionTest do
                  end
   end
 
-  test "create table with caching" do
+  test "create table with UDT freezes column" do
     create =
-      {:create, table(:posts, options: [caching: true]),
+      {:create, table(:posts),
+       [
+         {:add, :id, :uuid, [primary_key: true]},
+         {:add, :created_at, :datetime, []},
+         {:add, :name, Types.UDT, [type: :fullname]}
+       ]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE posts (id uuid, created_at timestamp, name FROZEN<fullname>, PRIMARY KEY (id))|
+             ]
+  end
+
+  test "create table with counter" do
+    create =
+      {:create, table(:post_likes),
+       [
+         {:add, :region_id, :uuid, [primary_key: true]},
+         {:add, :post_id, :uuid, [primary_key: true]},
+         {:add, :total, :counter, []}
+       ]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE post_likes (region_id uuid, post_id uuid, total counter, PRIMARY KEY (region_id, post_id))|
+             ]
+  end
+
+  test "create table UDT without type option raises" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :uuid, [primary_key: true]},
+         {:add, :created_at, :datetime, []},
+         {:add, :name, Types.UDT, []}
+       ]}
+
+    assert_raise ArgumentError, "must define :type option for UDT column", fn ->
+      execute_ddl(create)
+    end
+  end
+
+  test "create table with various options" do
+    create =
+      {:create, table(:posts, options: [caching: %{enabled: true}]),
        [{:add, :id, :uuid, [primary_key: true]}]}
 
     assert execute_ddl(create) ==
              [
                ~s|CREATE TABLE posts (id uuid, PRIMARY KEY (id)) WITH caching = {'enabled': 'true'}|
+             ]
+
+    create =
+      {:create, table(:posts, options: [caching: %{keys: "NONE", rows_per_partition: 120}]),
+       [{:add, :id, :uuid, [primary_key: true]}]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE posts (id uuid, PRIMARY KEY (id)) WITH caching = {'keys': 'NONE', 'rows_per_partition': '120'}|
+             ]
+
+    create =
+      {:create,
+       table(:posts,
+         options: [
+           caching: %{keys: "NONE", rows_per_partition: 120},
+           compactions: %{class: "SizeTieredCompantionStrategy", min_threshold: 4}
+         ]
+       ), [{:add, :id, :uuid, [primary_key: true]}]}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE TABLE posts (id uuid, PRIMARY KEY (id)) WITH caching = {'keys': 'NONE', 'rows_per_partition': '120'} AND compactions = {'class': 'SizeTieredCompantionStrategy', 'min_threshold': '4'}|
              ]
   end
 
