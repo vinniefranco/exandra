@@ -518,12 +518,7 @@ defmodule Exandra.Connection do
   def ddl_logs(_), do: []
 
   def table_options(opts, clustering_opts) when is_list(opts) do
-    with_opts =
-      for {with_opt, config} <- opts, into: [] do
-        case {with_opt, config} do
-          {:caching, true} -> "caching = {'enabled': 'true'}"
-        end
-      end
+    with_opts = for {key, config} <- opts, into: [], do: "#{key} = #{sorta_jsonify_opts(config)}"
 
     " WITH #{clustering_opts}" <> Enum.join(with_opts, " AND ")
   end
@@ -534,6 +529,12 @@ defmodule Exandra.Connection do
 
   def table_options(nil, clustering_opts) do
     clustering_opts
+  end
+
+  def sorta_jsonify_opts(opts) do
+    opts = Enum.map_join(opts, ", ", fn {key, val} -> "'#{key}': '#{val}'" end)
+
+    "{" <> opts <> "}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -639,7 +640,7 @@ defmodule Exandra.Connection do
     if Keyword.has_key?(opts, :primary_key) do
       raise ArgumentError, "altering PRIMARY KEY columns is not supported"
     else
-      "ADD #{quote_name(name)} #{Types.for(type)}"
+      "ADD #{quote_name(name)} #{Types.for(type, opts)}"
     end
   end
 
@@ -647,10 +648,13 @@ defmodule Exandra.Connection do
     raise RuntimeError, "Illegal reference `#{name}` Exandra does not support associations"
   end
 
-  defp column_definition({:add, name, type, _opts}, alter) do
+  defp column_definition({:add, name, type, opts}, alter) do
     prefix = if alter, do: "ADD ", else: ""
-    prefix <> "#{quote_name(name)} #{Types.for(type)}"
+    prefix <> "#{quote_name(name)} #{Types.for(type, opts)}"
   rescue
+    err in ArgumentError ->
+      reraise err, __STACKTRACE__
+
     _err ->
       raise ArgumentError,
             "unsupported type `#{inspect(type)}`. " <>
@@ -658,8 +662,8 @@ defmodule Exandra.Connection do
               "`{:map, t}` where `t` itself follows the same conditions."
   end
 
-  defp column_definition({:modify, name, type, _opts}, _) do
-    "ALTER #{quote_name(name)} TYPE #{Types.for(type)}"
+  defp column_definition({:modify, name, type, opts}, _) do
+    "ALTER #{quote_name(name)} TYPE #{Types.for(type, opts)}"
   end
 
   defp column_definition({:remove, name, _type, _opts}, _) do
