@@ -442,6 +442,7 @@ defmodule Exandra.Connection do
   defp expr({"boolean", true}, _sources, _query), do: "TRUE"
   defp expr({"int", val}, _sources, _query), do: "#{val}"
   defp expr({"uuid", binary_id}, _sources, _query), do:  "'" <> binary_id <> "'"
+  defp expr({"text", string}, _sources, _query), do:  "'" <> string <> "'"
 
   defp expr(literal, _sources, _query) when is_binary(literal) do
     [?', escape_string(literal), ?']
