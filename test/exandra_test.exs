@@ -17,6 +17,7 @@ defmodule ExandraTest do
       field(:my_udt, UDT, type: :fullname)
       field(:my_list, {:array, :string})
       field(:my_utc, :utc_datetime)
+      field(:my_integer, :integer)
       field(:my_bool, :boolean)
 
       timestamps(type: :utc_datetime)
@@ -31,6 +32,7 @@ defmodule ExandraTest do
         :my_xset,
         :my_list,
         :my_utc,
+        :my_integer,
         :my_bool
       ])
     end
@@ -46,12 +48,13 @@ defmodule ExandraTest do
       nowish = DateTime.utc_now()
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_bool, my_enum, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
+        assert "INSERT INTO my_schema (my_bool, my_enum, my_integer, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
                  stmt
 
         assert [
                  {"boolean", false},
                  {"text", "foo"},
+                 {"int", 4},
                  {"list<text>", ~w(a b c)},
                  {"text", ~s({"a":"b"})},
                  {"timestamp", %DateTime{}},
@@ -98,7 +101,8 @@ defmodule ExandraTest do
                  my_xset: [1, 2, 3],
                  my_list: ["a", "b", "c"],
                  my_utc: nowish,
-                 my_bool: false
+                 my_bool: false,
+                 my_integer: 4
                }
                |> Schema.changeset()
                |> Exandra.TestRepo.insert()
@@ -132,7 +136,7 @@ defmodule ExandraTest do
 
     test "returns hydrated Schema structs when pages exist" do
       expected_stmt =
-        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_udt, my_list, my_utc, my_bool, inserted_at, updated_at FROM my_schema"
+        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_udt, my_list, my_utc, my_integer, my_bool, inserted_at, updated_at FROM my_schema"
 
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
@@ -147,7 +151,7 @@ defmodule ExandraTest do
       |> expect(:stream_pages!, fn _conn, _, _opts, _fart ->
         [
           %Xandra.Page{
-            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_bool),
+            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool),
             content: [
               [
                 row1_id,
@@ -158,6 +162,7 @@ defmodule ExandraTest do
                 %{"first_name" => "frank", "last_name" => "beans"},
                 ~w(a b c),
                 nowish,
+                4,
                 true,
                 nowish,
                 nowish
@@ -165,7 +170,7 @@ defmodule ExandraTest do
             ]
           },
           %Xandra.Page{
-            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_bool),
+            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool),
             content: [
               [
                 row2_id,
@@ -176,6 +181,7 @@ defmodule ExandraTest do
                 %{"first_name" => "frank", "last_name" => "beans"},
                 ~w(1 2 3),
                 nowish,
+                5,
                 false,
                 nowish,
                 nowish
@@ -196,7 +202,8 @@ defmodule ExandraTest do
                  my_xset: ^first_set,
                  my_list: ["a", "b", "c"],
                  my_udt: %{"first_name" => "frank", "last_name" => "beans"},
-                 my_bool: true
+                 my_bool: true,
+                 my_integer: 4
                },
                %Schema{
                  id: ^row2_id,
@@ -205,7 +212,8 @@ defmodule ExandraTest do
                  my_xset: ^second_set,
                  my_list: ["1", "2", "3"],
                  my_udt: %{"first_name" => "frank", "last_name" => "beans"},
-                 my_bool: false
+                 my_bool: false,
+                 my_integer: 5
                }
              ] = Exandra.TestRepo.all(Schema)
     end

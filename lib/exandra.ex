@@ -14,6 +14,7 @@ defmodule Exandra do
   @impl Ecto.Adapter
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
   def dumpers(:boolean, _type), do: [&encode_bool/1]
+  def dumpers(:integer, _type), do: [&encode_integer/1]
   def dumpers(:map, _type), do: [&encode_map/1]
   def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
   def dumpers(:string, _type), do: [&encode_string/1]
@@ -46,9 +47,10 @@ defmodule Exandra do
   end
 
   @doc false
-  def encode_map(map) do
-    {:ok, {"text", Jason.encode!(map)}}
-  end
+  def encode_integer(val), do: {:ok, {"int", val}}
+
+  @doc false
+  def encode_map(map), do: {:ok, {"text", Jason.encode!(map)}}
 
   @doc false
   def encode_string(string), do: {:ok, {"text", "#{string}"}}
