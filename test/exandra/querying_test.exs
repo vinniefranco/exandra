@@ -74,6 +74,23 @@ defmodule Exandra.QueryingTest do
                |> to_xanrda_sql(:all)
     end
 
+    test "create" do
+      expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
+
+        assert [
+                 {"text", "string"},
+                 {"uuid", _},
+               ] = values
+
+        {:ok, %Xandra.Void{}}
+      end)
+
+      %Schema{}
+      |> Ecto.Changeset.cast(%{my_string: "string"}, [:my_string])
+      |> Exandra.TestRepo.insert()
+    end
+
     test "update" do
       uuid = Ecto.UUID.generate()
       record = %Schema{id: uuid, my_bool: false}

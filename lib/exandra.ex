@@ -16,6 +16,7 @@ defmodule Exandra do
   def dumpers(:boolean, _type), do: [&encode_bool/1]
   def dumpers(:map, _type), do: [&encode_map/1]
   def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
+  def dumpers(:string, _type), do: [&encode_string/1]
   def dumpers(:utc_datetime, _type), do: [&encode_datetime/1]
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
 
@@ -48,6 +49,9 @@ defmodule Exandra do
   def encode_map(map) do
     {:ok, {"text", Jason.encode!(map)}}
   end
+
+  @doc false
+  def encode_string(string), do: {:ok, {"text", "#{string}"}}
 
   @doc false
   def encode_uuid(uuid) do
