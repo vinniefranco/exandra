@@ -17,12 +17,13 @@ defmodule Exandra do
   def dumpers(:integer, _type), do: [&encode_integer/1]
   def dumpers(:map, _type), do: [&encode_map/1]
   def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
-  def dumpers(:string, _type), do: [&encode_string/1]
-  def dumpers(:utc_datetime, _type), do: [&encode_datetime/1]
-  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
 
   def dumpers(:string, {:parameterized, Ecto.Enum, _} = type),
     do: [&encode_enum(Ecto.Type.embedded_dump(type, &1, :string))]
+
+  def dumpers(:string, _type), do: [&encode_string/1]
+  def dumpers(:utc_datetime, _type), do: [&encode_datetime/1]
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
 
   def dumpers({:array, type}, dumper),
     do: [&encode_array(Ecto.Type.embedded_dump(type, &1, dumper), type)]
@@ -156,20 +157,8 @@ defmodule Exandra do
   def put_source(opts, _), do: opts
 end
 
-defimpl String.Chars, for: Xandra.Simple do
+defimpl String.Chars, for: [Xandra.Simple, Xandra.Prepared, Xandra.Batch] do
   def to_string(simple) do
     inspect(simple)
-  end
-end
-
-defimpl String.Chars, for: Xandra.Prepared do
-  def to_string(prepared) do
-    inspect(prepared)
-  end
-end
-
-defimpl String.Chars, for: Xandra.Batch do
-  def to_string(prepared) do
-    inspect(prepared)
   end
 end
