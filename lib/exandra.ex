@@ -70,6 +70,7 @@ defmodule Exandra do
   def loaders(:x_map, type), do: [&Ecto.Type.embedded_load(type, &1, :x_map), type]
   def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
   def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
+  def loaders(:map, type), do: [&Ecto.Type.load(type, Jason.decode!(&1 || "null"))]
   def loaders(_, type), do: [type]
 
   # Catch strings

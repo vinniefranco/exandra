@@ -155,7 +155,7 @@ defmodule ExandraTest do
             content: [
               [
                 row1_id,
-                %{},
+                ~s({"a":"b"}),
                 "foo",
                 %{"this" => 1},
                 [1],
@@ -174,7 +174,7 @@ defmodule ExandraTest do
             content: [
               [
                 row2_id,
-                %{"a" => "c"},
+                ~s({"a":"b"}),
                 "bar",
                 %{"that" => 2},
                 [1, 2, 3],
@@ -207,7 +207,7 @@ defmodule ExandraTest do
                },
                %Schema{
                  id: ^row2_id,
-                 my_map: %{"a" => "c"},
+                 my_map: %{"a" => "b"},
                  my_xmap: %{"that" => 2},
                  my_xset: ^second_set,
                  my_list: ["1", "2", "3"],
