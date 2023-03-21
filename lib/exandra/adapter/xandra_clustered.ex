@@ -15,7 +15,6 @@ defmodule Exandra.Adapter.XandraClustered do
   end
 
   def execute(conn, stmt) do
-    IO.inspect(stmt, label: "execute/2")
     Xandra.execute(conn, stmt)
   end
 
@@ -28,8 +27,6 @@ defmodule Exandra.Adapter.XandraClustered do
   end
 
   def stream_pages!(cluster, query, params, opts) do
-    IO.inspect(query, label: "stream_pages/2")
-    IO.inspect(params, label: "stream_pages/2")
     Xandra.Cluster.stream_pages!(cluster, query, params, opts)
   end
 end
