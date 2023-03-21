@@ -80,7 +80,7 @@ defmodule Exandra.QueryingTest do
 
         assert [
                  {"text", "string"},
-                 {"uuid", _},
+                 {"uuid", _}
                ] = values
 
         {:ok, %Xandra.Void{}}
@@ -149,7 +149,7 @@ defmodule Exandra.QueryingTest do
         {:ok, %Xandra.Prepared{}}
       end)
       |> expect(:stream_pages!, fn _conn, %Xandra.Prepared{}, values, _adapter ->
-        assert [{"uuid", ^uuid}] = values
+        assert [^uuid] = values
         []
       end)
 

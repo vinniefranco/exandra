@@ -20,7 +20,8 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
     with {:ok, %Prepared{} = prepared} <- Adapter.prepare(cluster, stmt, opts) do
-      execute(cluster, prepared, params, opts)
+      values = Enum.map(params, fn {_, value} -> value end)
+      execute(cluster, prepared, values, opts)
     end
   end
 

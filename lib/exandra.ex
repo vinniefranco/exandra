@@ -28,6 +28,8 @@ defmodule Exandra do
   def dumpers({:array, type}, dumper),
     do: [&encode_array(Ecto.Type.embedded_dump(type, &1, dumper), type)]
 
+  def dumpers(_, Ecto.UUID), do: [&encode_uuid(Ecto.Type.dump(Ecto.UUID, &1))]
+
   def dumpers(_, type), do: [type]
 
   @doc false
@@ -57,6 +59,10 @@ defmodule Exandra do
   def encode_string(string), do: {:ok, {"text", "#{string}"}}
 
   @doc false
+  def encode_uuid({:ok, uuid}) do
+    {:ok, {"uuid", uuid}}
+  end
+
   def encode_uuid(uuid) do
     {:ok, {"uuid", uuid}}
   end
