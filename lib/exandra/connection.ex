@@ -20,14 +20,14 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
     with {:ok, %Prepared{} = prepared} <- Adapter.prepare(cluster, stmt, opts) do
-      values = Enum.map(params, fn {_, value} -> value end)
-      execute(cluster, prepared, values, opts)
+      execute(cluster, prepared, params, opts)
     end
   end
 
   @impl Ecto.Adapters.SQL.Connection
   def execute(cluster, query, params, opts) do
-    stream = Adapter.stream_pages!(cluster, query, params, opts)
+    values = Enum.map(params, fn {_, value} -> value end)
+    stream = Adapter.stream_pages!(cluster, query, values, opts)
 
     result =
       Enum.reduce_while(stream, %{rows: [], num_rows: 0}, fn
