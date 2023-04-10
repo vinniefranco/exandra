@@ -81,7 +81,7 @@ defmodule Exandra.Connection do
     sources = create_names(query, as_prefix)
 
     cte = cte(query, sources)
-    from = from(query, sources)
+    {from, hints} = from(query, sources)
     select = select(query, sources)
     join = join(query, sources)
     where = where(query, sources)
@@ -106,7 +106,9 @@ defmodule Exandra.Connection do
       combinations,
       order_by,
       limit,
-      offset | lock
+      offset, 
+      lock |
+      hints
     ]
   end
 
@@ -139,7 +141,7 @@ defmodule Exandra.Connection do
     cte(query, sources)
     combinations(query)
 
-    from = from(query, sources)
+    {from, _hints} = from(query, sources)
     where = where(query, sources)
     ["DELETE", from, where]
   end
@@ -183,7 +185,11 @@ defmodule Exandra.Connection do
   end
 
   defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
-    [" FROM ", from, Enum.map(hints, &[?\s | &1])]
+    {
+
+    [" FROM ", from],
+    Enum.map(hints, &[?\s | &1])
+      }
   end
 
   defp from(query, _) do
