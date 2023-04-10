@@ -91,9 +91,10 @@ defmodule Exandra.ConnectionTest do
       Schema
       |> from(hints: ["ALLOW FILTERING", "PER PARTITION LIMIT 1"])
       |> select([r], r.x)
+      |> where([r], r.y == 7)
       |> plan()
 
-    assert all(query) == "SELECT x FROM schema ALLOW FILTERING PER PARTITION LIMIT 1"
+    assert all(query) == "SELECT x FROM schema WHERE y = 7 ALLOW FILTERING PER PARTITION LIMIT 1"
   end
 
   test "CTE" do
