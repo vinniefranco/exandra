@@ -8,13 +8,13 @@ NOTE: This library is solely focused on integrating Ecto, and assumes Xandra is 
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+The package can be installed
 by adding `exandra` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:exandra, "~> 0.1.0"}
+    {:exandra, "~> 0.1.140"}
   ]
 end
 ```
