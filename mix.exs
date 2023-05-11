@@ -20,7 +20,7 @@ defmodule Exandra.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: []
     ]
   end
 
@@ -38,9 +38,10 @@ defmodule Exandra.MixProject do
       {:ecto, "~> 3.9"},
       {:ecto_sql, "~> 3.9"},
       {:jason, "~> 1.4"},
+      {:xandra, "~> 0.15.0"},
+
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},
-      {:xandra, github: "vinniefranco/xandra", branch: "bump-deps"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.10", only: :test}
