@@ -35,8 +35,8 @@ defmodule Exandra.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto, "~> 3.9"},
-      {:ecto_sql, "~> 3.9"},
+      {:ecto, "~> 3.10"},
+      {:ecto_sql, "~> 3.10"},
       {:jason, "~> 1.4"},
       {:xandra, "~> 0.15.0"},
 
@@ -44,7 +44,7 @@ defmodule Exandra.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.16.1", only: :test},
       {:ex_doc, "~> 0.29", only: :dev, runtime: false}
     ]
   end

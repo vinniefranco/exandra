@@ -2,7 +2,7 @@ defmodule Exandra.Connection do
   @behaviour Ecto.Adapters.SQL.Connection
 
   alias Ecto.Migration.{Constraint, Index, Reference, Table}
-  alias Ecto.Query.{BooleanExpr, QueryExpr, WithExpr}
+  alias Ecto.Query.{BooleanExpr, LimitExpr, QueryExpr, WithExpr}
   alias Exandra.{Adapter, Types}
   alias Xandra.Prepared
 
@@ -106,9 +106,9 @@ defmodule Exandra.Connection do
       combinations,
       order_by,
       limit,
-      offset, 
-      lock |
-      hints
+      offset,
+      lock
+      | hints
     ]
   end
 
@@ -186,10 +186,9 @@ defmodule Exandra.Connection do
 
   defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
     {
-
-    [" FROM ", from],
-    Enum.map(hints, &[?\s | &1])
-      }
+      [" FROM ", from],
+      Enum.map(hints, &[?\s | &1])
+    }
   end
 
   defp from(query, _) do
@@ -224,8 +223,9 @@ defmodule Exandra.Connection do
 
   defp limit(%{limit: nil}, _sources), do: []
 
-  defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
-    [" LIMIT " | expr(expr, sources, query)]
+  defp limit(%{limit: %struct{expr: expr}} = query, sources)
+       when struct in [LimitExpr, QueryExpr] do
+    [" LIMIT ", expr(expr, sources, query)]
   end
 
   defp offset(%{offset: nil}, _sources), do: []
@@ -448,8 +448,8 @@ defmodule Exandra.Connection do
   defp expr({"boolean", false}, _sources, _query), do: "FALSE"
   defp expr({"boolean", true}, _sources, _query), do: "TRUE"
   defp expr({"int", val}, _sources, _query), do: "#{val}"
-  defp expr({"uuid", binary_id}, _sources, _query), do:  "'" <> binary_id <> "'"
-  defp expr({"text", string}, _sources, _query), do:  "'" <> string <> "'"
+  defp expr({"uuid", binary_id}, _sources, _query), do: "'" <> binary_id <> "'"
+  defp expr({"text", string}, _sources, _query), do: "'" <> string <> "'"
 
   defp expr(literal, _sources, _query) when is_binary(literal) do
     [?', escape_string(literal), ?']
