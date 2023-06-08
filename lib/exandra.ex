@@ -14,6 +14,7 @@ defmodule Exandra do
   @impl Ecto.Adapter
   def dumpers(:binary_id, _type), do: [&encode_uuid/1]
   def dumpers(:boolean, _type), do: [&encode_bool/1]
+  def dumpers(:decimal, _type), do: [&encode_decimal/1]
   def dumpers(:integer, _type), do: [&encode_integer/1]
   def dumpers(:map, _type), do: [&encode_map/1]
   def dumpers(:naive_datetime, _type), do: [&encode_datetime/1]
@@ -37,6 +38,9 @@ defmodule Exandra do
 
   @doc false
   def encode_bool(bool), do: {:ok, {"boolean", bool}}
+
+  @doc false
+  def encode_decimal(decimal), do: {:ok, {"decimal", decimal}}
 
   @doc false
   def encode_datetime(datetime), do: {:ok, {"timestamp", datetime}}
