@@ -19,6 +19,7 @@ defmodule ExandraTest do
       field(:my_utc, :utc_datetime)
       field(:my_integer, :integer)
       field(:my_bool, :boolean)
+      field(:my_decimal, :decimal)
 
       timestamps(type: :utc_datetime)
     end
@@ -33,7 +34,8 @@ defmodule ExandraTest do
         :my_list,
         :my_utc,
         :my_integer,
-        :my_bool
+        :my_bool,
+        :my_decimal
       ])
     end
   end
@@ -44,15 +46,17 @@ defmodule ExandraTest do
 
   describe "insert/1" do
     test "it coerces as expected for the Xandra driver" do
+      decimal = Decimal.new("1.0")
       set = MapSet.new([1, 2, 3])
       nowish = DateTime.utc_now()
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
-        assert "INSERT INTO my_schema (my_bool, my_enum, my_integer, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
+        assert "INSERT INTO my_schema (my_bool, my_decimal, my_enum, my_integer, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
                  stmt
 
         assert [
                  {"boolean", false},
+                 {"decimal", ^decimal},
                  {"text", "foo"},
                  {"int", 4},
                  {"list<text>", ~w(a b c)},
@@ -102,6 +106,7 @@ defmodule ExandraTest do
                  my_list: ["a", "b", "c"],
                  my_utc: nowish,
                  my_bool: false,
+                 my_decimal: Decimal.new("1.0"),
                  my_integer: 4
                }
                |> Schema.changeset()
@@ -136,7 +141,7 @@ defmodule ExandraTest do
 
     test "returns hydrated Schema structs when pages exist" do
       expected_stmt =
-        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_udt, my_list, my_utc, my_integer, my_bool, inserted_at, updated_at FROM my_schema"
+        "SELECT id, my_map, my_enum, my_xmap, my_xset, my_udt, my_list, my_utc, my_integer, my_bool, my_decimal, inserted_at, updated_at FROM my_schema"
 
       row1_id = Ecto.UUID.generate()
       row2_id = Ecto.UUID.generate()
@@ -151,7 +156,8 @@ defmodule ExandraTest do
       |> expect(:stream_pages!, fn _conn, _, _opts, _fart ->
         [
           %Xandra.Page{
-            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool),
+            columns:
+              ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool my_decimal),
             content: [
               [
                 row1_id,
@@ -164,13 +170,15 @@ defmodule ExandraTest do
                 nowish,
                 4,
                 true,
+                Decimal.new("1.23"),
                 nowish,
                 nowish
               ]
             ]
           },
           %Xandra.Page{
-            columns: ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool),
+            columns:
+              ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool my_decimal),
             content: [
               [
                 row2_id,
@@ -183,6 +191,7 @@ defmodule ExandraTest do
                 nowish,
                 5,
                 false,
+                Decimal.new("1.23"),
                 nowish,
                 nowish
               ]
