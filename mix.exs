@@ -6,7 +6,7 @@ defmodule Exandra.MixProject do
   def project do
     [
       app: :exandra,
-      version: "0.1.11",
+      version: "0.1.12",
       elixir: "~> 1.14",
       description:
         "Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. It is still in its very early stages and is not yet ready for production use. Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a backend for their Elixir applications.",
