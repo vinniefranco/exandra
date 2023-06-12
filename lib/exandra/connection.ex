@@ -26,7 +26,12 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute(cluster, query, params, opts) do
-    values = Enum.map(params, fn {_, value} -> value end)
+    values =
+      Enum.map(params, fn
+        {_type, value} -> value
+        value -> value
+      end)
+
     stream = Adapter.stream_pages!(cluster, query, values, opts)
 
     result =
