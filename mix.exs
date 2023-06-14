@@ -38,7 +38,7 @@ defmodule Exandra.MixProject do
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:jason, "~> 1.4"},
-      {:xandra, "~> 0.15.0"},
+      {:xandra, "~> 0.16.0"},
 
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},
