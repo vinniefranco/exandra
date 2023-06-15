@@ -38,6 +38,7 @@ defmodule Exandra.MixProject do
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:jason, "~> 1.4"},
+      {:nimble_options, "~> 1.0"},
       {:xandra, "~> 0.16.0"},
 
       # DEV DEPS ------
