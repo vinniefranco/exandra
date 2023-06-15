@@ -1,4 +1,8 @@
 defmodule Exandra.Types.UDT do
+  @moduledoc """
+  `Ecto.Type` for **User-Defined Types** (UDTs).
+  """
+
   use Ecto.ParameterizedType
 
   @impl Ecto.ParameterizedType
@@ -22,10 +26,5 @@ defmodule Exandra.Types.UDT do
   @impl Ecto.ParameterizedType
   def dump(data, _dumper, _params) do
     {:ok, data}
-  end
-
-  @impl Ecto.ParameterizedType
-  def equal?(a, b, _params) do
-    a == b
   end
 end

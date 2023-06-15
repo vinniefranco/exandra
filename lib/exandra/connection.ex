@@ -1,4 +1,8 @@
 defmodule Exandra.Connection do
+  @moduledoc false
+
+  # Connection module, implementing the Ecto.Adapters.SQL.Connection behaviour.
+
   @behaviour Ecto.Adapters.SQL.Connection
 
   alias Ecto.Migration.{Constraint, Index, Reference, Table}

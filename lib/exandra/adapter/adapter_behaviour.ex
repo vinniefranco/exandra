@@ -1,4 +1,6 @@
 defmodule Exandra.Adapter.AdapterBehaviour do
+  @moduledoc false
+
   alias Xandra.Prepared
 
   @callback child_spec(opts :: any()) :: any()

@@ -1,4 +1,6 @@
 defmodule Exandra.Adapter.XandraClustered do
+  @moduledoc false
+
   @behaviour Exandra.Adapter.AdapterBehaviour
 
   def child_spec(opts) do

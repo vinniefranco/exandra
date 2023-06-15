@@ -1,4 +1,6 @@
 defmodule Exandra.Types do
+  @moduledoc false
+
   alias Exandra.Types.XMap
   alias Exandra.Types.XSet
   alias Exandra.Types.UDT
