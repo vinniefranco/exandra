@@ -7,17 +7,40 @@ defmodule Exandra.Types.XMap do
 
   alias Exandra.Types
 
+  @opts_schema [
+    key: [
+      type: :atom,
+      required: true,
+      doc: "The type of the keys in the map."
+    ],
+    value: [
+      type: :atom,
+      required: true,
+      doc: "The type of the values in the map."
+    ],
+    field: [
+      type: :atom,
+      doc: false
+    ],
+    schema: [
+      type: :atom,
+      doc: false
+    ]
+  ]
+
   # Made public for testing.
   @doc false
   def params(embed), do: %{embed: embed}
 
   @impl Ecto.ParameterizedType
   def init(opts) do
-    Enum.into(opts, %{})
+    opts
+    |> NimbleOptions.validate!(@opts_schema)
+    |> Map.new()
   end
 
   @impl Ecto.ParameterizedType
-  def type(_) do
+  def type(_params) do
     :x_map
   end
 

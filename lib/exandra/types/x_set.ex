@@ -7,6 +7,22 @@ defmodule Exandra.Types.XSet do
 
   alias Exandra.Types
 
+  @opts_schema [
+    type: [
+      type: :atom,
+      required: true,
+      doc: "The type of the elements in the set."
+    ],
+    field: [
+      type: :atom,
+      doc: false
+    ],
+    schema: [
+      type: :atom,
+      doc: false
+    ]
+  ]
+
   # Made public for testing.
   @doc false
   def params(embed), do: %{embed: embed}
@@ -16,7 +32,9 @@ defmodule Exandra.Types.XSet do
 
   @impl Ecto.ParameterizedType
   def init(opts) do
-    Enum.into(opts, %{})
+    opts
+    |> NimbleOptions.validate!(@opts_schema)
+    |> Map.new()
   end
 
   @impl Ecto.ParameterizedType

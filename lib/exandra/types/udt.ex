@@ -5,17 +5,35 @@ defmodule Exandra.Types.UDT do
 
   use Ecto.ParameterizedType
 
+  @opts_schema [
+    type: [
+      type: :atom,
+      required: true,
+      doc: "The UDT."
+    ],
+    field: [
+      type: :atom,
+      doc: false
+    ],
+    schema: [
+      type: :atom,
+      doc: false
+    ]
+  ]
+
   @impl Ecto.ParameterizedType
   def type(_params), do: :udt
 
   @impl Ecto.ParameterizedType
   def init(opts) do
-    Enum.into(opts, %{})
+    opts
+    |> NimbleOptions.validate!(@opts_schema)
+    |> Map.new()
   end
 
   @impl Ecto.ParameterizedType
   def cast(data, %{type: udt}) do
-    {:ok, {"#{udt}", data}}
+    {:ok, {Atom.to_string(udt), data}}
   end
 
   @impl Ecto.ParameterizedType
