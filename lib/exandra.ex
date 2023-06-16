@@ -47,7 +47,7 @@ defmodule Exandra do
   def dumpers({:array, type}, dumper),
     do: [&encode_array(Ecto.Type.embedded_dump(type, &1, dumper), type)]
 
-  def dumpers(_, Ecto.UUID), do: [&encode_uuid(Ecto.Type.dump(Ecto.UUID, &1))]
+  def dumpers(:uuid, type), do: [type, &encode_uuid/1]
 
   def dumpers(_, type), do: [type]
 
@@ -99,7 +99,12 @@ defmodule Exandra do
   def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
   def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
   def loaders(:map, type), do: [&Ecto.Type.load(type, Jason.decode!(&1 || "null"))]
+  # Xandra returns UUIDs as strings, so we don't need to do any loading.
+  def loaders(:uuid, _type), do: []
+  def loaders(:decimal, type), do: [&load_decimal/1, type]
   def loaders(_, type), do: [type]
+
+  defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
 
   # Catch strings
   @doc false
