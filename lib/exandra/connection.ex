@@ -69,6 +69,9 @@ defmodule Exandra.Connection do
       {:ok, %Xandra.Page{paging_state: nil} = page} ->
         {:ok, process_page(page)}
 
+      {:ok, %Xandra.Page{content: []}} ->
+        {:ok, %{rows: [], num_rows: 1}}
+
       {:error, _} = err ->
         err
     end
