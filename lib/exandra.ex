@@ -1,4 +1,22 @@
 defmodule Exandra do
+  @moduledoc """
+  Adapter module for [Apache Cassandra](https://cassandra.apache.org/_/index.html)
+  and [ScyllaDB](https://www.scylladb.com/).
+
+  Uses [`Xandra`](https://github.com/lexhide/xandra) for communication with the
+  underlying database.
+
+  ## Examples
+
+  To configure your Ecto repository to use this adapter, you can use the
+  `:adapter` option. For example, when defining the repo:
+
+      defmodule MyApp.Repo do
+        use Ecto.Repo, otp_app: :my_app, adapter: Exandra
+      end
+
+  """
+
   use Ecto.Adapters.SQL, driver: :exandra
 
   alias Exandra.Adapter
@@ -163,9 +181,6 @@ defmodule Exandra do
 
     {keyspace, conn}
   end
-
-  def put_source(opts, source) when is_binary(source), do: Keyword.put(opts, :source, source)
-  def put_source(opts, _), do: opts
 end
 
 defimpl String.Chars, for: [Xandra.Simple, Xandra.Prepared, Xandra.Batch] do

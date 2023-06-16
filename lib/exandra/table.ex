@@ -1,4 +1,8 @@
 defmodule Exandra.Table do
+  @moduledoc """
+  Utilities to define Exandra-based tables.
+  """
+
   defmacro __using__(_opts \\ []) do
     quote do
       use Ecto.Schema
