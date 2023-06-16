@@ -1,4 +1,8 @@
 defmodule Exandra.Types.XSet do
+  @moduledoc """
+  `Ecto.Type` for sets.
+  """
+
   use Ecto.ParameterizedType
 
   alias Exandra.Types
@@ -19,6 +23,8 @@ defmodule Exandra.Types.XSet do
     ]
   ]
 
+  # Made public for testing.
+  @doc false
   def params(embed), do: %{embed: embed}
 
   @impl Ecto.ParameterizedType
@@ -95,8 +101,11 @@ defmodule Exandra.Types.XSet do
   def equal?(%MapSet{} = a, %MapSet{} = b, _), do: MapSet.equal?(a, b)
   def equal?(_, _, _), do: false
 
-  def embed_as(_), do: :self
+  # From Ecto.Type
+  @doc false
+  def embed_as(_format), do: :self
 
+  @doc false
   def xandra_type(%{type: type}), do: "set<#{Types.for(type)}>"
 
   defimpl Jason.Encoder, for: MapSet do

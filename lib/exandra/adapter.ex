@@ -1,4 +1,8 @@
 defmodule Exandra.Adapter do
+  @moduledoc false
+
+  # Adapter module used for testing.
+
   def child_spec(opts) do
     conn_spec().child_spec(opts)
   end
@@ -23,11 +27,11 @@ defmodule Exandra.Adapter do
     adapter().start_link(opts)
   end
 
-  def adapter do
+  defp adapter do
     Application.get_env(:exandra, :adapter)
   end
 
-  def conn_spec do
+  defp conn_spec do
     Application.get_env(:exandra, :child_spec) || adapter()
   end
 end

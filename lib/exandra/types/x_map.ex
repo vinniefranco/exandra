@@ -1,4 +1,8 @@
 defmodule Exandra.Types.XMap do
+  @moduledoc """
+  `Ecto.Type` for maps.
+  """
+
   use Ecto.ParameterizedType
 
   alias Exandra.Types
@@ -24,6 +28,8 @@ defmodule Exandra.Types.XMap do
     ]
   ]
 
+  # Made public for testing.
+  @doc false
   def params(embed), do: %{embed: embed}
 
   @impl Ecto.ParameterizedType
@@ -97,8 +103,11 @@ defmodule Exandra.Types.XMap do
   def equal?(%{} = a, %{} = b, _), do: Map.equal?(a, b)
   def equal?(_, _, _), do: false
 
-  def embed_as(_), do: :self
+  # From Ecto.Type.
+  @doc false
+  def embed_as(_format), do: :self
 
+  @doc false
   def xandra_type(%{key: key_type, value: value_type}) do
     "map<#{Types.for(key_type)}, #{Types.for(value_type)}>"
   end

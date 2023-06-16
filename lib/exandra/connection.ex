@@ -1,4 +1,8 @@
 defmodule Exandra.Connection do
+  @moduledoc false
+
+  # Connection module, implementing the Ecto.Adapters.SQL.Connection behaviour.
+
   @behaviour Ecto.Adapters.SQL.Connection
 
   alias Ecto.Migration.{Constraint, Index, Reference, Table}
@@ -64,6 +68,9 @@ defmodule Exandra.Connection do
 
       {:ok, %Xandra.Page{paging_state: nil} = page} ->
         {:ok, process_page(page)}
+
+      {:ok, %Xandra.Page{content: []}} ->
+        {:ok, %{rows: [], num_rows: 1}}
 
       {:error, _} = err ->
         err
