@@ -1,8 +1,10 @@
 defmodule Exandra do
   @moduledoc """
-  Adapter module for [Apache Cassandra](TODO) and [ScyllaDB](TODO).
+  Adapter module for [Apache Cassandra](https://cassandra.apache.org/_/index.html)
+  and [ScyllaDB](https://www.scylladb.com/).
 
-  Uses [`Xandra`](TODO) for communication with the underlying database.
+  Uses [`Xandra`](https://github.com/lexhide/xandra) for communication with the
+  underlying database.
 
   ## Examples
 

@@ -1,8 +1,6 @@
 defmodule Exandra.Types.XCounter do
   @moduledoc """
   `Ecto.Type` for counters.
-
-  TODO
   """
 
   use Ecto.Type
