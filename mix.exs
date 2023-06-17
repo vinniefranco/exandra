@@ -35,6 +35,7 @@ defmodule Exandra.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:decimal, "~> 1.6 or ~> 2.0"},
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:jason, "~> 1.4"},
