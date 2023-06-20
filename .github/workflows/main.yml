@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  MIX_ENV: test
+
+jobs:
+  test:
+    name: Test (Elixir ${{ matrix.elixir }}, OTP ${{ matrix.otp }})
+
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - otp: "25.3"
+            elixir: "1.14"
+            lint: true
+
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+
+      - name: Start Docker and wait for it to be up
+        run: |
+          docker-compose up --detach --build
+          ./test/docker/health-check-services.sh
+
+      - name: Install Erlang/OTP and Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          path: |
+            deps
+            _build
+          key: |
+            ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-
+
+      - name: Install and compile dependencies
+        run: mix do deps.get, deps.compile
+
+      - name: Check for unused dependencies
+        run: mix deps.unlock --check-unused
+
+      - name: Check for compilation warnings
+        run: mix compile --force --warnings-as-errors
+
+      - name: Check for formatted files
+        run: mix format --check-formatted
+
+      - name: Run tests
+        run: mix test.all
+
+      - name: Dump Docker logs on failure
+        uses: jwalton/gh-docker-logs@v1
+        if: failure()

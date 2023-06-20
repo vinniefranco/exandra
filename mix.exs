@@ -13,14 +13,21 @@ defmodule Exandra.MixProject do
       package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        "test.cassandra": :test,
+        "test.scylla": :test,
+        "test.all": :test
+      ],
+      aliases: aliases()
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: []
+      extra_applications: [],
+      env: [adapter: Exandra.Adapter.XandraClustered]
     ]
   end
 
@@ -49,5 +56,20 @@ defmodule Exandra.MixProject do
       {:excoveralls, "~> 0.16.1", only: :test},
       {:ex_doc, "~> 0.29", only: :dev, runtime: false}
     ]
+  end
+
+  defp aliases do
+    [
+      "test.cassandra": [&print_tests_banner(&1, :cassandra), "test"],
+      "test.scylla": [&print_tests_banner(&1, :scylla), "cmd EXANDRA_PORT=9043 mix test --color"],
+      "test.all": fn args ->
+        Mix.Task.run(:"test.cassandra", args)
+        Mix.Task.run(:"test.scylla", args)
+      end
+    ]
+  end
+
+  defp print_tests_banner(_argv, db) do
+    IO.puts(IO.ANSI.format([:bright, :cyan, "==> Running tests for #{db}"]))
   end
 end
