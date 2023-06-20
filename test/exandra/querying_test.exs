@@ -18,7 +18,7 @@ defmodule Exandra.QueryingTest do
     end
 
     def changeset(attrs) do
-      cast(%__MODULE__{}, attrs, [:my_string, :my_bool, :my_udt])
+      cast(%__MODULE__{}, attrs, [:my_string, :my_bool, :my_dt, :my_udt])
     end
   end
 
@@ -93,13 +93,14 @@ defmodule Exandra.QueryingTest do
 
     test "update" do
       uuid = Ecto.UUID.generate()
-      record = %Schema{id: uuid, my_bool: false}
+      record = %Schema{id: uuid, my_bool: false, my_dt: DateTime.utc_now()}
 
       expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
-        assert "UPDATE my_schema SET my_bool = ?, my_udt = ? WHERE id = ?" = stmt
+        assert "UPDATE my_schema SET my_bool = ?, my_dt = ?, my_udt = ? WHERE id = ?" = stmt
 
         assert [
                  {"boolean", true},
+                 {"timestamp", nil},
                  {"fullname", %{"first_name" => "frank", "last_name" => "beans"}},
                  {"uuid", ^uuid}
                ] = values
@@ -109,8 +110,12 @@ defmodule Exandra.QueryingTest do
 
       record
       |> Ecto.Changeset.cast(
-        %{my_bool: "true", my_udt: %{"first_name" => "frank", "last_name" => "beans"}},
-        [:my_bool, :my_udt]
+        %{
+          my_bool: "true",
+          my_udt: %{"first_name" => "frank", "last_name" => "beans"},
+          my_dt: nil
+        },
+        [:my_bool, :my_udt, :my_dt]
       )
       |> Exandra.TestRepo.update()
     end
