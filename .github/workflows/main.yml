@@ -52,7 +52,7 @@ jobs:
             ${{ runner.os }}-mix-otp${{ matrix.otp }}-elixir${{ matrix.elixir }}-
 
       - name: Install and compile dependencies
-        run: mix do deps.get --only test, deps.compile
+        run: mix do deps.get, deps.compile
 
       - name: Check for unused dependencies
         run: mix deps.unlock --check-unused
