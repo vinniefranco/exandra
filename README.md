@@ -1,6 +1,6 @@
 # Exandra
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/vinniefranco/exandra/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/vinniefranco/exandra/tree/main)
+[![CI](https://github.com/vinniefranco/exandra/actions/workflows/main.yml/badge.svg)](https://github.com/vinniefranco/exandra/actions/workflows/main.yml)
 [![Coverage Status](https://coveralls.io/repos/github/vinniefranco/exandra/badge.svg?branch=main)](https://coveralls.io/github/vinniefranco/exandra?branch=main)
 
 Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. It is still in its very early stages and is not yet ready for production use. Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a backend for their Elixir applications.
@@ -13,7 +13,7 @@ The package can be installed
 by adding `exandra` to your list of dependencies in `mix.exs`:
 
 ```elixir
-def deps do
+defp deps do
   [
     {:exandra, "~> 0.1"}
   ]
