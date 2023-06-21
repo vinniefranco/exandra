@@ -6,6 +6,20 @@ defmodule Exandra do
   Uses [`Xandra`](https://github.com/lexhide/xandra) for communication with the
   underlying database.
 
+  ## Configuration
+
+  To configure an `Ecto.Repo` that uses `Exandra` as its adapter, you can use
+  the application configuration or pass the options when starting the repo.
+
+  You can use the following options:
+
+    * Any of the options supported by `Ecto.Repo` itself, which you can see
+      in the `Ecto.Repo` documentation.
+
+    * Any of the option supported by `Xandra.Cluster.start_link/1`.
+
+  #{Exandra.Connection.start_opts_docs()}
+
   ## Examples
 
   To configure your Ecto repository to use this adapter, you can use the

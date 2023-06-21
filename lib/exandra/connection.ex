@@ -20,16 +20,22 @@ defmodule Exandra.Connection do
     repo: [
       type: :atom,
       type_doc: "`t:module/0`",
-      required: true
+      required: true,
+      doc: false
     ],
     keyspace: [
       type: :string,
-      required: true
+      required: true,
+      doc: "The keyspace to use for the connection."
     ]
   ]
 
   @child_spec_opts_schema NimbleOptions.new!(schema)
   @child_spec_opts_keys Keyword.keys(schema)
+
+  # Internal to Exandra and its documentation.
+  @doc false
+  def start_opts_docs, do: NimbleOptions.docs(@child_spec_opts_schema)
 
   def build_explain_query(_, _) do
     raise RuntimeError, "not supported"
