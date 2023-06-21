@@ -1,11 +1,5 @@
 defmodule Exandra.UDT do
-  @moduledoc """
-  `Ecto.Type` for **User-Defined Types** (UDTs).
-  """
-
-  use Ecto.ParameterizedType
-
-  @opts_schema [
+  opts_schema = [
     type: [
       type: :atom,
       required: true,
@@ -20,6 +14,28 @@ defmodule Exandra.UDT do
       doc: false
     ]
   ]
+
+  @moduledoc """
+  `Ecto.Type` for **User-Defined Types** (UDTs).
+
+  ## Options
+
+  #{NimbleOptions.docs(opts_schema)}
+
+  ## Examples
+
+  For example, if you have defined an `email` UDT in your database, you can
+  use it in your schema like this:
+
+      schema "users" do
+        field :email, Exandra.UDT, type: :email
+      end
+
+  """
+
+  use Ecto.ParameterizedType
+
+  @opts_schema NimbleOptions.new!(opts_schema)
 
   @impl Ecto.ParameterizedType
   def type(_params), do: :udt

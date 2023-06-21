@@ -1,13 +1,5 @@
 defmodule Exandra.XSet do
-  @moduledoc """
-  `Ecto.Type` for sets.
-  """
-
-  use Ecto.ParameterizedType
-
-  alias Exandra.Types
-
-  @opts_schema [
+  opts_schema = [
     type: [
       type: :atom,
       required: true,
@@ -22,6 +14,28 @@ defmodule Exandra.XSet do
       doc: false
     ]
   ]
+
+  @moduledoc """
+  `Ecto.Type` for sets.
+
+  ## Options
+
+  #{NimbleOptions.docs(opts_schema)}
+
+  ## Examples
+
+      schema "users" do
+        field :email, :string
+        field :roles, Exandra.XSet, type: :string
+      end
+
+  """
+
+  use Ecto.ParameterizedType
+
+  alias Exandra.Types
+
+  @opts_schema NimbleOptions.new!(opts_schema)
 
   # Made public for testing.
   @doc false

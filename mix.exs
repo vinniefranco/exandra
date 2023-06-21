@@ -27,7 +27,13 @@ defmodule Exandra.MixProject do
         "coveralls.html": :test
       ],
       aliases: aliases(),
-      xref: [exclude: [XandraClusterMock, XandraMock]]
+      xref: [exclude: [XandraClusterMock, XandraMock]],
+      docs: [
+        main: "Exandra",
+        groups_for_modules: [
+          "Ecto types": [Exandra.UDT, Exandra.XCounter, Exandra.XMap, Exandra.XSet]
+        ]
+      ]
     ]
   end
 

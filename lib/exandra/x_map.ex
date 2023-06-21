@@ -1,13 +1,5 @@
 defmodule Exandra.XMap do
-  @moduledoc """
-  `Ecto.Type` for maps.
-  """
-
-  use Ecto.ParameterizedType
-
-  alias Exandra.Types
-
-  @opts_schema [
+  opts_schema = [
     key: [
       type: :atom,
       required: true,
@@ -27,6 +19,27 @@ defmodule Exandra.XMap do
       doc: false
     ]
   ]
+
+  @moduledoc """
+  `Ecto.Type` for maps.
+
+  ## Options
+
+  #{NimbleOptions.docs(opts_schema)}
+
+  ## Examples
+
+      schema "user_metadata" do
+        field :free_form_meta, Exandra.XMap, key: :string, value: :string
+      end
+
+  """
+
+  use Ecto.ParameterizedType
+
+  alias Exandra.Types
+
+  @opts_schema NimbleOptions.new!(opts_schema)
 
   # Made public for testing.
   @doc false
