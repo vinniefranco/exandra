@@ -117,7 +117,7 @@ defmodule Exandra.ConnectionTest do
       |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -150,7 +150,7 @@ defmodule Exandra.ConnectionTest do
       |> with_cte("comments_scope", as: ^comments_scope_query)
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -164,7 +164,7 @@ defmodule Exandra.ConnectionTest do
       |> select([r], r.x)
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -205,7 +205,7 @@ defmodule Exandra.ConnectionTest do
       |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
       |> plan(:delete_all)
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support cte at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
       assert delete_all(query)
     end
   end

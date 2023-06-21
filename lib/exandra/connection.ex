@@ -93,20 +93,11 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def query(cluster, sql, params, opts) do
     case @xandra_cluster_mod.execute(cluster, sql, params, opts) do
-      {:ok, %Xandra.SchemaChange{} = schema_change} ->
-        {:ok, schema_change}
-
-      {:ok, %Xandra.Void{}} ->
-        {:ok, %{rows: nil, num_rows: 1}}
-
-      {:ok, %Xandra.Page{paging_state: nil} = page} ->
-        {:ok, process_page(page)}
-
-      {:ok, %Xandra.Page{content: []}} ->
-        {:ok, %{rows: [], num_rows: 1}}
-
-      {:error, _} = err ->
-        err
+      {:ok, %Xandra.SchemaChange{} = schema_change} -> {:ok, schema_change}
+      {:ok, %Xandra.Void{}} -> {:ok, %{rows: nil, num_rows: 1}}
+      {:ok, %Xandra.Page{paging_state: nil} = page} -> {:ok, process_page(page)}
+      {:ok, %Xandra.Page{content: []}} -> {:ok, %{rows: [], num_rows: 1}}
+      {:error, _} = err -> err
     end
   end
 
@@ -230,27 +221,18 @@ defmodule Exandra.Connection do
   end
 
   defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
-    {
-      [" FROM ", from],
-      Enum.map(hints, &[?\s | &1])
-    }
+    {[" FROM ", from], Enum.map(hints, &[?\s | &1])}
   end
 
   defp from(query, _) do
-    error!(
-      query,
-      "Scylla Adapter does not support subqueries at this time."
-    )
+    error!(query, "Scylla Adapter does not support subqueries at this time.")
   end
 
   defp cte(
          %{with_ctes: %WithExpr{recursive: _recursive, queries: [_ | _] = _queries}} = query,
          _sources
        ) do
-    error!(
-      query,
-      "Scylla Adapter does not support cte at this time."
-    )
+    error!(query, "Scylla Adapter does not support CTEs at this time.")
   end
 
   defp cte(_, _), do: []
@@ -342,9 +324,11 @@ defmodule Exandra.Connection do
   end
 
   defp combinations(%{combinations: combinations}) do
-    Enum.map(combinations, fn
+    Enum.each(combinations, fn
       {union_type, query} -> error!(query, "`#{union_type}` is not supported by Exandra")
     end)
+
+    combinations
   end
 
   defp order_by_expr({dir, expr}, sources, query) do
