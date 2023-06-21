@@ -1,4 +1,4 @@
-defmodule Exandra.Types.XMap do
+defmodule Exandra.XMap do
   @moduledoc """
   `Ecto.Type` for maps.
   """

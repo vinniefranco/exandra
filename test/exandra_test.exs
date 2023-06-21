@@ -4,9 +4,9 @@ defmodule ExandraTest do
   defmodule Schema do
     use Exandra.Table
 
-    alias Exandra.Types.XMap
-    alias Exandra.Types.XSet
-    alias Exandra.Types.UDT
+    alias Exandra.XMap
+    alias Exandra.XSet
+    alias Exandra.UDT
 
     @primary_key {:id, :binary_id, autogenerate: true}
     schema "my_schema" do

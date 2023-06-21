@@ -8,10 +8,10 @@ defmodule Exandra.Table do
       use Ecto.Schema
 
       alias Ecto.UUID
-      alias Exandra.Types.UDT
-      alias Exandra.Types.XCounter
-      alias Exandra.Types.XMap
-      alias Exandra.Types.XSet
+      alias Exandra.UDT
+      alias Exandra.XCounter
+      alias Exandra.XMap
+      alias Exandra.XSet
 
       import Ecto.Changeset
     end

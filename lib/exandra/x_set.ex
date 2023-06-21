@@ -1,4 +1,4 @@
-defmodule Exandra.Types.XSet do
+defmodule Exandra.XSet do
   @moduledoc """
   `Ecto.Type` for sets.
   """

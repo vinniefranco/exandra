@@ -1,7 +1,7 @@
-defmodule Exandra.Types.XMapTest do
+defmodule Exandra.XMapTest do
   use ExUnit.Case, async: true
 
-  alias Exandra.Types.XMap
+  alias Exandra.XMap
 
   defmodule Schema do
     use Ecto.Schema

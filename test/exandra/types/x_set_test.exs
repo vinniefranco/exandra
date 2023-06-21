@@ -1,7 +1,7 @@
-defmodule Exandra.Types.XSetTest do
+defmodule Exandra.XSetTest do
   use ExUnit.Case, async: true
 
-  alias Exandra.Types.XSet
+  alias Exandra.XSet
 
   defmodule Schema do
     use Ecto.Schema

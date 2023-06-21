@@ -1,4 +1,4 @@
-defmodule Exandra.Types.UDT do
+defmodule Exandra.UDT do
   @moduledoc """
   `Ecto.Type` for **User-Defined Types** (UDTs).
   """

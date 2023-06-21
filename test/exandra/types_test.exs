@@ -11,9 +11,9 @@ defmodule Exandra.TypesTest do
     assert :text = Types.for({:parameterized, Ecto.Enum, nil})
 
     assert "map<text, int>" =
-             Types.for({:parameterized, Exandra.Types.XMap, %{key: :text, value: :integer}})
+             Types.for({:parameterized, Exandra.XMap, %{key: :text, value: :integer}})
 
-    assert "set<text>" = Types.for({:parameterized, Exandra.Types.XSet, %{type: :text}})
+    assert "set<text>" = Types.for({:parameterized, Exandra.XSet, %{type: :text}})
     assert :x_set = Types.for({:set, {:array, :string}})
   end
 end

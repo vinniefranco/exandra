@@ -1,9 +1,9 @@
 defmodule Exandra.Types do
   @moduledoc false
 
-  alias Exandra.Types.XMap
-  alias Exandra.Types.XSet
-  alias Exandra.Types.UDT
+  alias Exandra.XMap
+  alias Exandra.XSet
+  alias Exandra.UDT
 
   def apply(type, op, value, opts) do
     cond do

@@ -14,7 +14,7 @@ defmodule Exandra.QueryingTest do
       field(:my_string, :string)
       field(:my_dt, :utc_datetime)
       field(:my_bool, :boolean)
-      field(:my_udt, Exandra.Types.UDT, type: :fullname)
+      field(:my_udt, Exandra.UDT, type: :fullname)
     end
 
     def changeset(attrs) do
@@ -28,7 +28,7 @@ defmodule Exandra.QueryingTest do
     @primary_key false
     schema "my_schema" do
       field(:my_string, :binary_id, primary_key: true)
-      field(:my_counter, Exandra.Types.XCounter)
+      field(:my_counter, Exandra.XCounter)
     end
 
     def changeset(attrs) do

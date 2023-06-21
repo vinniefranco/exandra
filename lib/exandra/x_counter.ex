@@ -1,4 +1,4 @@
-defmodule Exandra.Types.XCounter do
+defmodule Exandra.XCounter do
   @moduledoc """
   `Ecto.Type` for counters.
   """

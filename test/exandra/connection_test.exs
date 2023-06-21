@@ -7,7 +7,6 @@ defmodule Exandra.ConnectionTest do
   alias Ecto.Queryable
 
   alias Exandra.Connection, as: SQL
-  alias Exandra.Types
 
   defmodule Schema do
     use Ecto.Schema
@@ -682,7 +681,7 @@ defmodule Exandra.ConnectionTest do
        [
          {:add, :id, :uuid, [primary_key: true]},
          {:add, :created_at, :datetime, []},
-         {:add, :name, Types.UDT, [type: :fullname]}
+         {:add, :name, Exandra.UDT, [type: :fullname]}
        ]}
 
     assert execute_ddl(create) ==
@@ -712,7 +711,7 @@ defmodule Exandra.ConnectionTest do
        [
          {:add, :id, :uuid, [primary_key: true]},
          {:add, :created_at, :datetime, []},
-         {:add, :name, Types.UDT, []}
+         {:add, :name, Exandra.UDT, []}
        ]}
 
     assert_raise ArgumentError, "must define :type option for UDT column", fn ->
