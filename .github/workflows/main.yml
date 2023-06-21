@@ -66,6 +66,9 @@ jobs:
       - name: Run tests
         run: mix test.all
 
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
+
       - name: Dump Docker logs on failure
         uses: jwalton/gh-docker-logs@v1
         if: failure()
