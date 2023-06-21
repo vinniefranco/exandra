@@ -3,13 +3,19 @@ defmodule Exandra.MixProject do
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
+  @description """
+  Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. \
+  It is still in its very early stages and is not yet ready for production use. \
+  Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a \
+  backend for their Elixir applications.\
+  """
+
   def project do
     [
       app: :exandra,
       version: "0.1.16",
       elixir: "~> 1.14",
-      description:
-        "Exandra is an Elixir library that brings the power of Scylla/Cassandra to Ecto. It is still in its very early stages and is not yet ready for production use. Exandra is an adapter for Ecto, allowing developers to use Scylla/Cassandra as a backend for their Elixir applications.",
+      description: @description,
       package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -17,7 +23,8 @@ defmodule Exandra.MixProject do
       preferred_cli_env: [
         "test.cassandra": :test,
         "test.scylla": :test,
-        "test.all": :test
+        "test.all": :test,
+        "coveralls.html": :test
       ],
       aliases: aliases()
     ]
