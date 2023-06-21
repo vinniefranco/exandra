@@ -8,7 +8,7 @@ defmodule Exandra.Connection do
   @xandra_cluster_mod Application.compile_env(
                         :exandra,
                         :xandra_cluster_module,
-                        Exandra.XandraCluster
+                        Xandra.Cluster
                       )
 
   alias Ecto.Migration.{Constraint, Index, Reference, Table}
@@ -16,12 +16,35 @@ defmodule Exandra.Connection do
   alias Exandra.Types
   alias Xandra.Prepared
 
+  schema = [
+    repo: [
+      type: :atom,
+      type_doc: "`t:module/0`",
+      required: true
+    ],
+    keyspace: [
+      type: :string,
+      required: true
+    ]
+  ]
+
+  @child_spec_opts_schema NimbleOptions.new!(schema)
+  @child_spec_opts_keys Keyword.keys(schema)
+
   def build_explain_query(_, _) do
     raise RuntimeError, "not supported"
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  defdelegate child_spec(opts), to: @xandra_cluster_mod
+  def child_spec(opts) when is_list(opts) do
+    {adapter_opts, opts} = Keyword.split(opts, @child_spec_opts_keys)
+    adapter_opts = NimbleOptions.validate!(adapter_opts, @child_spec_opts_schema)
+
+    {keyspace, adapter_opts} = Keyword.pop!(adapter_opts, :keyspace)
+    opts = Keyword.put(opts, :after_connect, &Xandra.execute!(&1, "USE #{keyspace}"))
+
+    Supervisor.child_spec({Xandra.Cluster, opts}, id: Keyword.fetch!(adapter_opts, :repo))
+  end
 
   def in_transaction?(%{sql: Exandra.Connection}), do: true
 

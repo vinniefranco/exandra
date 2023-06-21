@@ -2,10 +2,10 @@ defmodule Exandra.TestRepo do
   use Ecto.Repo, otp_app: :exandra, adapter: Exandra
 end
 
-Mox.defmock(XandraClusterMock, for: Exandra.XandraCluster.Behaviour)
-Mox.defmock(XandraMock, for: Exandra.Xandra.Behaviour)
+Mox.defmock(XandraClusterMock, for: Exandra.XandraClusterBehaviour)
+Mox.defmock(XandraMock, for: Exandra.XandraBehaviour)
 
-Application.put_env(:exandra, TestRepo,
+Application.put_env(:exandra, Exandra.TestRepo,
   default_consistency: :one,
   keyspace: "test_keyspace",
   log_level: :debug,

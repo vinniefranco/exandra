@@ -22,7 +22,10 @@ defmodule Exandra.IntegrationTest do
       "CREATE KEYSPACE IF NOT EXISTS exandra_integration WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };"
     )
 
-    stub_with(XandraClusterMock, Exandra.XandraCluster)
+    stub(XandraClusterMock, :child_spec, &Xandra.Cluster.child_spec/1)
+    stub(XandraClusterMock, :execute, &Xandra.Cluster.execute/4)
+    stub(XandraClusterMock, :prepare, &Xandra.Cluster.prepare/3)
+    stub(XandraClusterMock, :stream_pages!, &Xandra.Cluster.stream_pages!/4)
 
     Application.put_env(:exandra_integration, Repo,
       keyspace: "exandra_integration",
