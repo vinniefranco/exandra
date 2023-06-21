@@ -50,7 +50,7 @@ defmodule ExandraTest do
       set = MapSet.new([1, 2, 3])
       nowish = DateTime.utc_now()
 
-      expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _ ->
+      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _ ->
         assert "INSERT INTO my_schema (my_bool, my_decimal, my_enum, my_integer, my_list, my_map, my_utc, my_xmap, my_xset, inserted_at, updated_at, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " ==
                  stmt
 
@@ -118,7 +118,7 @@ defmodule ExandraTest do
 
   describe "all/1" do
     test "retuns empty list when no pages exist" do
-      Exandra.Adapter.Mock
+      XandraClusterMock
       |> expect(:prepare, fn _conn, _stmt, _opts -> {:ok, %Xandra.Prepared{}} end)
       |> expect(:stream_pages!, fn _conn, _, _opts, _keyword -> [] end)
 
@@ -126,7 +126,7 @@ defmodule ExandraTest do
     end
 
     test "returns error when stream_pages! raises" do
-      Exandra.Adapter.Mock
+      XandraClusterMock
       |> expect(:prepare, fn _conn, _stmt, _opts ->
         {:ok, %Xandra.Prepared{}}
       end)
@@ -148,7 +148,7 @@ defmodule ExandraTest do
 
       nowish = DateTime.utc_now()
 
-      Exandra.Adapter.Mock
+      XandraClusterMock
       |> expect(:prepare, fn _conn, stmt, _opts ->
         assert expected_stmt == stmt
         {:ok, %Xandra.Prepared{statement: stmt}}
@@ -230,7 +230,7 @@ defmodule ExandraTest do
 
   describe "storage_up/1" do
     test "returns :ok when effect is CREATED" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, stmt ->
         assert "CREATE KEYSPACE IF NOT EXISTS test\nWITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}\nAND durable_writes = true;\n" =
@@ -243,7 +243,7 @@ defmodule ExandraTest do
     end
 
     test "returns {:error, :already_up} when driver returns %Xandra.Void{}" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:ok, %Xandra.Void{}} end)
 
@@ -251,7 +251,7 @@ defmodule ExandraTest do
     end
 
     test "returns error when result is anything else" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:error, :anything} end)
 
@@ -261,10 +261,10 @@ defmodule ExandraTest do
 
   describe "storage_down/1" do
     test "returns :ok when effect is DROPPED" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, stmt ->
-        assert "DROP KEYSPACE IF EXISTS test;" = stmt
+        assert stmt == "DROP KEYSPACE IF EXISTS test"
 
         {:ok, %Xandra.SchemaChange{effect: "DROPPED"}}
       end)
@@ -273,7 +273,7 @@ defmodule ExandraTest do
     end
 
     test "returns {:error, :already_up} when driver returns %Xandra.Void{}" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:ok, %Xandra.Void{}} end)
 
@@ -281,7 +281,7 @@ defmodule ExandraTest do
     end
 
     test "returns error when result is anything else" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:error, :anything} end)
 
@@ -291,11 +291,10 @@ defmodule ExandraTest do
 
   describe "storage_status/1" do
     test "returns :up when result is not an error" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, stmt ->
-        assert "USE KEYSPACE test;" = stmt
-
+        assert stmt == "USE KEYSPACE test"
         {:ok, :greeeaaaat}
       end)
 
@@ -303,7 +302,7 @@ defmodule ExandraTest do
     end
 
     test "returns :down when driver returns %Xandra.Error{}" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:error, %Xandra.Error{reason: :invalid}} end)
 
@@ -311,7 +310,7 @@ defmodule ExandraTest do
     end
 
     test "returns {:error, _} as passthru when result not matched" do
-      Exandra.Adapter.Mock
+      XandraMock
       |> expect(:start_link, fn _ -> {:ok, self()} end)
       |> expect(:execute, fn _conn, _stmt -> {:error, :anything} end)
 

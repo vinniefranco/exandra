@@ -1,10 +1,11 @@
 defmodule Exandra.QueryingTest do
-  alias Ecto.Adapter.Schema
   use ExUnit.Case
 
   use Exandra.AdapterCase
 
   import Ecto.Query, warn: false
+
+  alias Ecto.Adapter.Schema
 
   defmodule Schema do
     use Exandra.Table
@@ -75,7 +76,7 @@ defmodule Exandra.QueryingTest do
     end
 
     test "create" do
-      expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
+      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
         assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
 
         assert [
@@ -95,7 +96,7 @@ defmodule Exandra.QueryingTest do
       uuid = Ecto.UUID.generate()
       record = %Schema{id: uuid, my_bool: false}
 
-      expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
+      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
         assert "UPDATE my_schema SET my_bool = ?, my_udt = ? WHERE id = ?" = stmt
 
         assert [
@@ -118,7 +119,7 @@ defmodule Exandra.QueryingTest do
     test "update counters" do
       uuid = Ecto.UUID.generate()
 
-      expect(Exandra.Adapter.Mock, :execute, fn _conn, stmt, values, _adapter ->
+      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
         assert "UPDATE my_schema SET my_counter = ? WHERE my_string = ?" = stmt
 
         assert [
@@ -142,7 +143,7 @@ defmodule Exandra.QueryingTest do
     test "delete" do
       uuid = Ecto.UUID.generate()
 
-      Exandra.Adapter.Mock
+      XandraClusterMock
       |> expect(:prepare, fn _conn, stmt, _adapter ->
         assert "DELETE FROM my_schema WHERE id = ?" = stmt
 

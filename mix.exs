@@ -19,15 +19,15 @@ defmodule Exandra.MixProject do
         "test.scylla": :test,
         "test.all": :test
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      xref: [exclude: [XandraClusterMock, XandraMock]]
     ]
   end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [],
-      env: [adapter: Exandra.Adapter.XandraClustered]
+      extra_applications: []
     ]
   end
 

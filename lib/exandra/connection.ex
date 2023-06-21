@@ -5,9 +5,15 @@ defmodule Exandra.Connection do
 
   @behaviour Ecto.Adapters.SQL.Connection
 
+  @xandra_cluster_mod Application.compile_env(
+                        :exandra,
+                        :xandra_cluster_module,
+                        Exandra.XandraCluster
+                      )
+
   alias Ecto.Migration.{Constraint, Index, Reference, Table}
   alias Ecto.Query.{BooleanExpr, LimitExpr, QueryExpr, WithExpr}
-  alias Exandra.{Adapter, Types}
+  alias Exandra.Types
   alias Xandra.Prepared
 
   def build_explain_query(_, _) do
@@ -15,15 +21,13 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def child_spec(opts) do
-    Adapter.child_spec(opts)
-  end
+  defdelegate child_spec(opts), to: @xandra_cluster_mod
 
   def in_transaction?(%{sql: Exandra.Connection}), do: true
 
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
-    with {:ok, %Prepared{} = prepared} <- Adapter.prepare(cluster, stmt, opts) do
+    with {:ok, %Prepared{} = prepared} <- @xandra_cluster_mod.prepare(cluster, stmt, opts) do
       execute(cluster, prepared, params, opts)
     end
   end
@@ -36,7 +40,7 @@ defmodule Exandra.Connection do
         value -> value
       end)
 
-    stream = Adapter.stream_pages!(cluster, query, values, opts)
+    stream = @xandra_cluster_mod.stream_pages!(cluster, query, values, opts)
 
     result =
       Enum.reduce_while(stream, %{rows: [], num_rows: 0}, fn
@@ -59,7 +63,7 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def query(cluster, sql, params, opts) do
-    case Adapter.execute(cluster, sql, params, opts) do
+    case @xandra_cluster_mod.execute(cluster, sql, params, opts) do
       {:ok, %Xandra.SchemaChange{} = schema_change} ->
         {:ok, schema_change}
 
