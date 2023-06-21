@@ -3,11 +3,16 @@ defmodule Exandra.IntegrationTest do
 
   @moduletag :integration
 
+  import Mox
+
   @port String.to_integer(System.get_env("EXANDRA_PORT", "9042"))
 
   defmodule Repo do
     use Ecto.Repo, otp_app: :exandra_integration, adapter: Exandra
   end
+
+  setup :set_mox_global
+  setup :verify_on_exit!
 
   test "end-to-end flow" do
     xandra_conn = start_link_supervised!({Xandra, [port: @port]})
@@ -17,15 +22,7 @@ defmodule Exandra.IntegrationTest do
       "CREATE KEYSPACE IF NOT EXISTS exandra_integration WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };"
     )
 
-    previous_adapter = Application.fetch_env!(:exandra, :adapter)
-    previous_child_spec = Application.fetch_env!(:exandra, :child_spec)
-    Application.put_env(:exandra, :adapter, Exandra.Adapter.XandraClustered)
-    Application.delete_env(:exandra, :child_spec)
-
-    on_exit(fn ->
-      Application.put_env(:exandra, :adapter, previous_adapter)
-      Application.put_env(:exandra, :child_spec, previous_child_spec)
-    end)
+    stub_with(XandraClusterMock, Exandra.XandraCluster)
 
     Application.put_env(:exandra_integration, Repo,
       keyspace: "exandra_integration",

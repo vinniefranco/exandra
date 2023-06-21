@@ -1,25 +1,9 @@
-Logger.configure(level: :info)
-
 defmodule Exandra.TestRepo do
   use Ecto.Repo, otp_app: :exandra, adapter: Exandra
 end
 
-defmodule TestConn do
-  use Agent
-
-  def start_link(opts) do
-    Agent.start_link(fn -> opts end, name: TestConn)
-  end
-
-  def value do
-    Agent.get(__MODULE__, & &1)
-  end
-end
-
-Mox.defmock(Exandra.Adapter.Mock, for: Exandra.Adapter.AdapterBehaviour)
-
-Application.put_env(:exandra, :adapter, Exandra.Adapter.Mock)
-Application.put_env(:exandra, :child_spec, TestConn)
+Mox.defmock(XandraClusterMock, for: Exandra.XandraCluster.Behaviour)
+Mox.defmock(XandraMock, for: Exandra.Xandra.Behaviour)
 
 Application.put_env(:exandra, TestRepo,
   default_consistency: :one,
@@ -35,16 +19,19 @@ Application.put_env(:exandra, TestRepo,
 defmodule Exandra.AdapterCase do
   use ExUnit.CaseTemplate
 
+  import Mox
+
+  setup :set_mox_global
+  setup :verify_on_exit!
+
   setup do
-    conn = Process.whereis(TestConn)
+    Mox.stub(XandraClusterMock, :child_spec, fn _opts ->
+      Supervisor.child_spec({Agent, fn -> :ok end}, [])
+    end)
 
-    repo =
-      case Exandra.TestRepo.start_link() do
-        {:ok, repo} -> repo
-        {:error, {:already_started, repo}} -> repo
-      end
+    start_link_supervised!(Exandra.TestRepo)
 
-    {:ok, %{conn: conn, repo: repo}}
+    :ok
   end
 end
 
