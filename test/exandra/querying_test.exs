@@ -28,8 +28,8 @@ defmodule Exandra.QueryingTest do
 
     @primary_key false
     schema "my_schema" do
-      field(:my_string, :binary_id, primary_key: true)
-      field(:my_counter, Exandra.XCounter)
+      field :my_string, :binary_id, primary_key: true
+      field :my_counter, Exandra.XCounter
     end
 
     def changeset(attrs) do
@@ -43,9 +43,12 @@ defmodule Exandra.QueryingTest do
 
   describe "querying" do
     test "counters" do
-      assert {"SELECT my_string, my_counter FROM my_schema WHERE my_string = 'uuidish'", []} =
+      uuid = Ecto.UUID.generate()
+      bin_uuid = Ecto.UUID.dump!(uuid)
+
+      assert {"SELECT my_string, my_counter FROM my_schema WHERE my_string = ?", [^bin_uuid]} =
                CounterSchema
-               |> where([s], s.my_string == "uuidish")
+               |> where([s], s.my_string == ^uuid)
                |> to_xanrda_sql(:all)
     end
 
@@ -65,10 +68,10 @@ defmodule Exandra.QueryingTest do
                |> limit(1)
                |> to_xanrda_sql(:all)
 
-      nowish = DateTime.utc_now()
+      nowish = DateTime.truncate(DateTime.utc_now(), :second)
 
       assert {"SELECT id, my_string, my_dt, my_bool, my_udt FROM my_schema WHERE my_dt < ? LIMIT 1",
-              [{"timestamp", %DateTime{}}]} =
+              [^nowish]} =
                Schema
                |> where([s], s.my_dt < ^nowish)
                |> limit(1)
@@ -76,14 +79,13 @@ defmodule Exandra.QueryingTest do
     end
 
     test "create" do
-      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
+      XandraMock
+      |> expect(:prepare, fn _conn, stmt, _opts ->
         assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
-
-        assert [
-                 {"text", "string"},
-                 {"uuid", _}
-               ] = values
-
+        {:ok, %Xandra.Prepared{}}
+      end)
+      |> expect(:execute, fn _conn, _stmt, values, _opts ->
+        assert ["string", _uuid] = values
         {:ok, %Xandra.Void{}}
       end)
 
@@ -96,14 +98,17 @@ defmodule Exandra.QueryingTest do
       uuid = Ecto.UUID.generate()
       record = %Schema{id: uuid, my_bool: false}
 
-      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
+      XandraMock
+      |> expect(:prepare, fn _conn, stmt, _opts ->
         assert "UPDATE my_schema SET my_bool = ?, my_udt = ? WHERE id = ?" = stmt
-
-        assert [
-                 {"boolean", true},
-                 {"fullname", %{"first_name" => "frank", "last_name" => "beans"}},
-                 {"uuid", ^uuid}
-               ] = values
+        {:ok, %Xandra.Prepared{}}
+      end)
+      |> expect(:execute, fn _conn, _stmt, values, _options ->
+        assert values == [
+                 true,
+                 %{"first_name" => "frank", "last_name" => "beans"},
+                 Ecto.UUID.dump!(uuid)
+               ]
 
         {:ok, %Xandra.Void{}}
       end)
@@ -119,14 +124,13 @@ defmodule Exandra.QueryingTest do
     test "update counters" do
       uuid = Ecto.UUID.generate()
 
-      expect(XandraClusterMock, :execute, fn _conn, stmt, values, _adapter ->
+      XandraMock
+      |> expect(:prepare, fn _conn, stmt, _options ->
         assert "UPDATE my_schema SET my_counter = ? WHERE my_string = ?" = stmt
-
-        assert [
-                 {"counter", 5},
-                 {"uuid", ^uuid}
-               ] = values
-
+        {:ok, %Xandra.Prepared{}}
+      end)
+      |> expect(:execute, fn _conn, _stmt, values, _adapter ->
+        assert values == [5, Ecto.UUID.dump!(uuid)]
         {:ok, %Xandra.Void{}}
       end)
 
@@ -146,11 +150,10 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:prepare, fn _conn, stmt, _adapter ->
         assert "DELETE FROM my_schema WHERE id = ?" = stmt
-
         {:ok, %Xandra.Prepared{}}
       end)
       |> expect(:stream_pages!, fn _conn, %Xandra.Prepared{}, values, _adapter ->
-        assert [^uuid] = values
+        assert values == [Ecto.UUID.dump!(uuid)]
         []
       end)
 

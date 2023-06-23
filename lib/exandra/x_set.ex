@@ -104,7 +104,7 @@ defmodule Exandra.XSet do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(mapset, _dumper, opts), do: {:ok, {xandra_type(opts), mapset}}
+  def dump(mapset, _dumper, _opts), do: {:ok, mapset}
 
   @impl Ecto.ParameterizedType
   def equal?({_, _}, _, _), do: false

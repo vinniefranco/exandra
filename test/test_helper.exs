@@ -29,6 +29,10 @@ defmodule Exandra.AdapterCase do
       Supervisor.child_spec({Agent, fn -> :ok end}, [])
     end)
 
+    Mox.stub(XandraClusterMock, :run, fn _cluster, fun ->
+      fun.(self())
+    end)
+
     start_link_supervised!(Exandra.TestRepo)
 
     :ok

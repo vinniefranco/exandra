@@ -36,7 +36,8 @@ defmodule Exandra.XSetTest do
     type = Schema.__schema__(:type, :my_set)
     assert {:ok, %{}} = Ecto.Type.load(type, :my_set)
 
-    assert {:ok, {"set<uuid>", :my_int_xmap}} == Ecto.Type.dump(type, :my_int_xmap)
+    set = MapSet.new([Ecto.UUID.generate()])
+    assert Ecto.Type.dump(type, set) == {:ok, set}
   end
 
   test "params/1 returns embed with given value as key" do

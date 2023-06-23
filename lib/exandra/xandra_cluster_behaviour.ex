@@ -23,4 +23,6 @@ defmodule Exandra.XandraClusterBehaviour do
               values :: Xandra.values(),
               keyword :: keyword()
             ) :: Enumerable.t()
+
+  @callback run(cluster :: pid(), (Xandra.conn() -> term())) :: term()
 end

@@ -105,7 +105,7 @@ defmodule Exandra.XMap do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(map, _dumper, opts), do: {:ok, {xandra_type(opts), map}}
+  def dump(map, _dumper, _opts), do: {:ok, map}
 
   @impl Ecto.ParameterizedType
   def equal?({_, _}, _, _), do: false
