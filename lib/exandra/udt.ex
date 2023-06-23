@@ -48,9 +48,7 @@ defmodule Exandra.UDT do
   end
 
   @impl Ecto.ParameterizedType
-  def cast(data, %{type: udt}) do
-    {:ok, {Atom.to_string(udt), data}}
-  end
+  def cast(data, %{type: _udt}), do: {:ok, data}
 
   @impl Ecto.ParameterizedType
   def load(data, _loader, _params) do

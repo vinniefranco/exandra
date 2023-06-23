@@ -17,8 +17,8 @@ defmodule Exandra.XCounter do
   def type, do: :counter
 
   @impl Ecto.Type
-  def cast(val) do
-    {:ok, {"counter", val}}
+  def cast(val) when is_integer(val) do
+    {:ok, val}
   end
 
   @impl Ecto.Type

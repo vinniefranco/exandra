@@ -88,7 +88,7 @@ defmodule ExandraTest do
               ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool my_decimal),
             content: [
               [
-                row1_id,
+                Ecto.UUID.dump!(row1_id),
                 ~s({"a":"b"}),
                 "foo",
                 %{"this" => 1},
@@ -109,7 +109,7 @@ defmodule ExandraTest do
               ~w(id my_map my_enum my_xmap my_xset my_udt my_list my_utc my_integer my_bool my_decimal),
             content: [
               [
-                row2_id,
+                Ecto.UUID.dump!(row2_id),
                 ~s({"a":"b"}),
                 "bar",
                 %{"that" => 2},
