@@ -6,5 +6,5 @@ if config_env() == :test do
     xandra_module: XandraMock
 
   config :logger,
-    level: :info
+    level: String.to_existing_atom(System.get_env("LOG_LEVEL", "info"))
 end

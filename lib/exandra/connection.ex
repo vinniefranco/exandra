@@ -5,6 +5,7 @@ defmodule Exandra.Connection do
 
   @behaviour Ecto.Adapters.SQL.Connection
 
+  @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
   @xandra_cluster_mod Application.compile_env(
                         :exandra,
                         :xandra_cluster_module,
@@ -92,13 +93,27 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def query(cluster, sql, params, opts) do
-    case @xandra_cluster_mod.execute(cluster, sql, params, opts) do
+    sql =
+      case sql do
+        [query] -> query
+        other -> other
+      end
+
+    case prepare_execute(cluster, sql, params, opts) do
       {:ok, %Xandra.SchemaChange{} = schema_change} -> {:ok, schema_change}
       {:ok, %Xandra.Void{}} -> {:ok, %{rows: nil, num_rows: 1}}
       {:ok, %Xandra.Page{paging_state: nil} = page} -> {:ok, process_page(page)}
       {:ok, %Xandra.Page{content: []}} -> {:ok, %{rows: [], num_rows: 1}}
       {:error, _} = err -> err
     end
+  end
+
+  defp prepare_execute(cluster, sql, params, opts) do
+    @xandra_cluster_mod.run(cluster, fn conn ->
+      with {:ok, %Prepared{} = prepared} <- @xandra_mod.prepare(conn, sql, opts) do
+        @xandra_mod.execute(conn, prepared, params, opts)
+      end
+    end)
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -776,4 +791,5 @@ defmodule Exandra.Connection do
   defp ecto_cast_to_db(:id, _query), do: "uuid"
   defp ecto_cast_to_db(:string, _query), do: "text"
   defp ecto_cast_to_db(:uuid, _query), do: "uuid"
+  defp ecto_cast_to_db(:integer, _query), do: "int"
 end

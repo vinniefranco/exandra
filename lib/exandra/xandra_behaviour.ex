@@ -7,4 +7,10 @@ defmodule Exandra.XandraBehaviour do
 
   @callback execute(Xandra.conn(), String.t()) ::
               {:ok, Xandra.result()} | {:error, Xandra.error()}
+
+  @callback execute(Xandra.conn(), String.t(), Xandra.values(), keyword()) ::
+              {:ok, Xandra.result()} | {:error, Xandra.error()}
+
+  @callback prepare(Xandra.conn(), String.t(), keyword()) ::
+              {:ok, Xandra.Prepared.t()} | {:error, Xandra.error()}
 end
