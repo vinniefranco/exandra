@@ -75,20 +75,6 @@ defmodule Exandra do
 
   defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
 
-  # Catch strings
-  @doc false
-  def decode_binary_id(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = string) do
-    {:ok, string}
-  end
-
-  def decode_binary_id({"uuid", binuuid}) do
-    {:ok, Ecto.UUID.load!(binuuid)}
-  end
-
-  def decode_binary_id(id) do
-    {:ok, Ecto.UUID.load!(id)}
-  end
-
   @impl Ecto.Adapter.Migration
   def lock_for_migrations(_, _, fun), do: fun.()
 
