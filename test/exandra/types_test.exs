@@ -4,18 +4,23 @@ defmodule Exandra.TypesTest do
   alias Exandra.Types
 
   test "for/1" do
-    assert :uuid = Types.for(:binary_id)
-    assert :uuid = Types.for(:id)
-    assert :int = Types.for(:integer)
-    assert :text = Types.for({:parameterized, Ecto.Embedded, nil})
-    assert :text = Types.for({:parameterized, Ecto.Enum, nil})
-    assert :text = Types.for(:string)
-    assert :text = Types.for(:text)
+    assert Types.for(:binary_id) == {:ok, "uuid"}
+    assert Types.for(:id) == {:ok, "uuid"}
+    assert Types.for(:uuid) == {:ok, "uuid"}
+    assert Types.for(:integer) == {:ok, "int"}
+    assert Types.for({:parameterized, Ecto.Embedded, nil}) == {:ok, "text"}
+    assert Types.for({:parameterized, Ecto.Enum, nil}) == {:ok, "text"}
+    assert Types.for(:string) == {:ok, "text"}
+    assert Types.for(:text) == {:ok, "text"}
+    assert Types.for(:naive_datetime) == {:ok, "timestamp"}
+    assert Types.for(:naive_datetime_usec) == {:ok, "timestamp"}
+    assert Types.for(:utc_datetime) == {:ok, "timestamp"}
+    assert Types.for(:utc_datetime_usec) == {:ok, "timestamp"}
+    assert Types.for({:array, :string}) == {:ok, "list<text>"}
+    assert Types.for({:array, {:array, :int}}) == {:ok, "list<list<int>>"}
+    assert Types.for(:"whatever type!") == {:ok, "whatever type!"}
+    assert Types.for(Exandra.UDT, type: :full_name) == {:ok, "FROZEN<full_name>"}
 
-    assert "map<text, int>" =
-             Types.for({:parameterized, Exandra.XMap, %{key: :text, value: :integer}})
-
-    assert "set<text>" = Types.for({:parameterized, Exandra.XSet, %{type: :text}})
-    assert :x_set = Types.for({:set, {:array, :string}})
+    assert Types.for({:map, :string}) == :error
   end
 end

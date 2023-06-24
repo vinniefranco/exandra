@@ -119,9 +119,4 @@ defmodule Exandra.XMap do
   # From Ecto.Type.
   @doc false
   def embed_as(_format), do: :self
-
-  @doc false
-  def xandra_type(%{key: key_type, value: value_type}) do
-    "map<#{Types.for(key_type)}, #{Types.for(value_type)}>"
-  end
 end

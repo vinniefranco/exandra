@@ -688,30 +688,23 @@ defmodule Exandra.Connection do
     if Keyword.has_key?(opts, :primary_key) do
       raise ArgumentError, "altering PRIMARY KEY columns is not supported"
     else
-      "ADD #{quote_name(name)} #{Types.for(type, opts)}"
+      "ADD #{quote_name(name)} #{type_for_ddl(type, opts, name)}"
     end
   end
 
   defp column_definition({_op, name, %Reference{}, _opts}, _) do
-    raise RuntimeError, "Illegal reference `#{name}` Exandra does not support associations"
+    raise ArgumentError,
+          "illegal column #{inspect(name)} of type references(): " <>
+            "Exandra does not support associations"
   end
 
   defp column_definition({:add, name, type, opts}, alter) do
     prefix = if alter, do: "ADD ", else: ""
-    prefix <> "#{quote_name(name)} #{Types.for(type, opts)}"
-  rescue
-    err in ArgumentError ->
-      reraise err, __STACKTRACE__
-
-    _err ->
-      raise ArgumentError,
-            "unsupported type `#{inspect(type)}`. " <>
-              "The type can either be an atom, a string or a tuple of the form " <>
-              "`{:map, t}` where `t` itself follows the same conditions."
+    prefix <> "#{quote_name(name)} #{type_for_ddl(type, opts, name)}"
   end
 
   defp column_definition({:modify, name, type, opts}, _) do
-    "ALTER #{quote_name(name)} TYPE #{Types.for(type, opts)}"
+    "ALTER #{quote_name(name)} TYPE #{type_for_ddl(type, opts, name)}"
   end
 
   defp column_definition({:remove, name, _type, _opts}, _) do
@@ -728,6 +721,20 @@ defmodule Exandra.Connection do
   defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
   defp quote_table(name) when is_atom(name), do: quote_table(Atom.to_string(name))
   defp quote_table(name), do: [name]
+
+  defp type_for_ddl(type, opts, column_name) do
+    case Types.for(type, opts) do
+      {:ok, type} ->
+        type
+
+      :error ->
+        raise ArgumentError, """
+        unsupported type #{inspect(type)} for column #{inspect(column_name)}. The type can be \
+        either an atom representing a native Cassandra/Scylla type (such as :bigint \
+        or :"map<int, boolean>"), or {:array, subtype} where "subtype" follows the same rule.\
+        """
+    end
+  end
 
   defp ordering_bys(columns) do
     columns

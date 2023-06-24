@@ -668,11 +668,9 @@ defmodule Exandra.ConnectionTest do
       {:create, table(:posts, prefix: :foo),
        [{:add, :category_0, %Reference{table: :categories}, []}]}
 
-    assert_raise RuntimeError,
-                 "Illegal reference `category_0` Exandra does not support associations",
-                 fn ->
-                   execute_ddl(create)
-                 end
+    assert_raise ArgumentError, ~r/illegal column :category_0 of type references/, fn ->
+      execute_ddl(create)
+    end
   end
 
   test "create table with UDT freezes column" do
@@ -714,7 +712,7 @@ defmodule Exandra.ConnectionTest do
          {:add, :name, Exandra.UDT, []}
        ]}
 
-    assert_raise ArgumentError, "must define :type option for UDT column", fn ->
+    assert_raise NimbleOptions.ValidationError, ~r/required :type option not found/, fn ->
       execute_ddl(create)
     end
   end
@@ -1002,11 +1000,9 @@ defmodule Exandra.ConnectionTest do
          {:add, :a, {:a, :b, :c}, [default: %{}]}
        ]}
 
-    assert_raise ArgumentError,
-                 "unsupported type `{:a, :b, :c}`. " <>
-                   "The type can either be an atom, a string or a tuple of the form " <>
-                   "`{:map, t}` where `t` itself follows the same conditions.",
-                 fn -> execute_ddl(create) end
+    assert_raise ArgumentError, ~r/unsupported type \{:a, :b, :c\} for column :a/, fn ->
+      execute_ddl(create)
+    end
   end
 
   test "drop table" do

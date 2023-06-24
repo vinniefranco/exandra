@@ -36,6 +36,7 @@ defmodule Exandra.MigrationsTest do
           create_if_not_exists table("most_types", primary_key: false) do
             add :id, :uuid, primary_key: true
 
+            add :my_array, {:array, :int}
             add :my_bigint, :bigint
             add :my_boolean, :boolean
             add :my_decimal, :decimal
@@ -46,6 +47,7 @@ defmodule Exandra.MigrationsTest do
             add :my_tinyint, :tinyint
             add :my_udt, :fullname
             add :my_xmap, :"map<int, boolean>"
+            add :my_xset, :"set<uuid>"
 
             timestamps()
           end
@@ -73,6 +75,7 @@ defmodule Exandra.MigrationsTest do
       assert Enum.sort_by(rows, fn [name, _kind, _type] -> name end) == [
                ["id", "partition_key", "uuid"],
                ["inserted_at", "regular", "timestamp"],
+               ["my_array", "regular", "list<int>"],
                ["my_bigint", "regular", "bigint"],
                ["my_boolean", "regular", "boolean"],
                ["my_decimal", "regular", "decimal"],
@@ -83,6 +86,7 @@ defmodule Exandra.MigrationsTest do
                ["my_tinyint", "regular", "tinyint"],
                ["my_udt", "regular", "fullname"],
                ["my_xmap", "regular", "map<int, boolean>"],
+               ["my_xset", "regular", "set<uuid>"],
                ["updated_at", "regular", "timestamp"]
              ]
     end

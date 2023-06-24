@@ -119,9 +119,6 @@ defmodule Exandra.XSet do
   @doc false
   def embed_as(_format), do: :self
 
-  @doc false
-  def xandra_type(%{type: type}), do: "set<#{Types.for(type)}>"
-
   defimpl Jason.Encoder, for: MapSet do
     def encode(set, opts) do
       Jason.Encode.list(MapSet.to_list(set), opts)

@@ -43,7 +43,7 @@ defmodule Exandra.UDT do
   @impl Ecto.ParameterizedType
   def init(opts) do
     opts
-    |> NimbleOptions.validate!(@opts_schema)
+    |> __validate__()
     |> Map.new()
   end
 
@@ -59,4 +59,7 @@ defmodule Exandra.UDT do
   def dump(data, _dumper, _params) do
     {:ok, data}
   end
+
+  @doc false
+  def __validate__(opts), do: NimbleOptions.validate!(opts, @opts_schema)
 end

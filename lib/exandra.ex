@@ -63,6 +63,15 @@ defmodule Exandra do
       field :home_phone, Exandra.UDT, type: :phone_number
       field :office_phone, Exandra.UDT, type: :phone_number
 
+  ### Arrays
+
+  You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
+  `list<_>` native Cassandra/Scylla type. For example, you can declare a field as
+
+      field :checkins, {:array, :utc_datetime}
+
+  This field will use the native type `list<timestamp>`.
+
   > #### Exandra Types {: .tip}
   >
   > If you want to use actual Cassandra/Scylla types such as `map<_, _>` or

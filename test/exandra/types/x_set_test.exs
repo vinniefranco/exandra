@@ -79,8 +79,4 @@ defmodule Exandra.XSetTest do
   test "embed_as/1 returns :self" do
     assert :self == XSet.embed_as(nil)
   end
-
-  test "xandra_type/1" do
-    assert "set<text>" == XSet.xandra_type(%{type: :string})
-  end
 end

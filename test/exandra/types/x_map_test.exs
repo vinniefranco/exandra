@@ -87,8 +87,4 @@ defmodule Exandra.XMapTest do
   test "embed_as/1 returns :self" do
     assert :self == XMap.embed_as(nil)
   end
-
-  test "xandra_type/1" do
-    assert "map<text, text>" == XMap.xandra_type(%{key: :string, value: :string})
-  end
 end
