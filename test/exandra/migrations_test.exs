@@ -51,6 +51,11 @@ defmodule Exandra.MigrationsTest do
 
             timestamps()
           end
+
+          create_if_not_exists table("just_counters", primary_key: false) do
+            add :id, :uuid, primary_key: true
+            add :my_xcounter, :counter
+          end
         end
       end
 
@@ -88,6 +93,13 @@ defmodule Exandra.MigrationsTest do
                ["my_xmap", "regular", "map<int, boolean>"],
                ["my_xset", "regular", "set<uuid>"],
                ["updated_at", "regular", "timestamp"]
+             ]
+
+      assert %{rows: rows} = TestRepo.query!(query, [keyspace, "just_counters"])
+
+      assert Enum.sort_by(rows, fn [name, _kind, _type] -> name end) == [
+               ["id", "partition_key", "uuid"],
+               ["my_xcounter", "regular", "counter"]
              ]
     end
   end
