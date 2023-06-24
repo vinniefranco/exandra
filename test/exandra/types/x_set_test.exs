@@ -1,5 +1,5 @@
 defmodule Exandra.XSetTest do
-  use ExUnit.Case, async: true
+  use Exandra.AdapterCase, async: true
 
   alias Exandra.XSet
 
@@ -7,7 +7,7 @@ defmodule Exandra.XSetTest do
     use Ecto.Schema
 
     schema "my_schema" do
-      field(:my_set, XSet, type: :uuid)
+      field :my_set, XSet, type: :uuid
     end
   end
 

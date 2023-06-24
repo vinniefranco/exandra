@@ -1,5 +1,5 @@
 defmodule Exandra.XMapTest do
-  use ExUnit.Case, async: true
+  use Exandra.AdapterCase, async: true
 
   alias Exandra.XMap
 
@@ -7,10 +7,10 @@ defmodule Exandra.XMapTest do
     use Ecto.Schema
 
     schema "my_schema" do
-      field(:my_int_key_xmap, XMap, key: :integer, value: :string)
-      field(:my_int_value_xmap, XMap, key: :string, value: :integer)
-      field(:my_int_xmap, XMap, key: :integer, value: :integer)
-      field(:my_atom_xmap, XMap, key: :atom, value: :integer)
+      field :my_int_key_xmap, XMap, key: :integer, value: :string
+      field :my_int_value_xmap, XMap, key: :string, value: :integer
+      field :my_int_xmap, XMap, key: :integer, value: :integer
+      field :my_atom_xmap, XMap, key: :atom, value: :integer
     end
   end
 
