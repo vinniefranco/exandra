@@ -185,7 +185,7 @@ defmodule Exandra.ConnectionTest do
       |> update(set: [x: 123])
       |> plan(:update_all)
 
-    assert_raise RuntimeError, fn ->
+    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
       update_all(query)
     end
   end
@@ -555,9 +555,7 @@ defmodule Exandra.ConnectionTest do
   test "update all" do
     query = from(m in Schema, update: [set: [x: 0]]) |> plan(:update_all)
 
-    assert_raise RuntimeError, fn ->
-      update_all(query)
-    end
+    assert update_all(query) == ~s{UPDATE schema SET x = 0}
   end
 
   test "delete all" do

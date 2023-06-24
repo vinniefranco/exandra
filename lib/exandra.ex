@@ -77,6 +77,28 @@ defmodule Exandra do
   > If you want to use actual Cassandra/Scylla types such as `map<_, _>` or
   > `set<_>`, you can use the corresponding Exandra types `Exandra.XMap` and `Exandra.XSet`.
 
+  ### Counter Tables
+
+  You can use the `Exandra.XCounter` type to create counter fields (in counter tables). For
+  example:
+
+      @primary_key false
+      schema "page_views" do
+        field :route, :string, primary_key: true
+        field :total, Exandra.XCounter
+      end
+
+  You can only *update* counter fields. You'll have to use `c:Ecto.Repo.update_all/2`
+  to insert or update counters. For example, in the table above, you'd update the
+  `:total` counter field with:
+
+      query =
+        from page_view in "page_views",
+          where: page_view.route == "/browse",
+          update: [set: [total: 1]]
+
+      MyApp.Repo.update_all(query)
+
   ## Migrations
 
   You can use Exandra to run migrations as well, as it supports most of the DDL-related

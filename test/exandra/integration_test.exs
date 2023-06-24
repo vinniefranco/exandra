@@ -1,6 +1,8 @@
 defmodule Exandra.IntegrationTest do
   use Exandra.AdapterCase, async: false, integration: true
 
+  import Ecto.Query
+
   alias Exandra.TestRepo
 
   @keyspace "exandra_test"
@@ -25,6 +27,15 @@ defmodule Exandra.IntegrationTest do
     end
   end
 
+  defmodule CounterSchema do
+    use Exandra.Table
+
+    @primary_key {:id, :binary_id, autogenerate: true}
+    schema "my_counter_schema" do
+      field :my_counter, Exandra.XCounter
+    end
+  end
+
   setup_all do
     opts = [keyspace: @keyspace, hostname: "localhost", port: @port, sync_connect: 1000]
 
@@ -40,6 +51,7 @@ defmodule Exandra.IntegrationTest do
     Xandra.execute!(conn, "USE #{@keyspace}")
     Xandra.execute!(conn, "CREATE TYPE IF NOT EXISTS fullname (first_name text, last_name text)")
     Xandra.execute!(conn, "DROP TABLE IF EXISTS my_schema")
+    Xandra.execute!(conn, "DROP TABLE IF EXISTS my_counter_schema")
 
     Xandra.execute!(conn, """
     CREATE TABLE my_schema (
@@ -56,6 +68,14 @@ defmodule Exandra.IntegrationTest do
       my_decimal decimal,
       inserted_at timestamp,
       updated_at timestamp,
+      PRIMARY KEY (id)
+    )
+    """)
+
+    Xandra.execute!(conn, """
+    CREATE TABLE my_counter_schema (
+      id uuid,
+      my_counter counter,
       PRIMARY KEY (id)
     )
     """)
@@ -134,5 +154,22 @@ defmodule Exandra.IntegrationTest do
              my_bool: false,
              my_integer: 5
            } = returned_schema2
+
+    counter_id = Ecto.UUID.generate()
+
+    query =
+      from c in CounterSchema,
+        update: [set: [my_counter: c.my_counter + 3]],
+        where: c.id == ^counter_id
+
+    assert {1, _} = TestRepo.update_all(query, [])
+
+    assert %CounterSchema{} = fetched_counter = TestRepo.get!(CounterSchema, counter_id)
+    assert fetched_counter.id == counter_id
+    assert fetched_counter.my_counter == 3
+
+    # Let's run the query again and see the counter updated, since that's what counters do.
+    assert {1, _} = TestRepo.update_all(query, [])
+    assert TestRepo.reload!(fetched_counter).my_counter == 6
   end
 end

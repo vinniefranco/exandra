@@ -64,31 +64,36 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute(cluster, query, params, opts) do
-    values =
-      Enum.map(params, fn
-        {_type, value} -> value
-        value -> value
-      end)
+    @xandra_cluster_mod.run(cluster, opts, fn conn ->
+      case @xandra_mod.execute(conn, query, params, opts) do
+        {:ok, %Xandra.Void{}} ->
+          {:ok, query, %{rows: nil, num_rows: 1}}
 
-    stream = @xandra_cluster_mod.stream_pages!(cluster, query, values, opts)
+        {:ok, %Xandra.SchemaChange{}} ->
+          {:ok, query, %{rows: nil, num_rows: 1}}
 
-    result =
-      Enum.reduce_while(stream, %{rows: [], num_rows: 0}, fn
-        %Xandra.Void{}, _acc ->
-          {:halt, %{rows: nil, num_rows: 1}}
+        {:ok, %Xandra.Page{} = page} ->
+          stream_pages(conn, query, params, opts, page, %{rows: [], num_rows: 0})
 
-        %Xandra.SchemaChange{}, _acc ->
-          {:halt, %{rows: nil, num_rows: 1}}
+        {:error, error} ->
+          {:error, error}
+      end
+    end)
+  end
 
-        %Xandra.Page{} = page, %{rows: rows, num_rows: num_rows} ->
-          %{rows: new_rows, num_rows: new_num_rows} = process_page(page)
-          {:cont, %{rows: rows ++ new_rows, num_rows: num_rows + new_num_rows}}
-      end)
+  defp stream_pages(conn, query, params, opts, page, acc) do
+    %{rows: rows, num_rows: num_rows} = process_page(page)
+    acc = update_in(acc.rows, &(&1 ++ rows))
+    acc = update_in(acc.num_rows, &(&1 + num_rows))
 
-    {:ok, query, result}
-  rescue
-    err ->
-      {:error, err}
+    if page.paging_state do
+      paging_opts = Keyword.put(opts, :paging_state, page.paging_state)
+
+      with {:ok, new_page} <- @xandra_mod.execute(conn, query, params, paging_opts),
+           do: stream_pages(conn, query, params, opts, new_page, acc)
+    else
+      {:ok, query, acc}
+    end
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -178,7 +183,21 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def update_all(_), do: raise("not implemented")
+  def update_all(query) do
+    %Ecto.Query{from: %{source: {table, _schema}}} = query
+
+    sources = create_names(query, [])
+    cte(query, sources)
+    combinations(query)
+
+    "UPDATE #{quote_table(table)} SET #{updates(query)}#{where(query, sources)}"
+  end
+
+  defp updates(%Ecto.Query{updates: updates} = query) do
+    Enum.map_join(updates, ", ", fn %Ecto.Query.QueryExpr{expr: [set: [{field, expr}]]} ->
+      [quote_name(field), " = ", expr(expr, _sources = [], query)]
+    end)
+  end
 
   @impl Ecto.Adapters.SQL.Connection
   def delete(prefix, table, filters, _returning) do
