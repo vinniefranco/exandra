@@ -95,6 +95,7 @@ defmodule Exandra.AdapterCase do
       |> String.downcase()
       |> String.replace(~r/([^a-zA-Z0-9_]|\s)/, "_")
       |> then(&"exandra_integration_#{&1}")
+      |> String.slice(0..47)
 
     %{unique_keyspace: keyspace}
   end

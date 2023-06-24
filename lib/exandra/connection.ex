@@ -684,7 +684,7 @@ defmodule Exandra.Connection do
     Enum.map_join(columns, ", ", &column_definition(&1, alter))
   end
 
-  defp column_definition({:add, name, type, opts}, true) do
+  defp column_definition({:add, name, type, opts}, _alter? = true) do
     if Keyword.has_key?(opts, :primary_key) do
       raise ArgumentError, "altering PRIMARY KEY columns is not supported"
     else

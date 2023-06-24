@@ -18,6 +18,7 @@ defmodule Exandra.Types do
     end
   end
 
+  @spec for(Ecto.Type.t()) :: String.t()
   def for(type, opts \\ [])
 
   def for(:id, _), do: :uuid

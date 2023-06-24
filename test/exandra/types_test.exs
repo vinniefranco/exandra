@@ -9,6 +9,8 @@ defmodule Exandra.TypesTest do
     assert :int = Types.for(:integer)
     assert :text = Types.for({:parameterized, Ecto.Embedded, nil})
     assert :text = Types.for({:parameterized, Ecto.Enum, nil})
+    assert :text = Types.for(:string)
+    assert :text = Types.for(:text)
 
     assert "map<text, int>" =
              Types.for({:parameterized, Exandra.XMap, %{key: :text, value: :integer}})
