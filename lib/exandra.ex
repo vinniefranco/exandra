@@ -63,7 +63,7 @@ defmodule Exandra do
   def loaders({:map, _}, type),
     do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
 
-  def loaders(:binary_id, type), do: [Ecto.UUID, type]
+  def loaders(:binary_id, _type), do: []
   def loaders(:x_map, type), do: [&Ecto.Type.embedded_load(type, &1, :x_map), type]
   def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
   def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
