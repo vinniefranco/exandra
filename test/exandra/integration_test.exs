@@ -1,5 +1,5 @@
 defmodule Exandra.IntegrationTest do
-  use ExUnit.Case, async: false
+  use Exandra.AdapterCase, async: false
 
   @moduletag :integration
 
@@ -193,21 +193,6 @@ defmodule Exandra.IntegrationTest do
              :ok,
              :already_up
            ]
-  end
-
-  defp stub_with_real_modules(_context \\ %{}) do
-    stub(XandraClusterMock, :child_spec, &Xandra.Cluster.child_spec/1)
-    stub(XandraClusterMock, :execute, &Xandra.Cluster.execute/4)
-    stub(XandraClusterMock, :prepare, &Xandra.Cluster.prepare/3)
-    stub(XandraClusterMock, :stream_pages!, &Xandra.Cluster.stream_pages!/4)
-    stub(XandraClusterMock, :run, &Xandra.Cluster.run/2)
-
-    stub(XandraMock, :start_link, &Xandra.start_link/1)
-    stub(XandraMock, :execute, &Xandra.execute/2)
-    stub(XandraMock, :execute, &Xandra.execute/4)
-    stub(XandraMock, :prepare, &Xandra.prepare/3)
-
-    :ok
   end
 
   defp generate_keyspace(%{test: test_name}) do
