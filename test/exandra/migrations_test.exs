@@ -102,5 +102,30 @@ defmodule Exandra.MigrationsTest do
                ["my_xcounter", "regular", "counter"]
              ]
     end
+
+    test "roll back",
+         %{start_opts: start_opts, unique_keyspace: keyspace, xandra_conn: xandra_conn} do
+      defmodule RollbackMigration do
+        use Ecto.Migration
+
+        def change do
+          create table("rollbackable", primary_key: false) do
+            add :id, :uuid, primary_key: true
+          end
+        end
+      end
+
+      vsn = System.unique_integer([:positive, :monotonic])
+      assert Ecto.Migrator.up(TestRepo, vsn, RollbackMigration) == :ok
+
+      assert Ecto.Migrator.down(TestRepo, vsn, RollbackMigration) == :ok
+      assert Ecto.Migrator.down(TestRepo, vsn, RollbackMigration) == :already_down
+
+      query = """
+      SELECT table_name FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ?
+      """
+
+      assert %{num_rows: 0} = TestRepo.query!(query, [keyspace, "rollbackable"])
+    end
   end
 end

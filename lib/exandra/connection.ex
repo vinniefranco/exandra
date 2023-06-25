@@ -213,7 +213,18 @@ defmodule Exandra.Connection do
 
     {from, _hints} = from(query, sources)
     where = where(query, sources)
-    ["DELETE", from, where]
+    result = ["DELETE", from, where]
+
+    # TODO: HELP! Aaargh! Cassandra/Scylla can't do CAST in DELETE queries, it's a
+    # syntax error. So anyways, this is what we do for now to support rolling back
+    # migrations D:. Let's either fix it in Ecto or do something, and then we fix
+    # eventually figure it out.
+    if IO.iodata_to_binary(result) ==
+         "DELETE FROM schema_migrations WHERE version = CAST(? AS int)" do
+      "DELETE FROM schema_migrations WHERE version = ?"
+    else
+      result
+    end
   end
 
   defp distinct(nil, _sources, _query), do: []
