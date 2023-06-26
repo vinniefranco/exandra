@@ -323,8 +323,9 @@ defmodule Exandra.Connection do
   def to_constraints(_, _), do: []
 
   @impl Ecto.Adapters.SQL.Connection
-  def table_exists_query(table),
-    do: {"SELECT table_name FROM system_schema.tables WHERE table_name = '#{table}'", []}
+  def table_exists_query(table) when is_binary(table) do
+    {"SELECT table_name FROM system_schema.tables WHERE table_name = ?", [table]}
+  end
 
   defp insert_suffix(opts) do
     suffix =

@@ -615,6 +615,12 @@ defmodule Exandra.ConnectionTest do
     assert query == ~s{DELETE FROM schema WHERE x = ? AND y = ?}
   end
 
+  test "table_exists_query/1" do
+    assert {sql, params} = SQL.table_exists_query("my_table")
+    assert sql == "SELECT table_name FROM system_schema.tables WHERE table_name = ?"
+    assert params == ["my_table"]
+  end
+
   # DDL
 
   import Ecto.Migration, only: [table: 1, table: 2, index: 3, constraint: 3]
