@@ -150,7 +150,7 @@ defmodule Exandra.Connection do
     offset = offset(query, sources)
     lock = lock(query, sources)
 
-    [
+    result = [
       cte,
       select,
       from,
@@ -166,6 +166,16 @@ defmodule Exandra.Connection do
       lock
       | hints
     ]
+
+    # TODO: HELP! Aaargh! Cassandra/Scylla can't do CAST in DELETE queries, it's a
+    # syntax error. So anyways, this is what we do for now to support rolling back
+    # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
+    # https://github.com/elixir-ecto/ecto_sql/pull/531.
+    if IO.iodata_to_binary(result) == "SELECT CAST(version AS int) FROM schema_migrations" do
+      "SELECT version FROM schema_migrations"
+    else
+      result
+    end
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -217,8 +227,8 @@ defmodule Exandra.Connection do
 
     # TODO: HELP! Aaargh! Cassandra/Scylla can't do CAST in DELETE queries, it's a
     # syntax error. So anyways, this is what we do for now to support rolling back
-    # migrations D:. Let's either fix it in Ecto or do something, and then we fix
-    # eventually figure it out.
+    # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
+    # https://github.com/elixir-ecto/ecto_sql/pull/531.
     if IO.iodata_to_binary(result) ==
          "DELETE FROM schema_migrations WHERE version = CAST(? AS int)" do
       "DELETE FROM schema_migrations WHERE version = ?"
