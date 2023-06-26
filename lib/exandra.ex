@@ -37,7 +37,7 @@ defmodule Exandra do
         @primary_key {:id, :binary_id, autogenerate: true}
         schema "users" do
           field :email, :string
-          field :meta, Exandra.XMap, key: :string, value: :string
+          field :meta, Exandra.Map, key: :string, value: :string
         end
       end
 
@@ -75,17 +75,17 @@ defmodule Exandra do
   > #### Exandra Types {: .tip}
   >
   > If you want to use actual Cassandra/Scylla types such as `map<_, _>` or
-  > `set<_>`, you can use the corresponding Exandra types `Exandra.XMap` and `Exandra.XSet`.
+  > `set<_>`, you can use the corresponding Exandra types `Exandra.Map` and `Exandra.Set`.
 
   ### Counter Tables
 
-  You can use the `Exandra.XCounter` type to create counter fields (in counter tables). For
+  You can use the `Exandra.Counter` type to create counter fields (in counter tables). For
   example:
 
       @primary_key false
       schema "page_views" do
         field :route, :string, primary_key: true
-        field :total, Exandra.XCounter
+        field :total, Exandra.Counter
       end
 
   You can only *update* counter fields. You'll have to use `c:Ecto.Repo.update_all/2`
@@ -183,8 +183,8 @@ defmodule Exandra do
     do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
 
   def loaders(:binary_id, _type), do: []
-  def loaders(:x_map, type), do: [&Ecto.Type.embedded_load(type, &1, :x_map), type]
-  def loaders(:x_set, type), do: [&Ecto.Type.embedded_load(type, &1, :x_set), type]
+  def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
+  def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
   def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
   def loaders(:map, type), do: [&Ecto.Type.load(type, Jason.decode!(&1 || "null"))]
   # Xandra returns UUIDs as strings, so we don't need to do any loading.

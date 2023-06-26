@@ -8,14 +8,14 @@ defmodule Exandra.IntegrationTest do
   @keyspace "exandra_test"
 
   defmodule Schema do
-    use Exandra.Table
+    use Ecto.Schema
 
     @primary_key {:id, :binary_id, autogenerate: true}
     schema "my_schema" do
       field :my_map, :map
       field :my_enum, Ecto.Enum, values: [:foo, :bar], default: :bar
-      field :my_xmap, Exandra.XMap, key: :string, value: :integer
-      field :my_xset, Exandra.XSet, type: :integer
+      field :my_exandra_map, Exandra.Map, key: :string, value: :integer
+      field :my_set, Exandra.Set, type: :integer
       field :my_udt, Exandra.UDT, type: :fullname
       field :my_list, {:array, :string}
       field :my_utc, :utc_datetime_usec
@@ -28,11 +28,11 @@ defmodule Exandra.IntegrationTest do
   end
 
   defmodule CounterSchema do
-    use Exandra.Table
+    use Ecto.Schema
 
     @primary_key {:id, :binary_id, autogenerate: true}
     schema "my_counter_schema" do
-      field :my_counter, Exandra.XCounter
+      field :my_counter, Exandra.Counter
     end
   end
 
@@ -58,8 +58,8 @@ defmodule Exandra.IntegrationTest do
       id uuid,
       my_map text,
       my_enum varchar,
-      my_xmap map<varchar, int>,
-      my_xset set<int>,
+      my_exandra_map map<varchar, int>,
+      my_set set<int>,
       my_udt fullname,
       my_list list<varchar>,
       my_utc timestamp,
@@ -108,8 +108,8 @@ defmodule Exandra.IntegrationTest do
     schema1 = %Schema{
       id: row1_id,
       my_map: %{},
-      my_xmap: %{"this" => 1},
-      my_xset: set1,
+      my_exandra_map: %{"this" => 1},
+      my_set: set1,
       my_list: ["a", "b", "c"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
       my_bool: true,
@@ -119,8 +119,8 @@ defmodule Exandra.IntegrationTest do
     schema2 = %Schema{
       id: row2_id,
       my_map: %{"a" => "b"},
-      my_xmap: %{"that" => 2},
-      my_xset: set2,
+      my_exandra_map: %{"that" => 2},
+      my_set: set2,
       my_list: ["1", "2", "3"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
       my_bool: false,
@@ -136,8 +136,8 @@ defmodule Exandra.IntegrationTest do
     assert %Schema{
              id: ^row1_id,
              my_map: %{},
-             my_xmap: %{"this" => 1},
-             my_xset: ^set1,
+             my_exandra_map: %{"this" => 1},
+             my_set: ^set1,
              my_list: ["a", "b", "c"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
              my_bool: true,
@@ -147,8 +147,8 @@ defmodule Exandra.IntegrationTest do
     assert %Schema{
              id: ^row2_id,
              my_map: %{"a" => "b"},
-             my_xmap: %{"that" => 2},
-             my_xset: ^set2,
+             my_exandra_map: %{"that" => 2},
+             my_set: ^set2,
              my_list: ["1", "2", "3"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
              my_bool: false,

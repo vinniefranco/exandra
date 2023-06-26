@@ -1,4 +1,4 @@
-defmodule Exandra.XCounter do
+defmodule Exandra.Counter do
   @moduledoc """
   `Ecto.Type` for counters.
 
@@ -6,7 +6,7 @@ defmodule Exandra.XCounter do
 
     schema "page_views" do
       field :url, :string
-      field :views, Exandra.XCounter
+      field :views, Exandra.Counter
     end
 
   """

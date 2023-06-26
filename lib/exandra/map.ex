@@ -1,4 +1,4 @@
-defmodule Exandra.XMap do
+defmodule Exandra.Map do
   opts_schema = [
     key: [
       type: :atom,
@@ -30,7 +30,7 @@ defmodule Exandra.XMap do
   ## Examples
 
       schema "user_metadata" do
-        field :free_form_meta, Exandra.XMap, key: :string, value: :string
+        field :free_form_meta, Exandra.Map, key: :string, value: :string
       end
 
   """
@@ -51,9 +51,7 @@ defmodule Exandra.XMap do
   end
 
   @impl Ecto.ParameterizedType
-  def type(_params) do
-    :x_map
-  end
+  def type(_params), do: :exandra_map
 
   @impl Ecto.ParameterizedType
   def cast(nil, _), do: {:ok, %{}}

@@ -1,20 +1,20 @@
-defmodule Exandra.XSetTest do
+defmodule Exandra.SetTest do
   use Exandra.AdapterCase, async: true
 
-  alias Exandra.XSet
+  alias Exandra.Set
 
   defmodule Schema do
     use Ecto.Schema
 
     schema "my_schema" do
-      field :my_set, XSet, type: :uuid
+      field :my_set, Set, type: :uuid
     end
   end
 
   test "init" do
     assert {
              :parameterized,
-             XSet,
+             Set,
              %{
                field: :my_set,
                type: :uuid,
@@ -23,12 +23,12 @@ defmodule Exandra.XSetTest do
            } = Schema.__schema__(:type, :my_set)
   end
 
-  @p_dump_type {:parameterized, XSet, XSet.params(:dump)}
-  @p_self_type {:parameterized, XSet, XSet.params(:self)}
+  @p_dump_type {:parameterized, Set, Set.params(:dump)}
+  @p_self_type {:parameterized, Set, Set.params(:self)}
 
   test "operations" do
-    assert :x_set = Ecto.Type.type(@p_self_type)
-    assert :x_set = Ecto.Type.type(@p_dump_type)
+    assert Ecto.Type.type(@p_self_type) == :exandra_set
+    assert Ecto.Type.type(@p_dump_type) == :exandra_set
 
     assert :self = Ecto.Type.embed_as(@p_self_type, :foo)
     assert :self = Ecto.Type.embed_as(@p_dump_type, :foo)
@@ -41,43 +41,43 @@ defmodule Exandra.XSetTest do
   end
 
   test "params/1 returns embed with given value as key" do
-    assert %{embed: :string} = XSet.params(:string)
+    assert %{embed: :string} = Set.params(:string)
   end
 
-  test "type/1 returns :x_set" do
-    assert :x_set = XSet.type(:anything)
+  test "type/1" do
+    assert Set.type(:anything) == :exandra_set
   end
 
   test "cast/2" do
-    assert {:ok, MapSet.new()} == XSet.cast(nil, :anything)
+    assert {:ok, MapSet.new()} == Set.cast(nil, :anything)
 
     assert {:ok, {:add, MapSet.new(["this", "that"])}} ==
-             XSet.cast({:add, ["this", "that"]}, %{type: :string})
+             Set.cast({:add, ["this", "that"]}, %{type: :string})
 
     assert {:ok, {:remove, MapSet.new(["this", "that"])}} ==
-             XSet.cast({:remove, ["this", "that"]}, %{type: :string})
+             Set.cast({:remove, ["this", "that"]}, %{type: :string})
 
-    assert :error = XSet.cast({:remove, :a}, %{type: :string})
-    assert {:ok, MapSet.new(["a"])} == XSet.cast(MapSet.new(["a"]), %{type: :string})
-    assert {:ok, MapSet.new(["a"])} == XSet.cast(["a"], %{type: :string})
-    assert :error = XSet.cast([1], %{type: :string})
-    assert {:ok, MapSet.new([1])} == XSet.cast(1, %{type: :integer})
-    assert {:ok, MapSet.new([1])} == XSet.cast([1], %{type: :integer})
-    assert :error = XSet.cast(:asd, nil)
+    assert :error = Set.cast({:remove, :a}, %{type: :string})
+    assert {:ok, MapSet.new(["a"])} == Set.cast(MapSet.new(["a"]), %{type: :string})
+    assert {:ok, MapSet.new(["a"])} == Set.cast(["a"], %{type: :string})
+    assert :error = Set.cast([1], %{type: :string})
+    assert {:ok, MapSet.new([1])} == Set.cast(1, %{type: :integer})
+    assert {:ok, MapSet.new([1])} == Set.cast([1], %{type: :integer})
+    assert :error = Set.cast(:asd, nil)
   end
 
   test "equal?/3" do
-    refute XSet.equal?({nil, nil}, nil, nil)
-    refute XSet.equal?(nil, {nil, nil}, nil)
-    assert XSet.equal?(nil, nil, :anything)
-    assert XSet.equal?(nil, [], :anything)
-    assert XSet.equal?([], nil, :anything)
-    assert XSet.equal?(MapSet.new(["a"]), MapSet.new(["a"]), :anything)
-    refute XSet.equal?(MapSet.new(["b"]), MapSet.new(["a"]), :anything)
-    refute XSet.equal?(true, true, nil)
+    refute Set.equal?({nil, nil}, nil, nil)
+    refute Set.equal?(nil, {nil, nil}, nil)
+    assert Set.equal?(nil, nil, :anything)
+    assert Set.equal?(nil, [], :anything)
+    assert Set.equal?([], nil, :anything)
+    assert Set.equal?(MapSet.new(["a"]), MapSet.new(["a"]), :anything)
+    refute Set.equal?(MapSet.new(["b"]), MapSet.new(["a"]), :anything)
+    refute Set.equal?(true, true, nil)
   end
 
   test "embed_as/1 returns :self" do
-    assert :self == XSet.embed_as(nil)
+    assert :self == Set.embed_as(nil)
   end
 end
