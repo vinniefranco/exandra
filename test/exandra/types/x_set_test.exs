@@ -62,6 +62,7 @@ defmodule Exandra.XSetTest do
     assert {:ok, MapSet.new(["a"])} == XSet.cast(["a"], %{type: :string})
     assert :error = XSet.cast([1], %{type: :string})
     assert {:ok, MapSet.new([1])} == XSet.cast(1, %{type: :integer})
+    assert {:ok, MapSet.new([1])} == XSet.cast([1], %{type: :integer})
     assert :error = XSet.cast(:asd, nil)
   end
 

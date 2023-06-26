@@ -33,8 +33,6 @@ defmodule Exandra.XSet do
 
   use Ecto.ParameterizedType
 
-  alias Exandra.Types
-
   @opts_schema NimbleOptions.new!(opts_schema)
 
   # Made public for testing.
@@ -63,10 +61,10 @@ defmodule Exandra.XSet do
 
   def cast(%MapSet{} = set, opts), do: set |> MapSet.to_list() |> cast(opts)
 
-  def cast(list, %{type: type} = opts) when is_list(list) do
+  def cast(list, %{type: type}) when is_list(list) do
     casted =
       Enum.reduce_while(list, [], fn elem, acc ->
-        case Types.apply(type, :cast, elem, opts) do
+        case Ecto.Type.cast(type, elem) do
           {:ok, casted} -> {:cont, [casted | acc]}
           err -> {:halt, err}
         end
@@ -75,8 +73,8 @@ defmodule Exandra.XSet do
     if is_list(casted), do: {:ok, MapSet.new(casted)}, else: casted
   end
 
-  def cast(val, %{type: type} = opts) do
-    case Types.apply(type, :cast, val, opts) do
+  def cast(val, %{type: type}) do
+    case Ecto.Type.cast(type, val) do
       {:ok, casted} -> {:ok, MapSet.new([casted])}
       err -> err
     end
@@ -85,10 +83,10 @@ defmodule Exandra.XSet do
   def cast(_key, _val), do: :error
 
   @impl Ecto.ParameterizedType
-  def load(%MapSet{} = mapset, _loader, %{type: type} = opts) do
+  def load(%MapSet{} = mapset, _loader, %{type: type}) do
     loaded =
       Enum.reduce_while(mapset, [], fn elem, acc ->
-        case Types.apply(type, :load, elem, opts) do
+        case Ecto.Type.cast(type, elem) do
           {:ok, loaded} -> {:cont, [loaded | acc]}
           err -> {:halt, err}
         end

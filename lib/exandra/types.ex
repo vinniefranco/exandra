@@ -11,19 +11,6 @@ defmodule Exandra.Types do
     :utc_datetime_usec
   ]
 
-  def apply(type, op, value, opts) do
-    cond do
-      is_atom(type) and function_exported?(type, op, 1) ->
-        apply(type, op, [value])
-
-      is_atom(type) and function_exported?(type, op, 2) ->
-        apply(type, op, [value, opts])
-
-      true ->
-        Ecto.Type.cast(type, value)
-    end
-  end
-
   @spec for(Ecto.Type.t()) :: {:ok, String.t()} | :error
   def for(type, opts \\ [])
 
@@ -44,8 +31,8 @@ defmodule Exandra.Types do
   def for({:parameterized, Ecto.Enum, _}, _opts), do: {:ok, "text"}
 
   def for(ecto_type, _opts) when is_atom(ecto_type) do
-    if function_exported?(ecto_type, :type, 0) do
-      {:ok, ecto_type.type()}
+    if Code.ensure_loaded?(ecto_type) and function_exported?(ecto_type, :type, 0) do
+      {:ok, to_string(ecto_type.type())}
     else
       {:ok, Atom.to_string(ecto_type)}
     end

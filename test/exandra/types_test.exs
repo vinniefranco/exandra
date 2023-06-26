@@ -22,5 +22,8 @@ defmodule Exandra.TypesTest do
     assert Types.for(Exandra.UDT, type: :full_name) == {:ok, "FROZEN<full_name>"}
 
     assert Types.for({:map, :string}) == :error
+
+    # With types that are modules that export the type/0 callback.
+    assert Types.for(Exandra.XCounter) == {:ok, "counter"}
   end
 end
