@@ -2,6 +2,7 @@
   "skip_files": [
     "lib/exandra/table.ex",
     "lib/exandra/adapter/adapter_behaviour.ex",
-    "lib/exandra/adapter/xandra_clustered.ex"
+    "lib/exandra/adapter/xandra_clustered.ex",
+    "test/support"
   ]
 }
