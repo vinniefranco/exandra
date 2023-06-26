@@ -7,7 +7,7 @@ defmodule Exandra.QueryingTest do
   alias Exandra.TestRepo
 
   defmodule MySchema do
-    use Exandra.Table
+    use Ecto.Schema
 
     @primary_key {:id, :binary_id, autogenerate: true}
     schema "my_schema" do
@@ -15,7 +15,7 @@ defmodule Exandra.QueryingTest do
       field :my_datetime, :utc_datetime
       field :my_bool, :boolean
       field :my_udt, Exandra.UDT, type: :fullname
-      field :my_counter, Exandra.XCounter
+      field :my_counter, Exandra.Counter
     end
   end
 

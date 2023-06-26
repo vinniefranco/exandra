@@ -32,7 +32,7 @@ defmodule Exandra.MixProject do
       docs: [
         main: "Exandra",
         groups_for_modules: [
-          "Ecto types": [Exandra.UDT, Exandra.XCounter, Exandra.XMap, Exandra.XSet]
+          "Ecto types": [Exandra.UDT, Exandra.Counter, Exandra.Map, Exandra.Set]
         ]
       ]
     ]

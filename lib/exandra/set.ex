@@ -1,4 +1,4 @@
-defmodule Exandra.XSet do
+defmodule Exandra.Set do
   opts_schema = [
     type: [
       type: :atom,
@@ -26,7 +26,7 @@ defmodule Exandra.XSet do
 
       schema "users" do
         field :email, :string
-        field :roles, Exandra.XSet, type: :string
+        field :roles, Exandra.Set, type: :string
       end
 
   """
@@ -40,7 +40,7 @@ defmodule Exandra.XSet do
   def params(embed), do: %{embed: embed}
 
   @impl Ecto.ParameterizedType
-  def type(_), do: :x_set
+  def type(_opts), do: :exandra_set
 
   @impl Ecto.ParameterizedType
   def init(opts) do

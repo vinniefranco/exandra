@@ -46,15 +46,15 @@ defmodule Exandra.MigrationsTest do
             add :my_text, :text
             add :my_tinyint, :tinyint
             add :my_udt, :fullname
-            add :my_xmap, :"map<int, boolean>"
-            add :my_xset, :"set<uuid>"
+            add :my_exandra_map, :"map<int, boolean>"
+            add :my_set, :"set<uuid>"
 
             timestamps()
           end
 
           create_if_not_exists table("just_counters", primary_key: false) do
             add :id, :uuid, primary_key: true
-            add :my_xcounter, :counter
+            add :my_counter, :counter
           end
         end
       end
@@ -84,14 +84,14 @@ defmodule Exandra.MigrationsTest do
                ["my_bigint", "regular", "bigint"],
                ["my_boolean", "regular", "boolean"],
                ["my_decimal", "regular", "decimal"],
+               ["my_exandra_map", "regular", "map<int, boolean>"],
                ["my_int", "regular", "int"],
                ["my_map", "regular", "text"],
+               ["my_set", "regular", "set<uuid>"],
                ["my_string", "regular", "text"],
                ["my_text", "regular", "text"],
                ["my_tinyint", "regular", "tinyint"],
                ["my_udt", "regular", "fullname"],
-               ["my_xmap", "regular", "map<int, boolean>"],
-               ["my_xset", "regular", "set<uuid>"],
                ["updated_at", "regular", "timestamp"]
              ]
 
@@ -99,7 +99,7 @@ defmodule Exandra.MigrationsTest do
 
       assert Enum.sort_by(rows, fn [name, _kind, _type] -> name end) == [
                ["id", "partition_key", "uuid"],
-               ["my_xcounter", "regular", "counter"]
+               ["my_counter", "regular", "counter"]
              ]
     end
 
