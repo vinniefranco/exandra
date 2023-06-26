@@ -646,8 +646,8 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Table{} = table, _})
-      when command in [:drop, :drop_if_not_exists] do
-    guard = if command == :drop_if_not_exists, do: " IF NOT EXISTS ", else: ""
+      when command in [:drop, :drop_if_exists] do
+    guard = if command == :drop_if_exists, do: " IF EXISTS ", else: ""
 
     [["DROP TABLE#{guard} #{quote_table(table.prefix, table.name)}"]]
   end
