@@ -623,7 +623,7 @@ defmodule Exandra.ConnectionTest do
 
   # DDL
 
-  import Ecto.Migration, only: [table: 1, table: 2, index: 3, constraint: 3]
+  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3, constraint: 3]
 
   test "executing a string during migration" do
     assert execute_ddl("example") == ["example"]
@@ -1094,12 +1094,34 @@ defmodule Exandra.ConnectionTest do
     end
   end
 
+  test "create index" do
+    create = {:create, index(:posts, [:permalink])}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE INDEX posts_permalink_index ON posts(permalink)|
+             ]
+
+    create = {:create, index(:posts, [:permalink], name: "posts$main")}
+
+    assert execute_ddl(create) ==
+             [~s|CREATE INDEX posts$main ON posts(permalink)|]
+  end
+
+  test "create index with prefix does nothing" do
+    create = {:create, index(:posts, [:category_id], prefix: :foo)}
+
+    assert_raise ArgumentError, "indexes with prefixes are not supported by Exandra", fn ->
+      execute_ddl(create)
+    end
+  end
+
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
+    assert execute_ddl(drop) == [~s|DROP INDEX posts$main|]
 
-    assert_raise ArgumentError, "indexes are not supported by Exandra", fn ->
-      execute_ddl(drop)
-    end
+    drop = {:drop_if_exists, index(:posts, [:id]), :restrict}
+    assert execute_ddl(drop) == [~s|DROP INDEX IF EXISTS posts_id_index|]
   end
 
   # Unsupported types and clauses
