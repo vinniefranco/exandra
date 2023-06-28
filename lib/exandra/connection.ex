@@ -681,12 +681,17 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Index{} = index}) when command in [:create, :create_if_not_exists] do
-    unless is_nil(index.prefix),
-      do: raise(ArgumentError, "indexes with prefixes are not supported by Exandra")
-      
-    if index.concurrently do
-      raise ArgumentError, "concurrent index creation is not supported by Exandra"
-    end
+    {error, type} =
+      cond do
+        index.concurrently -> {true, "concurrent"}
+        index.include != [] -> {true, "include"}
+        index.prefix -> {true, "prefix"}
+        index.unique -> {true, "unique"}
+        index.where -> {true, "where"}
+        true -> {false, nil}
+      end
+
+    if error, do: raise(ArgumentError, "#{type} index creation is not supported by Exandra")
 
     [
       [
@@ -703,7 +708,11 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def execute_ddl({command, %Index{} = index, _mode}) when command in [:drop, :drop_if_exists] do
+  def execute_ddl({command, %Index{} = index, :restrict})
+      when command in [:drop, :drop_if_exists] do
+    if index.prefix,
+      do: raise(ArgumentError, "prefix index drop is not supported by Exandra")
+
     [
       [
         "DROP INDEX ",
@@ -712,6 +721,9 @@ defmodule Exandra.Connection do
       ]
     ]
   end
+
+  def execute_ddl({command, %Index{}, :cascade}) when command in [:drop, :drop_if_exists],
+    do: raise(ArgumentError, "cascade index drop is not supported by Exandra")
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl(string) when is_binary(string), do: [string]

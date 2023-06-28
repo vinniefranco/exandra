@@ -1108,10 +1108,35 @@ defmodule Exandra.ConnectionTest do
              [~s|CREATE INDEX posts$main ON posts(permalink)|]
   end
 
-  test "create index with prefix does nothing" do
+  test "create index with bad options raises" do
     create = {:create, index(:posts, [:category_id], prefix: :foo)}
 
-    assert_raise ArgumentError, "indexes with prefixes are not supported by Exandra", fn ->
+    assert_raise ArgumentError, "prefix index creation is not supported by Exandra", fn ->
+      execute_ddl(create)
+    end
+
+    create = {:create, index(:posts, [:category_id], unique: true)}
+
+    assert_raise ArgumentError, "unique index creation is not supported by Exandra", fn ->
+      execute_ddl(create)
+    end
+
+    create = {:create, index(:posts, [:category_id], include: [:public])}
+
+    assert_raise ArgumentError, "include index creation is not supported by Exandra", fn ->
+      execute_ddl(create)
+    end
+
+    create = {:create, index(:posts, [:category_id], where: "1=1")}
+
+    assert_raise ArgumentError, "where index creation is not supported by Exandra", fn ->
+      execute_ddl(create)
+    end
+
+    index = index(:posts, [:permalink])
+    create = {:create, %{index | concurrently: true}}
+
+    assert_raise ArgumentError, "concurrent index creation is not supported by Exandra", fn ->
       execute_ddl(create)
     end
   end
@@ -1122,6 +1147,23 @@ defmodule Exandra.ConnectionTest do
 
     drop = {:drop_if_exists, index(:posts, [:id]), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX IF EXISTS posts_id_index|]
+
+    drop = {:drop_if_exists, index(:posts, [:id]), :restrict}
+    assert execute_ddl(drop) == [~s|DROP INDEX IF EXISTS posts_id_index|]
+  end
+
+  test "drop index with bad options raises" do
+    drop = {:drop, index(:posts, [:id]), :cascade}
+
+    assert_raise ArgumentError, "cascade index drop is not supported by Exandra", fn ->
+      execute_ddl(drop)
+    end
+
+    drop = {:drop, index(:posts, [:id], prefix: :foo), :restrict}
+
+    assert_raise ArgumentError, "prefix index drop is not supported by Exandra", fn ->
+      execute_ddl(drop)
+    end
   end
 
   # Unsupported types and clauses
