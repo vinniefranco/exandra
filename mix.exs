@@ -13,7 +13,7 @@ defmodule Exandra.MixProject do
   def project do
     [
       app: :exandra,
-      version: "0.1.16",
+      version: "0.2.0",
       elixir: "~> 1.14",
       description: @description,
       package: package(),

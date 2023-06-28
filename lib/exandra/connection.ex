@@ -543,6 +543,12 @@ defmodule Exandra.Connection do
     ["(0 + ", Float.to_string(literal), ?)]
   end
 
+  defp index_expr(literal) when is_binary(literal),
+    do: literal
+
+  defp index_expr(literal),
+    do: quote_name(literal)
+
   defp error!(query, message) do
     raise Ecto.QueryError, query: query, message: message
   end
@@ -563,6 +569,9 @@ defmodule Exandra.Connection do
   end
 
   defp intersperse_map(list, separator, mapper, acc \\ [])
+
+  defp intersperse_map([], _separator, _mapper, acc),
+    do: acc
 
   defp intersperse_map([elem], _separator, mapper, acc),
     do: [acc | mapper.(elem)]
@@ -671,8 +680,51 @@ defmodule Exandra.Connection do
     do: raise(ArgumentError, "constraints are not supported by Exandra")
 
   @impl Ecto.Adapters.SQL.Connection
-  def execute_ddl({_command, %Index{}, _}),
-    do: raise(ArgumentError, "indexes are not supported by Exandra")
+  def execute_ddl({command, %Index{} = index}) when command in [:create, :create_if_not_exists] do
+    error_msg =
+      cond do
+        index.concurrently -> "concurrent"
+        index.include != [] -> "include"
+        index.prefix -> "prefix"
+        index.unique -> "unique"
+        index.where -> "where"
+        true -> nil
+      end
+
+    if error_msg,
+      do: raise(ArgumentError, "#{error_msg} index creation is not supported by Exandra")
+
+    [
+      [
+        "CREATE INDEX ",
+        if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
+        quote_name(index.name),
+        " ON ",
+        quote_table(index.prefix, index.table),
+        ?(,
+        intersperse_map(index.columns, ", ", &index_expr/1),
+        ?)
+      ]
+    ]
+  end
+
+  @impl Ecto.Adapters.SQL.Connection
+  def execute_ddl({command, %Index{} = index, :restrict})
+      when command in [:drop, :drop_if_exists] do
+    if index.prefix,
+      do: raise(ArgumentError, "prefix index drop is not supported by Exandra")
+
+    [
+      [
+        "DROP INDEX ",
+        if_do(command == :drop_if_exists, "IF EXISTS "),
+        quote_table(index.prefix, index.name)
+      ]
+    ]
+  end
+
+  def execute_ddl({command, %Index{}, :cascade}) when command in [:drop, :drop_if_exists],
+    do: raise(ArgumentError, "cascade index drop is not supported by Exandra")
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl(string) when is_binary(string), do: [string]
@@ -826,6 +878,10 @@ defmodule Exandra.Connection do
 
   defp process_page(%Xandra.Page{content: content}) do
     %{rows: content, num_rows: length(content)}
+  end
+
+  defp if_do(condition, value) do
+    if condition, do: value, else: []
   end
 
   defp ecto_cast_to_db(:binary_id, _query), do: "uuid"
