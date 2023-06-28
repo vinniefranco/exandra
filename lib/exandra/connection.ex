@@ -683,6 +683,10 @@ defmodule Exandra.Connection do
   def execute_ddl({command, %Index{} = index}) when command in [:create, :create_if_not_exists] do
     unless is_nil(index.prefix),
       do: raise(ArgumentError, "indexes with prefixes are not supported by Exandra")
+      
+    if index.concurrently do
+      raise ArgumentError, "concurrent index creation is not supported by Exandra"
+    end
 
     [
       [
