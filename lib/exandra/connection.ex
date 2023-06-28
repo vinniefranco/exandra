@@ -681,17 +681,18 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Index{} = index}) when command in [:create, :create_if_not_exists] do
-    {error, type} =
+    error_msg =
       cond do
-        index.concurrently -> {true, "concurrent"}
-        index.include != [] -> {true, "include"}
-        index.prefix -> {true, "prefix"}
-        index.unique -> {true, "unique"}
-        index.where -> {true, "where"}
-        true -> {false, nil}
+        index.concurrently -> "concurrent"
+        index.include != [] -> "include"
+        index.prefix -> "prefix"
+        index.unique -> "unique"
+        index.where -> "where"
+        true -> nil
       end
 
-    if error, do: raise(ArgumentError, "#{type} index creation is not supported by Exandra")
+    if error_msg,
+      do: raise(ArgumentError, "#{error_msg} index creation is not supported by Exandra")
 
     [
       [
