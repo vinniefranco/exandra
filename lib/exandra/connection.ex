@@ -690,8 +690,7 @@ defmodule Exandra.Connection do
 
     [
       [
-        "CREATE ",
-        "INDEX ",
+        "CREATE INDEX ",
         if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
         quote_name(index.name),
         " ON",
