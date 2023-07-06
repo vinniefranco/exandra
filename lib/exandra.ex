@@ -99,6 +99,12 @@ defmodule Exandra do
 
       MyApp.Repo.update_all(query)
 
+  ## Batch Queries
+
+  You can run **batch queries** through Exandra. Batch queries are supported by
+  Cassandra/Scylla, and allow you to run multiple queries in a single request.
+  See `Exandra.Batch` for more information and examples.
+
   ## Migrations
 
   You can use Exandra to run migrations as well, as it supports most of the DDL-related
