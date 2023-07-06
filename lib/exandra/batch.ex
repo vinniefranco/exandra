@@ -3,6 +3,8 @@ defmodule Exandra.Batch do
   A struct that represents a batch of queries to be executed in a single
   request to Cassandra/Scylla.
 
+  This is available since v0.3.0 of Exandra.
+
   This is essentially a wrapper around `Xandra.Batch`, but you should not
   use `Xandra.Batch` if working with Exandra.
 
@@ -27,6 +29,7 @@ defmodule Exandra.Batch do
       MyRepo.query!(batch)
 
   """
+  @moduledoc since: "0.3.0"
 
   @enforce_keys [:queries]
   defstruct [:queries]
