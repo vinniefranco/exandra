@@ -97,6 +97,26 @@ defmodule Exandra.IntegrationTest do
     end
   end
 
+  describe "executing a batch with Ecto.Adapters.SQL.query/4" do
+    test "works", %{start_opts: start_opts} do
+      start_supervised!({Exandra.TestRepo, start_opts})
+
+      TestRepo.query!("CREATE TABLE users (email varchar, PRIMARY KEY (email))")
+
+      batch = %Exandra.Batch{
+        queries: [
+          {"INSERT INTO users (email) VALUES (?)", ["bob@example.com"]},
+          {"INSERT INTO users (email) VALUES (?)", ["meg@example.com"]}
+        ]
+      }
+
+      Exandra.TestRepo.query!(batch)
+
+      assert %{num_rows: 2, rows: rows} = TestRepo.query!("SELECT email FROM users")
+      assert rows == [["bob@example.com"], ["meg@example.com"]]
+    end
+  end
+
   test "inserting and querying data", %{start_opts: start_opts} do
     start_supervised!({TestRepo, start_opts})
 

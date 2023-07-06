@@ -97,6 +97,37 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
+  def query(cluster, %mod{queries: queries}, params, opts) when mod == Exandra.Batch do
+    if params != [] do
+      raise ArgumentError,
+            "when using an Exandra.Batch query, pass params to the queries " <>
+              "themselves, and not to the query/4 or query!/4 functions"
+    end
+
+    @xandra_cluster_mod.run(cluster, opts, fn conn ->
+      # First, prepare all queries (doesn't matter the order).
+      prepared_queries =
+        queries
+        |> Enum.uniq_by(fn {sql, _values} -> sql end)
+        |> Enum.reduce(%{}, fn {sql, _values}, acc ->
+          case @xandra_mod.prepare(conn, sql, opts) do
+            {:ok, %Prepared{} = prepared} -> Map.put(acc, sql, prepared)
+            {:error, reason} -> throw({:prepare_error, reason})
+          end
+        end)
+
+      # Now, add them all to a Xandra.Batch and execute the batch.
+      batch =
+        Enum.reduce(queries, Xandra.Batch.new(), fn {sql, values}, batch ->
+          Xandra.Batch.add(batch, Map.fetch!(prepared_queries, sql), values)
+        end)
+
+      @xandra_mod.execute(conn, batch)
+    end)
+  catch
+    {:prepare_error, reason} -> {:error, reason}
+  end
+
   def query(cluster, sql, params, opts) do
     sql =
       case sql do
