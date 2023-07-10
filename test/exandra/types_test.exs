@@ -18,6 +18,7 @@ defmodule Exandra.TypesTest do
     assert Types.for(:utc_datetime_usec) == {:ok, "timestamp"}
     assert Types.for({:array, :string}) == {:ok, "list<text>"}
     assert Types.for({:array, {:array, :int}}) == {:ok, "list<list<int>>"}
+    assert Types.for({:array, Exandra.UDT}, type: :full_name) == {:ok, "FROZEN<list<FROZEN<full_name>>>"}
     assert Types.for(:"whatever type!") == {:ok, "whatever type!"}
     assert Types.for(Exandra.UDT, type: :full_name) == {:ok, "FROZEN<full_name>"}
 

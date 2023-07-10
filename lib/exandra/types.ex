@@ -23,6 +23,10 @@ defmodule Exandra.Types do
   def for(UDT, opts), do: {:ok, "FROZEN<#{UDT.__validate__(opts)[:type]}>"}
   def for(type, _opts) when type in @timestamp_types, do: {:ok, "timestamp"}
 
+  def for({:array, UDT}, opts) do
+    with {:ok, subtype} <- __MODULE__.for(UDT, opts), do: {:ok, "FROZEN<list<#{subtype}>>"}
+  end
+
   def for({:array, subtype}, _opts) do
     with {:ok, subtype} <- __MODULE__.for(subtype), do: {:ok, "list<#{subtype}>"}
   end

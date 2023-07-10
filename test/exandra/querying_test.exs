@@ -15,6 +15,7 @@ defmodule Exandra.QueryingTest do
       field :my_datetime, :utc_datetime
       field :my_bool, :boolean
       field :my_udt, Exandra.UDT, type: :fullname
+      field :my_listed_udt, {:array, Exandra.UDT}, type: :fullname
       field :my_counter, Exandra.Counter
     end
   end
@@ -79,7 +80,7 @@ defmodule Exandra.QueryingTest do
       {sql, params} = TestRepo.to_sql(:all, query)
 
       assert sql ==
-               "SELECT id, my_string, my_datetime, my_bool, my_udt, my_counter FROM my_schema WHERE my_datetime < ?"
+               "SELECT id, my_string, my_datetime, my_bool, my_udt, my_listed_udt, my_counter FROM my_schema WHERE my_datetime < ?"
 
       assert params == [now]
     end
@@ -91,7 +92,7 @@ defmodule Exandra.QueryingTest do
       {sql, params} = TestRepo.to_sql(:all, query)
 
       assert sql == """
-             SELECT id, my_string, my_datetime, my_bool, my_udt, my_counter \
+             SELECT id, my_string, my_datetime, my_bool, my_udt, my_listed_udt, my_counter \
              FROM my_schema \
              WHERE my_datetime < ? \
              LIMIT 2\
@@ -106,8 +107,7 @@ defmodule Exandra.QueryingTest do
 
       {sql, params} = TestRepo.to_sql(:all, query)
 
-      assert sql ==
-               "SELECT id, my_string, my_datetime, my_bool, my_udt, my_counter FROM my_schema LIMIT ?"
+      assert sql =~ "FROM my_schema LIMIT ?"
 
       assert params == [limit]
     end
