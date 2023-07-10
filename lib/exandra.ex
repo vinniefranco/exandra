@@ -156,11 +156,71 @@ defmodule Exandra do
 
   """
 
+  # This overrides the checkout/3 function defined in Ecto.Adapters.SQL. That function
+  # is private API, and is defined by "use Ecto.Adapters.SQL". This is why this function
+  # needs to appear BEFORE the call to "use Ecto.Adapters.SQL", so that we essentially
+  # override the call. We'll work with the Ecto team to make that callback overridable.
+  @doc false
+  @spec checkout(map(), keyword(), (pid() -> result)) :: result when result: var
+  def checkout(%{sql: conn_mod, pid: cluster} = meta, opts, fun) when is_function(fun, 1) do
+    conn_mod.checkout(cluster, fun, Keyword.merge(opts, meta.opts))
+  end
+
   use Ecto.Adapters.SQL, driver: :exandra
 
   @behaviour Ecto.Adapter.Storage
 
   @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
+
+  @doc """
+  Executes a **batch query**.
+
+  See `Exandra.Batch`.
+
+  ## Examples
+
+      queries = [
+        {"INSERT INTO users (email) VALUES (?)", ["jeff@example.com"]},
+        {"INSERT INTO users (email) VALUES (?)", ["britta@example.com"]}
+      ]
+
+      Exandra.execute_batch(MyApp.Repo, %Exandra.Batch{queries: queries})
+
+  """
+  @spec execute_batch(Ecto.Repo.t(), Exandra.Batch.t(), keyword()) ::
+          :ok | {:error, Exception.t()}
+  def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
+      when is_atom(repo) and is_list(options) do
+    fun = fn conn ->
+      try do
+        # First, prepare all queries (doesn't matter the order).
+        prepared_queries =
+          queries
+          |> Enum.uniq_by(fn {sql, _values} -> sql end)
+          |> Enum.reduce(%{}, fn {sql, _values}, acc ->
+            case @xandra_mod.prepare(conn, sql, options) do
+              {:ok, %Xandra.Prepared{} = prepared} -> Map.put(acc, sql, prepared)
+              {:error, reason} -> throw({:prepare_error, reason})
+            end
+          end)
+
+        # Now, add them all to a Xandra.Batch and execute the batch.
+        batch =
+          Enum.reduce(queries, Xandra.Batch.new(), fn {sql, values}, batch ->
+            Xandra.Batch.add(batch, Map.fetch!(prepared_queries, sql), values)
+          end)
+
+        case @xandra_mod.execute(conn, batch) do
+          {:ok, %Xandra.Void{}} -> :ok
+          {:error, reason} -> {:errror, reason}
+        end
+      catch
+        {:prepare_error, reason} -> {:error, reason}
+      end
+    end
+
+    repo.checkout(fun, options)
+  end
 
   @doc false
   def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
