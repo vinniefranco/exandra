@@ -12,10 +12,7 @@ defmodule Exandra.Batch do
   ## Usage
 
   To execute a batch of queries through Exandra, you can use the
-  `Ecto.Adapters.SQL.query/4` (or `Ecto.Adapters.SQL.query!/4`) function
-  and pass in a `Exandra.Batch` struct as the query. Alternatively, you
-  can use the `query/4` and `query!/4` functions that Ecto defines in your
-  `Ecto.Repo`. For example:
+  `Exandra.execute_batch/3`.
 
       batch = %Exandra.Batch{
         queries: [
@@ -24,7 +21,7 @@ defmodule Exandra.Batch do
         ]
       }
 
-      MyRepo.query!(batch)
+      Exandra.execute_batch(MyApp.Repo, batch)
 
   """
 
