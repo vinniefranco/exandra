@@ -5,6 +5,10 @@ defmodule Exandra.UDT do
       required: true,
       doc: "The UDT."
     ],
+    encoded_fields: [
+      type: {:list, :atom},
+      doc: "JSON encoded fields."
+    ],
     field: [
       type: :atom,
       doc: false
@@ -51,14 +55,40 @@ defmodule Exandra.UDT do
   def cast(data, %{type: _udt}), do: {:ok, data}
 
   @impl Ecto.ParameterizedType
-  def load(data, _loader, _params) do
-    {:ok, data}
+  def load(data, _loader, params) do
+    {:ok, coerce_data(data, params, :load)}
   end
 
   @impl Ecto.ParameterizedType
-  def dump(data, _dumper, _params) do
+  def dump(data, _dumper, params) do
+    # Stringify all keys.
+    data = for {field, value} <- data || %{}, into: %{}, do: {"#{field}", value}
+    data = coerce_data(data, params, :dump)
+
     {:ok, data}
   end
+
+  @doc false
+  defp coerce_data(data, params, type) do
+    data = data || %{}
+
+    if fields_to_encode = params[:encoded_fields] do
+      for field <- fields_to_encode, into: data do
+        stringified_field = Atom.to_string(field)
+        {stringified_field, json_parse(data, stringified_field, type)}
+      end
+    else
+      data
+    end
+  end
+
+  @doc false
+  def json_parse(data, field, :dump),
+    do: data |> Map.get(field, %{}) |> Jason.encode!()
+
+  @doc false
+  def json_parse(data, field, :load),
+    do: data |> Map.get(field, "{}") |> Jason.decode!()
 
   @doc false
   def __validate__(opts), do: NimbleOptions.validate!(opts, @opts_schema)

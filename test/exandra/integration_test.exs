@@ -17,6 +17,13 @@ defmodule Exandra.IntegrationTest do
       field :my_exandra_map, Exandra.Map, key: :string, value: :integer
       field :my_set, Exandra.Set, type: :integer
       field :my_udt, Exandra.UDT, type: :fullname
+      field :my_list_udt, {:array, Exandra.UDT}, type: :fullname
+
+      field :my_complex_list_udt, {:array, Exandra.UDT},
+        type: :my_complex,
+        encoded_fields: [:meta]
+
+      field :my_complex_udt, Exandra.UDT, type: :my_complex, encoded_fields: [:meta]
       field :my_list, {:array, :string}
       field :my_utc, :utc_datetime_usec
       field :my_integer, :integer
@@ -50,6 +57,17 @@ defmodule Exandra.IntegrationTest do
     {:ok, conn} = Xandra.start_link(Keyword.drop(opts, [:keyspace]))
     Xandra.execute!(conn, "USE #{@keyspace}")
     Xandra.execute!(conn, "CREATE TYPE IF NOT EXISTS fullname (first_name text, last_name text)")
+
+    Xandra.execute!(
+      conn,
+      "DROP TYPE IF EXISTS my_complex"
+    )
+
+    Xandra.execute!(
+      conn,
+      "CREATE TYPE IF NOT EXISTS my_complex (meta text, amount int, happened timestamp)"
+    )
+
     Xandra.execute!(conn, "DROP TABLE IF EXISTS my_schema")
     Xandra.execute!(conn, "DROP TABLE IF EXISTS my_counter_schema")
 
@@ -61,6 +79,9 @@ defmodule Exandra.IntegrationTest do
       my_exandra_map map<varchar, int>,
       my_set set<int>,
       my_udt fullname,
+      my_list_udt FROZEN<list<FROZEN<fullname>>>,
+      my_complex_list_udt list<FROZEN<my_complex>>,
+      my_complex_udt my_complex,
       my_list list<varchar>,
       my_utc timestamp,
       my_integer int,
@@ -132,6 +153,19 @@ defmodule Exandra.IntegrationTest do
       my_set: set1,
       my_list: ["a", "b", "c"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
+      my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+      my_complex_list_udt: [
+        %{
+          amount: 8,
+          meta: %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+          happened: ~U[2020-01-01T00:00:00Z]
+        }
+      ],
+      my_complex_udt: %{
+        amount: 8,
+        meta: %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+        happened: ~U[2020-01-01T00:00:00Z]
+      },
       my_bool: true,
       my_integer: 4
     }
@@ -143,6 +177,15 @@ defmodule Exandra.IntegrationTest do
       my_set: set2,
       my_list: ["1", "2", "3"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
+      my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+      my_complex_list_udt: [
+        %{amount: 4, meta: %{"foo" => "bar"}, happened: ~U[2018-01-01T00:00:00Z]}
+      ],
+      my_complex_udt: %{
+        amount: 8,
+        meta: %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+        happened: ~U[2020-01-01T00:00:00Z]
+      },
       my_bool: false,
       my_integer: 5
     }
@@ -160,6 +203,19 @@ defmodule Exandra.IntegrationTest do
              my_set: ^set1,
              my_list: ["a", "b", "c"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
+             my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+             my_complex_list_udt: [
+               %{
+                 "amount" => 8,
+                 "meta" => %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+                 "happened" => ~U[2020-01-01T00:00:00.000Z]
+               }
+             ],
+             my_complex_udt: %{
+               "amount" => 8,
+               "meta" => %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+               "happened" => ~U[2020-01-01T00:00:00.000Z]
+             },
              my_bool: true,
              my_integer: 4
            } = returned_schema1
@@ -171,6 +227,19 @@ defmodule Exandra.IntegrationTest do
              my_set: ^set2,
              my_list: ["1", "2", "3"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
+             my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+             my_complex_list_udt: [
+               %{
+                 "amount" => 4,
+                 "meta" => %{"foo" => "bar"},
+                 "happened" => ~U[2018-01-01T00:00:00.000Z]
+               }
+             ],
+             my_complex_udt: %{
+               "amount" => 8,
+               "meta" => %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
+               "happened" => ~U[2020-01-01T00:00:00.000Z]
+             },
              my_bool: false,
              my_integer: 5
            } = returned_schema2
