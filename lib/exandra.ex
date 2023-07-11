@@ -327,6 +327,31 @@ defmodule Exandra do
 
     {keyspace, conn}
   end
+
+  # This adapter uses Ecto.Adapters.SQL which has an implentation of stream/5 and
+  # it's not overridable. So we neet to implement our own.
+  # https://github.com/elixir-ecto/ecto_sql/blob/master/lib/ecto/adapters/sql.ex#L231C23-L231C30
+  #
+  # Fortunately Xandra implements stream_pages!/4 so we can use that.
+  #
+  # NOTES:
+  # The callback needs to be executed within the context of the connection that's
+  # available once checked out.
+  #
+  # returns {:error, error}
+  def stream!({sql, values}, repo, callback, opts \\ []) do
+    repo.checkout(
+      fn conn ->
+        conn |>
+        @xandra_mod.stream_pages!(
+          @xandra_mod.prepare!(conn, sql),
+          values,
+          opts
+        )
+        |> callback.()
+      end
+    )
+  end
 end
 
 defimpl String.Chars, for: [Xandra.Simple, Xandra.Prepared, Xandra.Batch] do
