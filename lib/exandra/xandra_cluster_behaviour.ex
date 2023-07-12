@@ -17,6 +17,9 @@ defmodule Exandra.XandraClusterBehaviour do
   @callback prepare(cluster :: pid(), stmt :: Xandra.statement(), keyword()) ::
               {:ok, Prepared.t()} | {:error, term()}
 
+  @callback prepare!(cluster :: pid(), stmt :: Xandra.statement(), keyword()) ::
+              {:ok, Prepared.t()} | {:error, term()}
+
   @callback stream_pages!(
               cluster :: pid(),
               stmt :: Xandra.statement() | Prepared.t(),

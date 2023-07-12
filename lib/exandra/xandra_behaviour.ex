@@ -13,14 +13,4 @@ defmodule Exandra.XandraBehaviour do
 
   @callback prepare(Xandra.conn(), String.t(), keyword()) ::
               {:ok, Xandra.Prepared.t()} | {:error, Xandra.error()}
-
-  @callback prepare!(Xandra.conn(), String.t(), keyword()) ::
-              {:ok, Xandra.Prepared.t()} | {:error, Xandra.error()}
-
-  @callback stream_pages!(
-              cluster :: pid(),
-              stmt :: Xandra.statement() | Prepared.t(),
-              values :: Xandra.values(),
-              keyword :: keyword()
-            ) :: Enumerable.t()
 end

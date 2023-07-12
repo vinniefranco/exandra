@@ -172,6 +172,11 @@ defmodule Exandra do
 
   @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
 
+  @xandra_cluster_mod Application.compile_env(
+                        :exandra,
+                        :xandra_cluster_module,
+                        Xandra.Cluster
+                      )
   @doc """
   Executes a **batch query**.
 
@@ -329,36 +334,39 @@ defmodule Exandra do
   end
 
   @doc """
-  Streams the results of a simple query or a prepared query to the given callback.
-  The argument will be a `Xandra.PageStream` that you can iterate on to process
-  each `Xandra.Page and accumulate any results you need.
+  Streams the results of a simple query or a prepared query. One query is executed
+  for each page in the result set.
 
   See `Xandra.prepare!/4` and `Xandra.stream_pages!/4` for more information including
   supported options.
 
   ## Examples
 
-      Exandra.stream!(
-        {"SELECT * FROM USERS WHERE can_contact = ?", [true]},
-        MyRepo,
+      stream =
+        Exandra.stream!(
+          "SELECT * FROM USERS WHERE can_contact = ?",
+          [true],
+          MyRepo,
+        )
+
+      Enum.each(
+        stream,
         fn page ->
-          Enum.each(stream, fn page ->
-            Enum.each(page, &send_email(&1.email, "Hello!")
-          end)
+          Enum.each(page, fn user -> send_email(user.email, "Hello!") end)
         end
       )
   """
-  @spec stream!({String.t(), list(term())}, atom(), function(), Keyword.t()) :: term()
-  def stream!({sql, values}, repo, callback, opts \\ []) do
-    repo.checkout(fn conn ->
-      conn
-      |> @xandra_mod.stream_pages!(
-        @xandra_mod.prepare!(conn, sql, opts),
-        values,
-        opts
-      )
-      |> callback.()
-    end)
+  @spec stream!(String.t(), list(term()), atom(), Keyword.t()) :: Xandra.PageStream.t()
+  def stream!(sql, values, repo, opts \\ []) do
+    %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
+    prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, opts)
+
+    @xandra_cluster_mod.stream_pages!(
+      cluster_pid,
+      prepared,
+      values,
+      opts
+    )
   end
 end
 

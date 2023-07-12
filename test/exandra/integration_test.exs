@@ -139,7 +139,7 @@ defmodule Exandra.IntegrationTest do
   end
 
   describe "Exandra.stream!/4" do
-    test "executes the given callback on the result Xandra.Page and returns the result", %{
+    test "executes the given query and returns the Xandra.PageStream", %{
       start_opts: start_opts
     } do
       start_supervised!({Exandra.TestRepo, start_opts})
@@ -148,18 +148,13 @@ defmodule Exandra.IntegrationTest do
       TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["bob@example.com"])
       TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["meg@example.com"])
 
-      assert [_email1, _email2] =
-               emails =
-               Exandra.stream!(
-                 {"SELECT * FROM users", []},
-                 TestRepo,
-                 fn %Xandra.PageStream{} = stream ->
-                   Enum.flat_map(
-                     stream,
-                     fn page -> Enum.map(page, & &1["email"]) end
-                   )
-                 end
-               )
+      assert %Xandra.PageStream{} = stream = Exandra.stream!("SELECT * FROM users", [], TestRepo)
+
+      emails =
+        Enum.flat_map(
+          stream,
+          fn page -> Enum.map(page, & &1["email"]) end
+        )
 
       assert "bob@example.com" in emails
       assert "meg@example.com" in emails
@@ -176,26 +171,18 @@ defmodule Exandra.IntegrationTest do
         TestRepo.query!("INSERT INTO users (email) VALUES (?)", [email])
       end
 
-      assert [[_email1, _email2], [_email3]] =
-               emails =
+      assert %Xandra.PageStream{} =
+               stream =
                Exandra.stream!(
-                 {"SELECT * FROM users", []},
+                 "SELECT * FROM users",
+                 [],
                  TestRepo,
-                 fn %Xandra.PageStream{} = stream ->
-                   Enum.map(
-                     stream,
-                     fn %Xandra.Page{tracing_id: tracing_id} = page ->
-                       assert is_binary(tracing_id)
-
-                       Enum.map(page, & &1["email"])
-                     end
-                   )
-                 end,
                  page_size: 2,
                  tracing: true
                )
 
-      emails = Enum.flat_map(emails, & &1)
+      [_page1, _page2] = pages = Enum.to_list(stream)
+      emails = Enum.flat_map(pages, &Enum.map(&1, fn %{"email" => email} -> email end))
 
       assert "bob@example.com" in emails
       assert "meg@example.com" in emails
@@ -212,13 +199,9 @@ defmodule Exandra.IntegrationTest do
       end
 
       assert [%{"email" => "bob@example.com"}] =
-               Exandra.stream!(
-                 {"SELECT * FROM users WHERE email = ?", ["bob@example.com"]},
-                 TestRepo,
-                 fn stream ->
-                   Enum.flat_map(stream, &Enum.to_list/1)
-                 end
-               )
+               "SELECT * FROM users WHERE email = ?"
+               |> Exandra.stream!(["bob@example.com"], TestRepo)
+               |> Enum.flat_map(&Enum.to_list/1)
     end
   end
 

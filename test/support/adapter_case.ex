@@ -38,6 +38,7 @@ defmodule Exandra.AdapterCase do
     stub(XandraClusterMock, :child_spec, &Xandra.Cluster.child_spec/1)
     stub(XandraClusterMock, :execute, &Xandra.Cluster.execute/4)
     stub(XandraClusterMock, :prepare, &Xandra.Cluster.prepare/3)
+    stub(XandraClusterMock, :prepare!, &Xandra.Cluster.prepare!/3)
     stub(XandraClusterMock, :stream_pages!, &Xandra.Cluster.stream_pages!/4)
     stub(XandraClusterMock, :run, &Xandra.Cluster.run/2)
     stub(XandraClusterMock, :run, &Xandra.Cluster.run/3)
@@ -46,8 +47,6 @@ defmodule Exandra.AdapterCase do
     stub(XandraMock, :execute, &Xandra.execute/2)
     stub(XandraMock, :execute, &Xandra.execute/4)
     stub(XandraMock, :prepare, &Xandra.prepare/3)
-    stub(XandraMock, :prepare!, &Xandra.prepare!/3)
-    stub(XandraMock, :stream_pages!, &Xandra.stream_pages!/4)
 
     :ok
   end
