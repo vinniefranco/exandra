@@ -328,29 +328,37 @@ defmodule Exandra do
     {keyspace, conn}
   end
 
-  # This adapter uses Ecto.Adapters.SQL which has an implentation of stream/5 and
-  # it's not overridable. So we neet to implement our own.
-  # https://github.com/elixir-ecto/ecto_sql/blob/master/lib/ecto/adapters/sql.ex#L231C23-L231C30
-  #
-  # Fortunately Xandra implements stream_pages!/4 so we can use that.
-  #
-  # NOTES:
-  # The callback needs to be executed within the context of the connection that's
-  # available once checked out.
-  #
-  # returns {:error, error}
+  @doc """
+  Streams the results of a simple query or a prepared query to the given callback.
+  The argument will be a `Xandra.PageStream` that you can iterate on to process
+  each `Xandra.Page and accumulate any results you need.
+
+  See `Xandra.prepare!/4` and `Xandra.stream_pages!/4` for more information including
+  supported options.
+
+  ## Examples
+
+      Exandra.stream!(
+        {"SELECT * FROM USERS WHERE can_contact = ?", [true]},
+        MyRepo,
+        fn page ->
+          Enum.each(stream, fn page ->
+            Enum.each(page, &send_email(&1.email, "Hello!")
+          end)
+        end
+      )
+  """
+  @spec stream!({String.t(), list(term())}, atom(), function(), Keyword.t()) :: term()
   def stream!({sql, values}, repo, callback, opts \\ []) do
-    repo.checkout(
-      fn conn ->
-        conn |>
-        @xandra_mod.stream_pages!(
-          @xandra_mod.prepare!(conn, sql),
-          values,
-          opts
-        )
-        |> callback.()
-      end
-    )
+    repo.checkout(fn conn ->
+      conn
+      |> @xandra_mod.stream_pages!(
+        @xandra_mod.prepare!(conn, sql, opts),
+        values,
+        opts
+      )
+      |> callback.()
+    end)
   end
 end
 
