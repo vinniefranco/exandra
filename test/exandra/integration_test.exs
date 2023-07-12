@@ -138,6 +138,73 @@ defmodule Exandra.IntegrationTest do
     end
   end
 
+  describe "Exandra.stream!/4" do
+    test "executes the given query and returns the Xandra.PageStream", %{
+      start_opts: start_opts
+    } do
+      start_supervised!({Exandra.TestRepo, start_opts})
+
+      TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
+      TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["bob@example.com"])
+      TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["meg@example.com"])
+
+      assert %Xandra.PageStream{} = stream = Exandra.stream!(TestRepo, "SELECT * FROM users", [])
+
+      emails =
+        Enum.flat_map(
+          stream,
+          fn page -> Enum.map(page, & &1["email"]) end
+        )
+
+      assert "bob@example.com" in emails
+      assert "meg@example.com" in emails
+    end
+
+    test "passes the given options to Xandra.prepare!/4 and Xandra.execute!/4", %{
+      start_opts: start_opts
+    } do
+      start_supervised!({Exandra.TestRepo, start_opts})
+
+      TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
+
+      for email <- ~w[bob@example.com meg@example.com peter@example.com] do
+        TestRepo.query!("INSERT INTO users (email) VALUES (?)", [email])
+      end
+
+      assert %Xandra.PageStream{} =
+               stream =
+               Exandra.stream!(
+                 TestRepo,
+                 "SELECT * FROM users",
+                 [],
+                 page_size: 2,
+                 tracing: true
+               )
+
+      [_page1, _page2] = pages = Enum.to_list(stream)
+      emails = Enum.flat_map(pages, &Enum.map(&1, fn %{"email" => email} -> email end))
+
+      assert "bob@example.com" in emails
+      assert "meg@example.com" in emails
+      assert "peter@example.com" in emails
+    end
+
+    test "prepares the values correctly", %{start_opts: start_opts} do
+      start_supervised!({Exandra.TestRepo, start_opts})
+
+      TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
+
+      for email <- ~w[bob@example.com meg@example.com] do
+        TestRepo.query!("INSERT INTO users (email) VALUES (?)", [email])
+      end
+
+      assert [%{"email" => "bob@example.com"}] =
+               TestRepo
+               |> Exandra.stream!("SELECT * FROM users WHERE email = ?", ["bob@example.com"])
+               |> Enum.flat_map(&Enum.to_list/1)
+    end
+  end
+
   test "inserting and querying data", %{start_opts: start_opts} do
     start_supervised!({TestRepo, start_opts})
 

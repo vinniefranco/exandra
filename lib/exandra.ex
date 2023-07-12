@@ -172,6 +172,11 @@ defmodule Exandra do
 
   @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
 
+  @xandra_cluster_mod Application.compile_env(
+                        :exandra,
+                        :xandra_cluster_module,
+                        Xandra.Cluster
+                      )
   @doc """
   Executes a **batch query**.
 
@@ -326,6 +331,41 @@ defmodule Exandra do
       @xandra_mod.start_link(Keyword.take(opts, [:nodes, :protocol_version, :timeout]))
 
     {keyspace, conn}
+  end
+
+  @doc """
+  Streams the results of a simple query or a prepared query.
+
+  See `Xandra.prepare!/4` and `Xandra.stream_pages!/4` for more information including
+  supported options.
+
+  ## Examples
+
+      stream =
+        Exandra.stream!(
+          "SELECT * FROM USERS WHERE can_contact = ?",
+          [true],
+          MyRepo,
+        )
+
+      Enum.each(
+        stream,
+        fn page ->
+          Enum.each(page, fn user -> send_email(user.email, "Hello!") end)
+        end
+      )
+  """
+  @spec stream!(Ecto.Repo.t(), String.t(), list(term()), Keyword.t()) :: Xandra.PageStream.t()
+  def stream!(repo, sql, values, opts \\ []) do
+    %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
+    prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, opts)
+
+    @xandra_cluster_mod.stream_pages!(
+      cluster_pid,
+      prepared,
+      values,
+      opts
+    )
   end
 end
 
