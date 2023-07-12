@@ -334,8 +334,7 @@ defmodule Exandra do
   end
 
   @doc """
-  Streams the results of a simple query or a prepared query. One query is executed
-  for each page in the result set.
+  Streams the results of a simple query or a prepared query.
 
   See `Xandra.prepare!/4` and `Xandra.stream_pages!/4` for more information including
   supported options.
