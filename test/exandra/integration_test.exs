@@ -148,7 +148,7 @@ defmodule Exandra.IntegrationTest do
       TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["bob@example.com"])
       TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["meg@example.com"])
 
-      assert %Xandra.PageStream{} = stream = Exandra.stream!("SELECT * FROM users", [], TestRepo)
+      assert %Xandra.PageStream{} = stream = Exandra.stream!(TestRepo, "SELECT * FROM users", [])
 
       emails =
         Enum.flat_map(
@@ -174,9 +174,9 @@ defmodule Exandra.IntegrationTest do
       assert %Xandra.PageStream{} =
                stream =
                Exandra.stream!(
+                 TestRepo,
                  "SELECT * FROM users",
                  [],
-                 TestRepo,
                  page_size: 2,
                  tracing: true
                )
@@ -199,8 +199,8 @@ defmodule Exandra.IntegrationTest do
       end
 
       assert [%{"email" => "bob@example.com"}] =
-               "SELECT * FROM users WHERE email = ?"
-               |> Exandra.stream!(["bob@example.com"], TestRepo)
+               TestRepo
+               |> Exandra.stream!("SELECT * FROM users WHERE email = ?", ["bob@example.com"])
                |> Enum.flat_map(&Enum.to_list/1)
     end
   end

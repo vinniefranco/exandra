@@ -356,8 +356,8 @@ defmodule Exandra do
         end
       )
   """
-  @spec stream!(String.t(), list(term()), atom(), Keyword.t()) :: Xandra.PageStream.t()
-  def stream!(sql, values, repo, opts \\ []) do
+  @spec stream!(Ecto.Repo.t(), String.t(), list(term()), Keyword.t()) :: Xandra.PageStream.t()
+  def stream!(repo, sql, values, opts \\ []) do
     %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
     prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, opts)
 
