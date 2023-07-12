@@ -237,7 +237,7 @@ defmodule Exandra do
   def dumpers(:map, _type), do: [&Jason.encode/1]
   def dumpers(:naive_datetime, _type), do: [&naive_datetime_to_datetime/1]
   def dumpers({:map, _}, type), do: [type]
-  def dumpers(_, type), do: [type]
+  def dumpers(_, type), do: [IO.inspect(type)]
 
   defp naive_datetime_to_datetime(%NaiveDateTime{} = datetime) do
     case DateTime.from_naive(datetime, "Etc/UTC") do
@@ -261,7 +261,7 @@ defmodule Exandra do
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []
   def loaders(:decimal, type), do: [&load_decimal/1, type]
-  def loaders(_, type), do: [type]
+  def loaders(_, type), do: [IO.inspect(type)]
 
   defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
 

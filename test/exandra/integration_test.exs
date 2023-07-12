@@ -7,6 +7,40 @@ defmodule Exandra.IntegrationTest do
 
   @keyspace "exandra_test"
 
+  defmodule EmbeddedSchema do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :online, :boolean
+      field :dark_mode, :boolean
+    end
+
+    def changeset(entity, params) do
+      entity
+      |> cast(params, [:online, :dark_mode])
+    end
+  end
+
+  defmodule MyEmbeddedSchema do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key {:id, :binary_id, autogenerate: true}
+    schema "my_embedded_schema" do
+      field :my_name, :string
+      embeds_one :my_embedded_udt, EmbeddedSchema
+      embeds_many :my_embedded_udt_list, EmbeddedSchema
+    end
+
+    def changeset(params) do
+      %__MODULE__{}
+      |> cast(params, [:my_name])
+      |> cast_embed(:my_embedded_udt)
+    end
+  end
+
   defmodule Schema do
     use Ecto.Schema
 
@@ -67,9 +101,14 @@ defmodule Exandra.IntegrationTest do
       conn,
       "CREATE TYPE IF NOT EXISTS my_complex (meta text, amount int, happened timestamp)"
     )
+    Xandra.execute!(
+      conn,
+      "CREATE TYPE IF NOT EXISTS my_embedded_type (dark_mode boolean, online boolean)"
+    )
 
-    Xandra.execute!(conn, "DROP TABLE IF EXISTS my_schema")
-    Xandra.execute!(conn, "DROP TABLE IF EXISTS my_counter_schema")
+    for schema <- ["my_schema", "my_embedded_schema", "my_counter_schema"] do
+      Xandra.execute!(conn, "DROP TABLE IF EXISTS #{schema}")
+    end
 
     Xandra.execute!(conn, """
     CREATE TABLE my_schema (
@@ -82,6 +121,7 @@ defmodule Exandra.IntegrationTest do
       my_list_udt FROZEN<list<FROZEN<fullname>>>,
       my_complex_list_udt list<FROZEN<my_complex>>,
       my_complex_udt my_complex,
+      my_embedded_udt my_embedded_type,
       my_list list<varchar>,
       my_utc timestamp,
       my_integer int,
@@ -89,6 +129,16 @@ defmodule Exandra.IntegrationTest do
       my_decimal decimal,
       inserted_at timestamp,
       updated_at timestamp,
+      PRIMARY KEY (id)
+    )
+    """)
+
+    Xandra.execute!(conn, """
+    CREATE TABLE my_embedded_schema (
+      id uuid,
+      my_name text,
+      my_embedded_udt my_embedded_type,
+      my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
       PRIMARY KEY (id)
     )
     """)
@@ -327,5 +377,20 @@ defmodule Exandra.IntegrationTest do
     # Let's run the query again and see the counter updated, since that's what counters do.
     assert {1, _} = TestRepo.update_all(query, [])
     assert TestRepo.reload!(fetched_counter).my_counter == 6
+  end
+
+  describe "Embeds" do
+    test "inserting data", %{start_opts: start_opts} do
+      start_supervised!({TestRepo, start_opts})
+      %{
+        "my_name" => "EmBetty",
+        "my_embedded_udt" => %{
+          "dark_mode" => false,
+          "online" => true
+        }
+      }
+      |> MyEmbeddedSchema.changeset()
+      |> TestRepo.insert!
+    end
   end
 end
