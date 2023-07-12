@@ -189,7 +189,6 @@ defmodule Exandra.Connection do
     keys = Enum.join(headers, ", ")
     values = Enum.map(rows, &Enum.map_join(&1, ", ", fn _ -> "?" end))
 
-    dbg("here")
     "INSERT INTO #{quote_table(prefix, table)} (#{keys}) VALUES (#{values}) #{insert_suffix(opts)}"
   end
 

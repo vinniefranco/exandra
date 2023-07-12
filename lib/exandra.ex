@@ -236,8 +236,8 @@ defmodule Exandra do
   def dumpers(:binary_id, type), do: [type, Ecto.UUID]
   def dumpers(:map, _type), do: [&Jason.encode/1]
   def dumpers(:naive_datetime, _type), do: [&naive_datetime_to_datetime/1]
-  def dumpers({:map, _}, type), do: [type]
-  def dumpers(_, type), do: [IO.inspect(type)]
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+  def dumpers(_, type), do: [type]
 
   defp naive_datetime_to_datetime(%NaiveDateTime{} = datetime) do
     case DateTime.from_naive(datetime, "Etc/UTC") do
@@ -250,9 +250,7 @@ defmodule Exandra do
 
   @doc false
   @impl Ecto.Adapter
-  def loaders({:map, _}, type),
-    do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
-
+  def loaders({:map, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:binary_id, _type), do: []
   def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
   def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
@@ -261,7 +259,7 @@ defmodule Exandra do
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []
   def loaders(:decimal, type), do: [&load_decimal/1, type]
-  def loaders(_, type), do: [IO.inspect(type)]
+  def loaders(_, type), do: [type]
 
   defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
 

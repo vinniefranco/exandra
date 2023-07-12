@@ -101,6 +101,7 @@ defmodule Exandra.IntegrationTest do
       conn,
       "CREATE TYPE IF NOT EXISTS my_complex (meta text, amount int, happened timestamp)"
     )
+
     Xandra.execute!(
       conn,
       "CREATE TYPE IF NOT EXISTS my_embedded_type (dark_mode boolean, online boolean)"
@@ -382,6 +383,7 @@ defmodule Exandra.IntegrationTest do
   describe "Embeds" do
     test "inserting data", %{start_opts: start_opts} do
       start_supervised!({TestRepo, start_opts})
+
       %{
         "my_name" => "EmBetty",
         "my_embedded_udt" => %{
@@ -390,7 +392,7 @@ defmodule Exandra.IntegrationTest do
         }
       }
       |> MyEmbeddedSchema.changeset()
-      |> TestRepo.insert!
+      |> TestRepo.insert!()
     end
   end
 end
