@@ -115,16 +115,8 @@ defmodule Exandra.EmbeddedType do
   end
 
   @impl Ecto.ParameterizedType
-  def load(nil, _loader, %{cardinality: cardinality}) do
-    val =
-      if cardinality == :one do
-        nil
-      else
-        []
-      end
-
-    {:ok, val}
-  end
+  def load(nil, _loader, %{cardinality: :one}), do: {:ok, nil}
+  def load(nil, _loader, %{cardinality: :many}), do: {:ok, []}
 
   def load(value, loader, %{cardinality: :one, using: struct}) do
     {:ok, Ecto.Schema.Loader.unsafe_load(struct, value, loader)}
@@ -164,10 +156,8 @@ defmodule Exandra.EmbeddedType do
   @doc false
   defp dump_field(_struct, data, field, type, dumper) do
     value = Map.get(data, field)
-
-    case dumper.(type, value) do
-      {:ok, dumped} -> {"#{field}", dumped}
-    end
+    {:ok, dumped} = dumper.(type, value)
+    {"#{field}", dumped}
   end
 
   # From Ecto.Type.
