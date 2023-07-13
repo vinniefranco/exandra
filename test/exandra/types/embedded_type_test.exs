@@ -21,12 +21,12 @@ defmodule Exandra.EmbeddedTypeTest do
 
   defmodule Schema do
     use Ecto.Schema
-    use Exandra.Embedded
     import Ecto.Changeset
+    import Exandra, only: [embedded_type: 2]
 
     @primary_key false
     schema "my_embedded_schema" do
-      embedded_type(:my_embedded_udt, EmbeddedSchema, test: true)
+      embedded_type(:my_embedded_udt, EmbeddedSchema)
     end
 
     def changeset(entity, params) do

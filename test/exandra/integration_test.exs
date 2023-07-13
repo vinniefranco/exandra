@@ -73,6 +73,11 @@ defmodule Exandra.IntegrationTest do
       "CREATE TYPE IF NOT EXISTS my_embedded_type (dark_mode boolean, online boolean)"
     )
 
+    Xandra.execute!(
+      conn,
+      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text)"
+    )
+
     for schema <- ["my_schema", "my_embedded_schema", "my_counter_schema"] do
       Xandra.execute!(conn, "DROP TABLE IF EXISTS #{schema}")
     end
@@ -106,6 +111,7 @@ defmodule Exandra.IntegrationTest do
       my_bool boolean,
       my_embedded_udt my_embedded_type,
       my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
+      my_pk_udt my_embedded_pk,
       PRIMARY KEY (my_name)
     )
     """)
@@ -347,6 +353,21 @@ defmodule Exandra.IntegrationTest do
   end
 
   describe "Embeds" do
+    defmodule UDTWithPK do
+      use Ecto.Schema
+      import Ecto.Changeset
+
+      @primary_key {:id, Ecto.UUID, autogenerate: true}
+      embedded_schema do
+        field :name, :string
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:name])
+      end
+    end
+
     defmodule EmbeddedSchema do
       use Ecto.Schema
       import Ecto.Changeset
@@ -366,8 +387,8 @@ defmodule Exandra.IntegrationTest do
 
     defmodule MyEmbeddedSchema do
       use Ecto.Schema
-      use Exandra.Embedded
       import Ecto.Changeset
+      import Exandra, only: [embedded_type: 2, embedded_type: 3]
 
       @primary_key false
       schema "my_embedded_schema" do
@@ -375,11 +396,12 @@ defmodule Exandra.IntegrationTest do
         field :my_bool, :boolean
         embedded_type(:my_embedded_udt, EmbeddedSchema)
         embedded_type(:my_embedded_udt_list, EmbeddedSchema, cardinality: :many)
+        embedded_type(:my_pk_udt, UDTWithPK)
       end
 
       def changeset(entity, params) do
         entity
-        |> cast(params, [:my_name, :my_bool, :my_embedded_udt, :my_embedded_udt_list])
+        |> cast(params, [:my_name, :my_bool, :my_embedded_udt, :my_embedded_udt_list, :my_pk_udt])
       end
     end
 
@@ -447,7 +469,11 @@ defmodule Exandra.IntegrationTest do
                my_embedded_udt_list: [
                  %EmbeddedSchema{dark_mode: true, online: true},
                  %EmbeddedSchema{dark_mode: false, online: false}
-               ]
+               ],
+               my_pk_udt: %UDTWithPK{
+                 id: generated_uuid,
+                 name: "generator"
+               }
              } =
                schema
                |> MyEmbeddedSchema.changeset(%{
@@ -461,9 +487,32 @@ defmodule Exandra.IntegrationTest do
                      dark_mode: false,
                      online: false
                    }
-                 ]
+                 ],
+                 my_pk_udt: %{
+                   name: "generator"
+                 }
                })
                |> TestRepo.update!()
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: false,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: [
+                 %EmbeddedSchema{dark_mode: true, online: true},
+                 %EmbeddedSchema{dark_mode: false, online: false}
+               ],
+               my_pk_udt: %UDTWithPK{
+                 id: loaded_uuid,
+                 name: "generator"
+               }
+             } = TestRepo.one(query)
+
+      assert {:ok, _} = Ecto.UUID.dump(loaded_uuid)
+      assert generated_uuid == loaded_uuid
     end
   end
 end

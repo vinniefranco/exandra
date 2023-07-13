@@ -177,6 +177,14 @@ defmodule Exandra do
                         :xandra_cluster_module,
                         Xandra.Cluster
                       )
+
+  defmacro embedded_type(field, embedded_schema, opts \\ []) do
+    quote do
+      opts = Keyword.merge([using: unquote(embedded_schema)], unquote(opts))
+      field unquote(field), Exandra.EmbeddedType, opts
+    end
+  end
+
   @doc """
   Executes a **batch query**.
 
@@ -228,6 +236,7 @@ defmodule Exandra do
   end
 
   @doc false
+  def autogenerate(Ecto.UUID), do: Ecto.UUID.generate()
   def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
   def autogenerate(type), do: super(type)
 
