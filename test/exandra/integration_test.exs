@@ -68,8 +68,19 @@ defmodule Exandra.IntegrationTest do
       "CREATE TYPE IF NOT EXISTS my_complex (meta text, amount int, happened timestamp)"
     )
 
-    Xandra.execute!(conn, "DROP TABLE IF EXISTS my_schema")
-    Xandra.execute!(conn, "DROP TABLE IF EXISTS my_counter_schema")
+    Xandra.execute!(
+      conn,
+      "CREATE TYPE IF NOT EXISTS my_embedded_type (dark_mode boolean, online boolean)"
+    )
+
+    Xandra.execute!(
+      conn,
+      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text)"
+    )
+
+    for schema <- ["my_schema", "my_embedded_schema", "my_counter_schema"] do
+      Xandra.execute!(conn, "DROP TABLE IF EXISTS #{schema}")
+    end
 
     Xandra.execute!(conn, """
     CREATE TABLE my_schema (
@@ -82,6 +93,7 @@ defmodule Exandra.IntegrationTest do
       my_list_udt FROZEN<list<FROZEN<fullname>>>,
       my_complex_list_udt list<FROZEN<my_complex>>,
       my_complex_udt my_complex,
+      my_embedded_udt my_embedded_type,
       my_list list<varchar>,
       my_utc timestamp,
       my_integer int,
@@ -90,6 +102,17 @@ defmodule Exandra.IntegrationTest do
       inserted_at timestamp,
       updated_at timestamp,
       PRIMARY KEY (id)
+    )
+    """)
+
+    Xandra.execute!(conn, """
+    CREATE TABLE my_embedded_schema (
+      my_name text,
+      my_bool boolean,
+      my_embedded_udt my_embedded_type,
+      my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
+      my_pk_udt my_embedded_pk,
+      PRIMARY KEY (my_name)
     )
     """)
 
@@ -327,5 +350,170 @@ defmodule Exandra.IntegrationTest do
     # Let's run the query again and see the counter updated, since that's what counters do.
     assert {1, _} = TestRepo.update_all(query, [])
     assert TestRepo.reload!(fetched_counter).my_counter == 6
+  end
+
+  describe "Embeds" do
+    defmodule UDTWithPK do
+      use Ecto.Schema
+      import Ecto.Changeset
+
+      @primary_key {:id, Ecto.UUID, autogenerate: true}
+      embedded_schema do
+        field :name, :string
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:name])
+      end
+    end
+
+    defmodule EmbeddedSchema do
+      use Ecto.Schema
+      import Ecto.Changeset
+
+      @primary_key false
+      embedded_schema do
+        field :online, :boolean
+        field :dark_mode, :boolean
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:online, :dark_mode])
+        |> validate_required([:online, :dark_mode])
+      end
+    end
+
+    defmodule MyEmbeddedSchema do
+      use Ecto.Schema
+      import Ecto.Changeset
+      import Exandra, only: [embedded_type: 2, embedded_type: 3]
+
+      @primary_key false
+      schema "my_embedded_schema" do
+        field :my_name, :string, primary_key: true
+        field :my_bool, :boolean
+        embedded_type(:my_embedded_udt, EmbeddedSchema)
+        embedded_type(:my_embedded_udt_list, EmbeddedSchema, cardinality: :many)
+        embedded_type(:my_pk_udt, UDTWithPK)
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:my_name, :my_bool, :my_embedded_udt, :my_embedded_udt_list, :my_pk_udt])
+      end
+    end
+
+    test "changeset errors" do
+      assert {:error, %Ecto.Changeset{errors: errors}} =
+               %MyEmbeddedSchema{}
+               |> MyEmbeddedSchema.changeset(%{
+                 "my_name" => "EmBetty",
+                 "my_bool" => true,
+                 "my_embedded_udt" => %{
+                   # waffle is not in fact, a boolean
+                   "dark_mode" => "waffle",
+                   "online" => true
+                 }
+               })
+               |> Ecto.Changeset.apply_action(:insert)
+
+      assert [my_embedded_udt: {"is invalid", _}] = errors
+    end
+
+    test "inserting and querying data", %{start_opts: start_opts} do
+      start_supervised!({TestRepo, start_opts})
+
+      %MyEmbeddedSchema{}
+      |> MyEmbeddedSchema.changeset(%{
+        "my_name" => "EmBetty",
+        "my_bool" => true,
+        "my_embedded_udt" => %{
+          "dark_mode" => false,
+          "online" => true
+        }
+      })
+      |> TestRepo.insert!()
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: true,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: []
+             } = TestRepo.get!(MyEmbeddedSchema, "EmBetty")
+
+      query =
+        from e in MyEmbeddedSchema,
+          where: e.my_name == "EmBetty"
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: true,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: []
+             } = schema = TestRepo.one(query)
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: false,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: [
+                 %EmbeddedSchema{dark_mode: true, online: true},
+                 %EmbeddedSchema{dark_mode: false, online: false}
+               ],
+               my_pk_udt: %UDTWithPK{
+                 id: generated_uuid,
+                 name: "generator"
+               }
+             } =
+               schema
+               |> MyEmbeddedSchema.changeset(%{
+                 my_bool: false,
+                 my_embedded_udt_list: [
+                   %{
+                     dark_mode: true,
+                     online: true
+                   },
+                   %{
+                     dark_mode: false,
+                     online: false
+                   }
+                 ],
+                 my_pk_udt: %{
+                   name: "generator"
+                 }
+               })
+               |> TestRepo.update!()
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: false,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: [
+                 %EmbeddedSchema{dark_mode: true, online: true},
+                 %EmbeddedSchema{dark_mode: false, online: false}
+               ],
+               my_pk_udt: %UDTWithPK{
+                 id: loaded_uuid,
+                 name: "generator"
+               }
+             } = TestRepo.one(query)
+
+      assert {:ok, _} = Ecto.UUID.dump(loaded_uuid)
+      assert generated_uuid == loaded_uuid
+    end
   end
 end

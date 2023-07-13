@@ -177,6 +177,14 @@ defmodule Exandra do
                         :xandra_cluster_module,
                         Xandra.Cluster
                       )
+
+  defmacro embedded_type(field, embedded_schema, opts \\ []) do
+    quote do
+      opts = Keyword.merge([using: unquote(embedded_schema)], unquote(opts))
+      field unquote(field), Exandra.EmbeddedType, opts
+    end
+  end
+
   @doc """
   Executes a **batch query**.
 
@@ -228,6 +236,7 @@ defmodule Exandra do
   end
 
   @doc false
+  def autogenerate(Ecto.UUID), do: Ecto.UUID.generate()
   def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
   def autogenerate(type), do: super(type)
 
@@ -236,7 +245,12 @@ defmodule Exandra do
   def dumpers(:binary_id, type), do: [type, Ecto.UUID]
   def dumpers(:map, _type), do: [&Jason.encode/1]
   def dumpers(:naive_datetime, _type), do: [&naive_datetime_to_datetime/1]
-  def dumpers({:map, _}, type), do: [type]
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+
+  def dumpers(:exandra_embedded_type, type) do
+    [&Ecto.Type.embedded_dump(type, &1, :exandra_embedded_type)]
+  end
+
   def dumpers(_, type), do: [type]
 
   defp naive_datetime_to_datetime(%NaiveDateTime{} = datetime) do
@@ -250,13 +264,14 @@ defmodule Exandra do
 
   @doc false
   @impl Ecto.Adapter
-  def loaders({:map, _}, type),
-    do: [&Ecto.Type.embedded_load(type, Jason.decode!(&1 || "null"), :json)]
-
+  def loaders({:map, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:binary_id, _type), do: []
   def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
   def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
-  def loaders(:x_list, type), do: [&Ecto.Type.embedded_load(type, &1, :x_list), type]
+
+  def loaders(:exandra_embedded, type),
+    do: [&Ecto.Type.embedded_load(type, &1, :exandra_embedded_type), type]
+
   def loaders(:map, type), do: [&Ecto.Type.load(type, Jason.decode!(&1 || "null"))]
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []
