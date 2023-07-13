@@ -20,13 +20,24 @@ defmodule Exandra.Embedded do
   defmacro cast_type(changeset, field, params) do
     quote do
       embeds = unquote(__MODULE__).__exandra_types__()
-      Embedded.attempt_cast_and_coerce(unquote(changeset), unquote(field), unquote(params), embeds)
+
+      Embedded.attempt_cast_and_coerce(
+        unquote(changeset),
+        unquote(field),
+        unquote(params),
+        embeds
+      )
     end
   end
 
   defmacro embedded_type(field, embedded_schema, opts \\ []) do
     quote do
-      Module.put_attribute(__MODULE__, :__exandra_types__, {unquote(field), unquote(embedded_schema), unquote(opts)})
+      Module.put_attribute(
+        __MODULE__,
+        :__exandra_types__,
+        {unquote(field), unquote(embedded_schema), unquote(opts)}
+      )
+
       field unquote(field), Exandra.EmbeddedType, into: unquote(embedded_schema)
     end
   end
@@ -36,7 +47,8 @@ defmodule Exandra.Embedded do
       if field == embedded_field do
         case apply_cast(schema, params) do
           {:ok, struct} ->
-             Ecto.Changeset.put_change(changeset, embedded_field, struct)
+            Ecto.Changeset.put_change(changeset, embedded_field, struct)
+
           {:error, _error_changeset} ->
             Ecto.Changeset.add_error(changeset, field, "cannot be cast")
         end

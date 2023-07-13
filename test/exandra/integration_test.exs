@@ -31,7 +31,7 @@ defmodule Exandra.IntegrationTest do
     @primary_key false
     schema "my_embedded_schema" do
       field :my_name, :string, primary_key: true
-      embedded_type :my_embedded_udt, EmbeddedSchema, test: true
+      embedded_type(:my_embedded_udt, EmbeddedSchema, test: true)
       embeds_many :my_embedded_udt_list, EmbeddedSchema
     end
 
@@ -395,13 +395,13 @@ defmodule Exandra.IntegrationTest do
       |> TestRepo.insert!()
 
       assert %MyEmbeddedSchema{
-        my_name: "EmBetty",
-        my_embedded_udt: %EmbeddedSchema{
-          dark_mode: false,
-          online: true
-        },
-        my_embedded_udt_list: []
-      } = TestRepo.get!(MyEmbeddedSchema, "EmBetty")
+               my_name: "EmBetty",
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: []
+             } = TestRepo.get!(MyEmbeddedSchema, "EmBetty")
     end
   end
 end
