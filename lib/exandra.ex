@@ -237,6 +237,11 @@ defmodule Exandra do
   def dumpers(:map, _type), do: [&Jason.encode/1]
   def dumpers(:naive_datetime, _type), do: [&naive_datetime_to_datetime/1]
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+
+  def dumpers(:exandra_embedded_type, type) do
+    [&Ecto.Type.embedded_dump(type, &1, :exandra_ebedded_type)]
+  end
+
   def dumpers(_, type), do: [type]
 
   defp naive_datetime_to_datetime(%NaiveDateTime{} = datetime) do
@@ -254,6 +259,10 @@ defmodule Exandra do
   def loaders(:binary_id, _type), do: []
   def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
   def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
+
+  def loaders(:exandra_embedded, type),
+    do: [&Ecto.Type.load(type, &1, :exandra_ebedded_type), type]
+
   def loaders(:map, type), do: [&Ecto.Type.load(type, Jason.decode!(&1 || "null"))]
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []

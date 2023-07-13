@@ -360,6 +360,7 @@ defmodule Exandra.IntegrationTest do
       def changeset(entity, params) do
         entity
         |> cast(params, [:online, :dark_mode])
+        |> validate_required([:online, :dark_mode])
       end
     end
 
@@ -372,15 +373,30 @@ defmodule Exandra.IntegrationTest do
       schema "my_embedded_schema" do
         field :my_name, :string, primary_key: true
         field :my_bool, :boolean
-        embedded_type(:my_embedded_udt, EmbeddedSchema, test: true)
-        embeds_many :my_embedded_udt_list, EmbeddedSchema
+        embedded_type(:my_embedded_udt, EmbeddedSchema)
+        embedded_type(:my_embedded_udt_list, EmbeddedSchema, cardinality: :many)
       end
 
       def changeset(entity, params) do
         entity
-        |> cast(params, [:my_name, :my_bool])
-        |> cast_type(:my_embedded_udt, params["my_embedded_udt"])
+        |> cast(params, [:my_name, :my_bool, :my_embedded_udt, :my_embedded_udt_list])
       end
+    end
+
+    test "changeset errors" do
+      assert {:error, %Ecto.Changeset{errors: errors}} =
+               %MyEmbeddedSchema{}
+               |> MyEmbeddedSchema.changeset(%{
+                 "my_name" => "EmBetty",
+                 "my_bool" => true,
+                 "my_embedded_udt" => %{
+                   "dark_mode" => "waffle",
+                   "online" => true
+                 }
+               })
+               |> Ecto.Changeset.apply_action(:insert)
+
+      assert [my_embedded_udt: {"is invalid", _}] = errors
     end
 
     test "inserting and querying data", %{start_opts: start_opts} do
@@ -428,11 +444,24 @@ defmodule Exandra.IntegrationTest do
                  dark_mode: false,
                  online: true
                },
-               my_embedded_udt_list: []
+               my_embedded_udt_list: [
+                 %EmbeddedSchema{dark_mode: true, online: true},
+                 %EmbeddedSchema{dark_mode: false, online: false}
+               ]
              } =
                schema
                |> MyEmbeddedSchema.changeset(%{
-                 my_bool: false
+                 my_bool: false,
+                 my_embedded_udt_list: [
+                   %{
+                     dark_mode: true,
+                     online: true
+                   },
+                   %{
+                     dark_mode: false,
+                     online: false
+                   }
+                 ]
                })
                |> TestRepo.update!()
     end

@@ -32,7 +32,7 @@ defmodule Exandra.EmbeddedTypeTest do
     def changeset(entity, params) do
       entity
       |> cast(params, [:my_name, :my_bool])
-      |> cast_type(:my_embedded_udt, params["my_embedded_udt"])
+      |> cast_embed(:my_embedded_udt)
     end
   end
 
@@ -40,11 +40,11 @@ defmodule Exandra.EmbeddedTypeTest do
     assert {
              :parameterized,
              EmbeddedType,
-             [
-               into: EmbeddedSchema,
+             %Exandra.EmbeddedType{
+               cardinality: :one,
                field: :my_embedded_udt,
-               schema: Schema
-             ]
+               using: EmbeddedSchema
+             }
            } = Schema.__schema__(:type, :my_embedded_udt)
   end
 
@@ -55,20 +55,16 @@ defmodule Exandra.EmbeddedTypeTest do
     assert Ecto.Type.type(@p_self_type) == :exandra_embedded_type
     assert Ecto.Type.type(@p_dump_type) == :exandra_embedded_type
 
-    assert :self = Ecto.Type.embed_as(@p_self_type, :foo)
-    assert :self = Ecto.Type.embed_as(@p_dump_type, :foo)
+    assert :dump = Ecto.Type.embed_as(@p_self_type, :foo)
+    assert :dump = Ecto.Type.embed_as(@p_dump_type, :foo)
 
     type = Schema.__schema__(:type, :my_embedded_udt)
 
-    assert {:ok, %EmbeddedSchema{}} = Ecto.Type.load(type, %{"dark_mode" => false, "online" => true})
+    assert {:ok, %EmbeddedSchema{}} =
+             Ecto.Type.load(type, %{"dark_mode" => false, "online" => true})
   end
 
   test "type/1" do
     assert EmbeddedType.type(nil) == :exandra_embedded_type
-  end
-
-
-  test "embed_as/1 returns :self" do
-    assert :self == EmbeddedType.embed_as(nil)
   end
 end
