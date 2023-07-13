@@ -248,7 +248,7 @@ defmodule Exandra do
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
 
   def dumpers(:exandra_embedded_type, type) do
-    [&Ecto.Type.embedded_dump(type, &1, :exandra_ebedded_type)]
+    [&Ecto.Type.embedded_dump(type, &1, :exandra_embedded_type)]
   end
 
   def dumpers(_, type), do: [type]
