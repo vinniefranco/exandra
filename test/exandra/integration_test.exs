@@ -25,19 +25,20 @@ defmodule Exandra.IntegrationTest do
 
   defmodule MyEmbeddedSchema do
     use Ecto.Schema
+    use Exandra.Embedded
     import Ecto.Changeset
 
-    @primary_key {:id, :binary_id, autogenerate: true}
+    @primary_key false
     schema "my_embedded_schema" do
-      field :my_name, :string
-      embeds_one :my_embedded_udt, EmbeddedSchema
+      field :my_name, :string, primary_key: true
+      embedded_type :my_embedded_udt, EmbeddedSchema, test: true
       embeds_many :my_embedded_udt_list, EmbeddedSchema
     end
 
     def changeset(params) do
       %__MODULE__{}
       |> cast(params, [:my_name])
-      |> cast_embed(:my_embedded_udt)
+      |> cast_type(:my_embedded_udt, params["my_embedded_udt"])
     end
   end
 
@@ -136,11 +137,10 @@ defmodule Exandra.IntegrationTest do
 
     Xandra.execute!(conn, """
     CREATE TABLE my_embedded_schema (
-      id uuid,
       my_name text,
       my_embedded_udt my_embedded_type,
       my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
-      PRIMARY KEY (id)
+      PRIMARY KEY (my_name)
     )
     """)
 
@@ -393,6 +393,15 @@ defmodule Exandra.IntegrationTest do
       }
       |> MyEmbeddedSchema.changeset()
       |> TestRepo.insert!()
+
+      assert %MyEmbeddedSchema{
+        my_name: "EmBetty",
+        my_embedded_udt: %EmbeddedSchema{
+          dark_mode: false,
+          online: true
+        },
+        my_embedded_udt_list: []
+      } = TestRepo.get!(MyEmbeddedSchema, "EmBetty")
     end
   end
 end
