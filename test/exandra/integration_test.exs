@@ -412,6 +412,7 @@ defmodule Exandra.IntegrationTest do
                  "my_name" => "EmBetty",
                  "my_bool" => true,
                  "my_embedded_udt" => %{
+                   # waffle is not in fact, a boolean
                    "dark_mode" => "waffle",
                    "online" => true
                  }
