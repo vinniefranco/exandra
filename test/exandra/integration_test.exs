@@ -7,41 +7,6 @@ defmodule Exandra.IntegrationTest do
 
   @keyspace "exandra_test"
 
-  defmodule EmbeddedSchema do
-    use Ecto.Schema
-    import Ecto.Changeset
-
-    @primary_key false
-    embedded_schema do
-      field :online, :boolean
-      field :dark_mode, :boolean
-    end
-
-    def changeset(entity, params) do
-      entity
-      |> cast(params, [:online, :dark_mode])
-    end
-  end
-
-  defmodule MyEmbeddedSchema do
-    use Ecto.Schema
-    use Exandra.Embedded
-    import Ecto.Changeset
-
-    @primary_key false
-    schema "my_embedded_schema" do
-      field :my_name, :string, primary_key: true
-      embedded_type(:my_embedded_udt, EmbeddedSchema, test: true)
-      embeds_many :my_embedded_udt_list, EmbeddedSchema
-    end
-
-    def changeset(params) do
-      %__MODULE__{}
-      |> cast(params, [:my_name])
-      |> cast_type(:my_embedded_udt, params["my_embedded_udt"])
-    end
-  end
-
   defmodule Schema do
     use Ecto.Schema
 
@@ -138,6 +103,7 @@ defmodule Exandra.IntegrationTest do
     Xandra.execute!(conn, """
     CREATE TABLE my_embedded_schema (
       my_name text,
+      my_bool boolean,
       my_embedded_udt my_embedded_type,
       my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
       PRIMARY KEY (my_name)
@@ -381,27 +347,94 @@ defmodule Exandra.IntegrationTest do
   end
 
   describe "Embeds" do
-    test "inserting data", %{start_opts: start_opts} do
+    defmodule EmbeddedSchema do
+      use Ecto.Schema
+      import Ecto.Changeset
+
+      @primary_key false
+      embedded_schema do
+        field :online, :boolean
+        field :dark_mode, :boolean
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:online, :dark_mode])
+      end
+    end
+
+    defmodule MyEmbeddedSchema do
+      use Ecto.Schema
+      use Exandra.Embedded
+      import Ecto.Changeset
+
+      @primary_key false
+      schema "my_embedded_schema" do
+        field :my_name, :string, primary_key: true
+        field :my_bool, :boolean
+        embedded_type(:my_embedded_udt, EmbeddedSchema, test: true)
+        embeds_many :my_embedded_udt_list, EmbeddedSchema
+      end
+
+      def changeset(entity, params) do
+        entity
+        |> cast(params, [:my_name, :my_bool])
+        |> cast_type(:my_embedded_udt, params["my_embedded_udt"])
+      end
+    end
+
+    test "inserting and querying data", %{start_opts: start_opts} do
       start_supervised!({TestRepo, start_opts})
 
-      %{
+      %MyEmbeddedSchema{}
+      |> MyEmbeddedSchema.changeset(%{
         "my_name" => "EmBetty",
+        "my_bool" => true,
         "my_embedded_udt" => %{
           "dark_mode" => false,
           "online" => true
         }
-      }
-      |> MyEmbeddedSchema.changeset()
+      })
       |> TestRepo.insert!()
 
       assert %MyEmbeddedSchema{
                my_name: "EmBetty",
+               my_bool: true,
                my_embedded_udt: %EmbeddedSchema{
                  dark_mode: false,
                  online: true
                },
                my_embedded_udt_list: []
              } = TestRepo.get!(MyEmbeddedSchema, "EmBetty")
+
+      query =
+        from e in MyEmbeddedSchema,
+          where: e.my_name == "EmBetty"
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: true,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: []
+             } = schema = TestRepo.one(query)
+
+      assert %MyEmbeddedSchema{
+               my_name: "EmBetty",
+               my_bool: false,
+               my_embedded_udt: %EmbeddedSchema{
+                 dark_mode: false,
+                 online: true
+               },
+               my_embedded_udt_list: []
+             } =
+               schema
+               |> MyEmbeddedSchema.changeset(%{
+                 my_bool: false
+               })
+               |> TestRepo.update!()
     end
   end
 end

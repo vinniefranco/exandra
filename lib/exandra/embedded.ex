@@ -19,13 +19,11 @@ defmodule Exandra.Embedded do
 
   defmacro cast_type(changeset, field, params) do
     quote do
-      embeds = unquote(__MODULE__).__exandra_types__()
-
       Embedded.attempt_cast_and_coerce(
         unquote(changeset),
         unquote(field),
         unquote(params),
-        embeds
+        unquote(__MODULE__).__exandra_types__()
       )
     end
   end
@@ -42,7 +40,8 @@ defmodule Exandra.Embedded do
     end
   end
 
-  def attempt_cast_and_coerce(changeset, field, params, embeds) do
+  @doc false
+  def attempt_cast_and_coerce(changeset, field, %{} = params, embeds) do
     Enum.reduce(embeds, changeset, fn {embedded_field, schema, _opts}, changeset ->
       if field == embedded_field do
         case apply_cast(schema, params) do
@@ -58,6 +57,12 @@ defmodule Exandra.Embedded do
     end)
   end
 
+  @doc false
+  def attempt_cast_and_coerce(changeset, _field, _params, _embeds) do
+    changeset
+  end
+
+  @doc false
   defp apply_cast(schema, params) do
     schema
     |> struct()
