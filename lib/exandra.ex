@@ -67,7 +67,7 @@ defmodule Exandra do
   >
   > There is no validation with `Exandra.UDT` and the keys _must_ be strings.
 
-  Alternatively, you can use the `Exandra.EmbeddedType` for Ecto.Schema backed UDTs. For example, if you have a
+  Alternatively, you can use the `Exandra.EmbeddedType` for `Ecto.Schema`-backed UDTs. For example, if you have a
   `phone_number` UDT, you can use:
 
       field :home_phone, Exandra.EmbeddedType, using: MyApp.PhoneSchema
