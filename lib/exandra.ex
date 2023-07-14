@@ -263,7 +263,6 @@ defmodule Exandra do
   defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
   defp load_json(data), do: {:ok, Jason.decode!(data)}
 
-
   defp encode_json(data) do
     {:ok, Jason.encode!(data)}
   end
@@ -276,7 +275,6 @@ defmodule Exandra do
       {:error, reason} -> {:error, reason}
     end
   end
-
 
   @impl Ecto.Adapter.Migration
   def lock_for_migrations(_, _, fun), do: fun.()
