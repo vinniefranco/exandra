@@ -146,7 +146,7 @@ defmodule Exandra.EmbeddedType do
   defp dump_field(data, types, dumper) do
     data
     |> Ecto.Schema.Loader.safe_dump(types, dumper)
-    |> Enum.into(%{}, fn {field, dumped} -> {Atom.to_string(field), dumped} end)
+    |> Map.new(fn {field, dumped} -> {Atom.to_string(field), dumped} end)
   end
 
   # From Ecto.Type.
