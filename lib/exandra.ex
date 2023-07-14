@@ -63,6 +63,18 @@ defmodule Exandra do
       field :home_phone, Exandra.UDT, type: :phone_number
       field :office_phone, Exandra.UDT, type: :phone_number
 
+  NOTE: There is no validation with Exandra.UDT and the keys _must_ be strings.
+
+  Alternatively, you can use the `Exandra.EmbeddedType` for Ecto.Schema backed UDTs. For example, if you have a
+  `phone_number` UDT, you can use:
+
+      field :home_phone, Exandra.EmbeddedType, using: MyApp.PhoneSchema
+
+  Finally, if you have a column of frozen UDTs `list<frozen<phone_number>>`, you can still use the
+  `Exandra.EmbeddedType` just as before with `cardinality: :many` like so:
+
+      field :home_phone, Exandra.EmbeddedType, cardinality: :many, using: MyApp.PhoneSchema
+
   ### Arrays
 
   You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
