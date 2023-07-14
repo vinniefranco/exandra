@@ -134,40 +134,19 @@ defmodule Exandra.EmbeddedType do
   def dump(nil, _dumper, _opts), do: {:ok, nil}
 
   def dump(%struct{} = data, dumper, %{cardinality: :one, using: struct}) do
-    data =
-      Enum.into(struct.__schema__(:dump), %{}, fn {field, {_source, type}} ->
-        dump_field(struct, data, field, type, dumper)
-      end)
-
-    {:ok, data}
+    {:ok, dump_field(data, struct.__schema__(:dump), dumper)}
   end
 
   def dump(data, dumper, %{cardinality: :many, using: struct}) do
-    dumped_list =
-      Enum.map(data, fn datum ->
-        {:ok, dumped} = dump(datum, dumper, %{cardinality: :one, using: struct})
-
-        dumped
-      end)
-
-    {:ok, dumped_list}
+    {:ok, Enum.map(data, &dump_field(&1, struct.__schema__(:dump), dumper))}
   end
 
   def dump(_data, _dumper, _opts), do: :error
 
-  @doc false
-  defp dump_field(_struct, data, field, type, dumper) do
-    value = Map.get(data, field)
-    {:ok, value} = dumper.(type, value)
-
-    dumped =
-      if type == :map do
-        Jason.encode!(value)
-      else
-        value
-      end
-
-    {"#{field}", dumped}
+  defp dump_field(data, types, dumper) do
+    data
+    |> Ecto.Schema.Loader.safe_dump(types, dumper)
+    |> Map.new(fn {field, dumped} -> {Atom.to_string(field), dumped} end)
   end
 
   # From Ecto.Type.

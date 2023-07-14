@@ -74,7 +74,7 @@ defmodule Exandra.IntegrationTest do
 
     Xandra.execute!(
       conn,
-      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text, my_map text)"
+      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text, my_enum text, my_map text)"
     )
 
     for schema <- ["my_schema", "my_embedded_schema", "my_counter_schema"] do
@@ -359,12 +359,13 @@ defmodule Exandra.IntegrationTest do
       @primary_key {:id, Ecto.UUID, autogenerate: true}
       embedded_schema do
         field :name, :string
+        field :my_enum, Ecto.Enum, values: [:a, :b], default: :a
         field :my_map, :map
       end
 
       def changeset(entity, params) do
         entity
-        |> cast(params, [:name, :my_map])
+        |> cast(params, [:name, :my_enum, :my_map])
       end
     end
 
@@ -473,6 +474,7 @@ defmodule Exandra.IntegrationTest do
                ],
                my_pk_udt: %UDTWithPK{
                  id: generated_uuid,
+                 my_enum: :a,
                  name: "generator"
                }
              } =
@@ -510,6 +512,7 @@ defmodule Exandra.IntegrationTest do
                my_pk_udt: %UDTWithPK{
                  id: loaded_uuid,
                  name: "generator",
+                 my_enum: :a,
                  my_map: %{"foo" => "bar"}
                }
              } = TestRepo.one(query)

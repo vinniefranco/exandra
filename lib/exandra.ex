@@ -178,6 +178,7 @@ defmodule Exandra do
                         Xandra.Cluster
                       )
 
+  @doc false
   defmacro embedded_type(field, embedded_schema, opts \\ []) do
     quote do
       opts = Keyword.merge([using: unquote(embedded_schema)], unquote(opts))
@@ -245,13 +246,22 @@ defmodule Exandra do
   def dumpers(:binary_id, type), do: [type, Ecto.UUID]
   def dumpers(:map, _type), do: [&encode_json/1]
   def dumpers(:naive_datetime, _type), do: [&naive_datetime_to_datetime/1]
-  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
-
-  def dumpers(:exandra_embedded_type, type) do
-    [&Ecto.Type.embedded_dump(type, &1, :exandra_embedded_type)]
-  end
-
   def dumpers(_val, type), do: [type]
+
+  @doc false
+  @impl Ecto.Adapter
+  def loaders(:binary_id, _type), do: []
+  def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
+  def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
+
+  def loaders(:map, _type), do: [&load_json/1]
+  # Xandra returns UUIDs as strings, so we don't need to do any loading.
+  def loaders(:uuid, _type), do: []
+  def loaders(:decimal, type), do: [&load_decimal/1, type]
+  def loaders(_, type), do: [type]
+
+  defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
+  defp load_json(data), do: {:ok, Jason.decode!(data)}
 
   defp encode_json(data) do
     {:ok, Jason.encode!(data)}
@@ -265,25 +275,6 @@ defmodule Exandra do
       {:error, reason} -> {:error, reason}
     end
   end
-
-  @doc false
-  @impl Ecto.Adapter
-  def loaders({:map, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
-  def loaders(:binary_id, _type), do: []
-  def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
-  def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
-
-  def loaders(:exandra_embedded, type),
-    do: [&Ecto.Type.embedded_load(type, &1, :exandra_embedded_type), type]
-
-  def loaders(:map, _type), do: [&load_json/1]
-  # Xandra returns UUIDs as strings, so we don't need to do any loading.
-  def loaders(:uuid, _type), do: []
-  def loaders(:decimal, type), do: [&load_decimal/1, type]
-  def loaders(_, type), do: [type]
-
-  defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
-  defp load_json(data), do: {:ok, Jason.decode!(data)}
 
   @impl Ecto.Adapter.Migration
   def lock_for_migrations(_, _, fun), do: fun.()
