@@ -63,7 +63,9 @@ defmodule Exandra do
       field :home_phone, Exandra.UDT, type: :phone_number
       field :office_phone, Exandra.UDT, type: :phone_number
 
-  NOTE: There is no validation with Exandra.UDT and the keys _must_ be strings.
+  > #### String Keys {: .warning}
+  >
+  > There is no validation with `Exandra.UDT` and the keys _must_ be strings.
 
   Alternatively, you can use the `Exandra.EmbeddedType` for Ecto.Schema backed UDTs. For example, if you have a
   `phone_number` UDT, you can use:
