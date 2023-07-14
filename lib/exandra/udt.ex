@@ -20,7 +20,7 @@ defmodule Exandra.UDT do
   ]
 
   @moduledoc """
-  `Ecto.Type` for **User-Defined Types** (UDTs).
+  `Ecto.ParameterizedType` for **User-Defined Types** (UDTs).
 
   ## Options
 

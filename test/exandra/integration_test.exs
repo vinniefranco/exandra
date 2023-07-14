@@ -58,10 +58,9 @@ defmodule Exandra.IntegrationTest do
     Xandra.execute!(conn, "USE #{@keyspace}")
     Xandra.execute!(conn, "CREATE TYPE IF NOT EXISTS fullname (first_name text, last_name text)")
 
-    Xandra.execute!(
-      conn,
-      "DROP TYPE IF EXISTS my_complex"
-    )
+    for type <- ["my_complex", "my_embedded_type", "my_embedded_pk"] do
+      Xandra.execute!(conn, "DROP TYPE IF EXISTS #{type}")
+    end
 
     Xandra.execute!(
       conn,
@@ -75,7 +74,7 @@ defmodule Exandra.IntegrationTest do
 
     Xandra.execute!(
       conn,
-      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text)"
+      "CREATE TYPE IF NOT EXISTS my_embedded_pk (id uuid, name text, my_map text)"
     )
 
     for schema <- ["my_schema", "my_embedded_schema", "my_counter_schema"] do
@@ -360,11 +359,12 @@ defmodule Exandra.IntegrationTest do
       @primary_key {:id, Ecto.UUID, autogenerate: true}
       embedded_schema do
         field :name, :string
+        field :my_map, :map
       end
 
       def changeset(entity, params) do
         entity
-        |> cast(params, [:name])
+        |> cast(params, [:name, :my_map])
       end
     end
 
@@ -396,7 +396,7 @@ defmodule Exandra.IntegrationTest do
         field :my_bool, :boolean
         embedded_type(:my_embedded_udt, EmbeddedSchema)
         embedded_type(:my_embedded_udt_list, EmbeddedSchema, cardinality: :many)
-        embedded_type(:my_pk_udt, UDTWithPK)
+        field :my_pk_udt, Exandra.EmbeddedType, using: UDTWithPK
       end
 
       def changeset(entity, params) do
@@ -490,7 +490,8 @@ defmodule Exandra.IntegrationTest do
                    }
                  ],
                  my_pk_udt: %{
-                   name: "generator"
+                   name: "generator",
+                   my_map: %{foo: "bar"}
                  }
                })
                |> TestRepo.update!()
@@ -508,7 +509,8 @@ defmodule Exandra.IntegrationTest do
                ],
                my_pk_udt: %UDTWithPK{
                  id: loaded_uuid,
-                 name: "generator"
+                 name: "generator",
+                 my_map: %{"foo" => "bar"}
                }
              } = TestRepo.one(query)
 

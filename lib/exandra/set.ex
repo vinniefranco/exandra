@@ -16,7 +16,7 @@ defmodule Exandra.Set do
   ]
 
   @moduledoc """
-  `Ecto.Type` for sets.
+  `Ecto.ParameterizedType` for sets.
 
   ## Options
 

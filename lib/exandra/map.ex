@@ -21,7 +21,7 @@ defmodule Exandra.Map do
   ]
 
   @moduledoc """
-  `Ecto.Type` for maps.
+  `Ecto.ParameterizedType` for maps.
 
   ## Options
 
