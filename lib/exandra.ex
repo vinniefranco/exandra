@@ -274,7 +274,11 @@ defmodule Exandra do
   def loaders(:decimal, type), do: [&load_decimal/1, type]
   def loaders(_, type), do: [type]
 
-  defp load_decimal({coefficient, exponent}), do: {:ok, Decimal.new(1, coefficient, -exponent)}
+  defp load_decimal({coefficient, exponent}) do
+    sign = if coefficient < 0, do: -1, else: 1
+    {:ok, Decimal.new(sign, abs(coefficient), -exponent)}
+  end
+
   defp load_json(data), do: {:ok, Jason.decode!(data)}
 
   defp encode_json(data) do
