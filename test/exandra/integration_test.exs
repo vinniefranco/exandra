@@ -232,6 +232,8 @@ defmodule Exandra.IntegrationTest do
 
     row1_id = Ecto.UUID.generate()
     row2_id = Ecto.UUID.generate()
+    decimal1 = Decimal.new("3.14")
+    decimal2 = Decimal.new("-3.14")
     set1 = MapSet.new([1])
     set2 = MapSet.new([1, 2, 3])
 
@@ -256,7 +258,8 @@ defmodule Exandra.IntegrationTest do
         happened: ~U[2020-01-01T00:00:00Z]
       },
       my_bool: true,
-      my_integer: 4
+      my_integer: 4,
+      my_decimal: decimal1
     }
 
     schema2 = %Schema{
@@ -276,7 +279,8 @@ defmodule Exandra.IntegrationTest do
         happened: ~U[2020-01-01T00:00:00Z]
       },
       my_bool: false,
-      my_integer: 5
+      my_integer: 5,
+      my_decimal: decimal2
     }
 
     TestRepo.insert!(schema1)
@@ -306,7 +310,8 @@ defmodule Exandra.IntegrationTest do
                "happened" => ~U[2020-01-01T00:00:00.000Z]
              },
              my_bool: true,
-             my_integer: 4
+             my_integer: 4,
+             my_decimal: ^decimal1
            } = returned_schema1
 
     assert %Schema{
@@ -330,7 +335,8 @@ defmodule Exandra.IntegrationTest do
                "happened" => ~U[2020-01-01T00:00:00.000Z]
              },
              my_bool: false,
-             my_integer: 5
+             my_integer: 5,
+             my_decimal: ^decimal2
            } = returned_schema2
 
     counter_id = Ecto.UUID.generate()
