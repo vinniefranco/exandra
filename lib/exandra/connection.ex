@@ -176,10 +176,11 @@ defmodule Exandra.Connection do
     # syntax error. So anyways, this is what we do for now to support rolling back
     # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
     # https://github.com/elixir-ecto/ecto_sql/pull/531.
-    if IO.iodata_to_binary(result) == "SELECT CAST(version AS int) FROM schema_migrations" do
-      "SELECT version FROM schema_migrations"
-    else
-      result
+    regex = ~r/^SELECT CAST\(version AS int\) FROM (?<table>\w+)$/
+
+    case Regex.named_captures(regex, IO.iodata_to_binary(result)) do
+      %{"table" => table} -> "SELECT version FROM #{table}"
+      _ -> result
     end
   end
 
@@ -234,11 +235,11 @@ defmodule Exandra.Connection do
     # syntax error. So anyways, this is what we do for now to support rolling back
     # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
     # https://github.com/elixir-ecto/ecto_sql/pull/531.
-    if IO.iodata_to_binary(result) ==
-         "DELETE FROM schema_migrations WHERE version = CAST(? AS int)" do
-      "DELETE FROM schema_migrations WHERE version = ?"
-    else
-      result
+    regex = ~r/^DELETE FROM (?<table>\w+) WHERE version = CAST\(\? AS int\)$/
+
+    case Regex.named_captures(regex, IO.iodata_to_binary(result)) do
+      %{"table" => table} -> "DELETE FROM #{table} WHERE version = ?"
+      _ -> result
     end
   end
 
