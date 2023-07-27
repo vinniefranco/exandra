@@ -1,6 +1,8 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
+  @version "0.6.5"
+
   @repo_url "https://github.com/vinniefranco/exandra"
 
   @description """
@@ -10,7 +12,7 @@ defmodule Exandra.MixProject do
   def project do
     [
       app: :exandra,
-      version: "0.6.4",
+      version: @version,
       elixir: "~> 1.14",
       description: @description,
       package: package(),
@@ -28,6 +30,8 @@ defmodule Exandra.MixProject do
       xref: [exclude: [XandraClusterMock, XandraMock]],
       docs: [
         main: "Exandra",
+        source_ref: "v#{@version}",
+        source_url: @repo_url,
         groups_for_modules: [
           "Ecto types": [Exandra.UDT, Exandra.Counter, Exandra.Map, Exandra.Set]
         ]
