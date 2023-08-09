@@ -160,7 +160,7 @@ defmodule Exandra.IntegrationTest do
       assert rows == [["bob@example.com"], ["meg@example.com"]]
     end
 
-    test "works with Batch.Builder", %{start_opts: start_opts} do
+    test "works with changsets using a fluent API", %{start_opts: start_opts} do
       defmodule User do
         use Ecto.Schema
         import Ecto.Changeset
