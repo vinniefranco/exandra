@@ -36,9 +36,9 @@ defmodule Exandra.Batch do
   @type t :: %__MODULE__{
           status:
             :default
-            | :pending
+            | :applied
             | :building
-            | :applied,
+            | :pending,
           queries: [tuple],
           names: MapSet.t(),
           operations: [tuple]
