@@ -69,28 +69,14 @@ defmodule Exandra.Batch do
   def __apply__(%Builder{} = chain, repo) do
     operations = Enum.reverse(chain.operations)
 
-    with {:ok, operations} <- check_operations_valid(operations),
-         {:ok, queries} <- operations_to_queries(operations, chain.names, repo) do
+    with {:ok, queries} <- operations_to_queries(operations, repo) do
       %__MODULE__{queries: queries}
     end
   end
 
-  defp check_operations_valid(operations) do
-    Enum.find_value(operations, &invalid_operation/1) || {:ok, operations}
-  end
+  defp operations_to_queries([], _repo), do: {:ok, []}
 
-  defp invalid_operation({name, {:changeset, %{valid?: false} = changeset, _}}),
-    do: {:error, {name, changeset, %{}}}
-
-  defp invalid_operation({name, {:error, value}}),
-    do: {:error, {name, value, %{}}}
-
-  defp invalid_operation(_operation),
-    do: nil
-
-  defp operations_to_queries([], _names, _repo), do: {:ok, []}
-
-  defp operations_to_queries(operations, names, repo) do
+  defp operations_to_queries(operations, repo) do
     Enum.reduce_while(operations, {:ok, []}, fn {name, operation}, acc ->
       apply_operation(operation, name, repo, acc)
     end)
