@@ -3,6 +3,7 @@ defmodule Exandra.IntegrationTest do
 
   import Ecto.Query
 
+  alias Exandra.Batch
   alias Exandra.TestRepo
 
   @keyspace "exandra_test"
@@ -152,6 +153,38 @@ defmodule Exandra.IntegrationTest do
           {"INSERT INTO users (email) VALUES (?)", ["meg@example.com"]}
         ]
       }
+
+      assert Exandra.execute_batch(TestRepo, batch) == :ok
+
+      assert %{num_rows: 2, rows: rows} = TestRepo.query!("SELECT email FROM users")
+      assert rows == [["bob@example.com"], ["meg@example.com"]]
+    end
+
+    test "works with Batch.Builder", %{start_opts: start_opts} do
+      defmodule User do
+        use Ecto.Schema
+        import Ecto.Changeset
+
+        @primary_key false
+        schema "users" do
+          field :email, :string, primary_key: true
+        end
+
+        def changeset(attrs) do
+          %User{}
+          |> cast(attrs, [:email])
+          |> validate_required([:email])
+        end
+      end
+
+      start_supervised!({Exandra.TestRepo, start_opts})
+
+      TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
+
+      batch =
+        Batch.new()
+        |> Batch.insert(:friend, User.changeset(%{email: "bob@example.com"}))
+        |> Batch.insert(:enemy, User.changeset(%{email: "meg@example.com"}))
 
       assert Exandra.execute_batch(TestRepo, batch) == :ok
 

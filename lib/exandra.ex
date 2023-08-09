@@ -217,7 +217,14 @@ defmodule Exandra do
   """
   @spec execute_batch(Ecto.Repo.t(), Exandra.Batch.t(), keyword()) ::
           :ok | {:error, Exception.t()}
-  def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
+  def execute_batch(repo, operations, options \\ [])
+
+  def execute_batch(repo, %Exandra.Batch.Builder{} = batch, options)
+      when is_atom(repo) and is_list(options) do
+    execute_batch(repo, Exandra.Batch.__apply__(batch, repo), options)
+  end
+
+  def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options)
       when is_atom(repo) and is_list(options) do
     fun = fn conn ->
       try do

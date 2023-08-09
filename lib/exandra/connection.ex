@@ -98,6 +98,17 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def query(cluster, sql, params, opts) do
+    receiver = Keyword.get(opts, :send_raw, false)
+
+    if receiver do
+      send(receiver, {:raw, sql, params})
+      {:ok, %{rows: nil, num_rows: 1}}
+    else
+      prepared_query(cluster, sql, params, opts)
+    end
+  end
+
+  defp prepared_query(cluster, sql, params, opts) do
     sql =
       case sql do
         [query] -> query
