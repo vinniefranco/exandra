@@ -1,6 +1,6 @@
 # Exandra
 
-![Hex.pm](https://img.shields.io/hexpm/v/exandra)
+[![Hex.pm](https://img.shields.io/hexpm/v/exandra)](https://hex.pm/packages/exandra)
 ![GitHub](https://img.shields.io/github/license/vinniefranco/exandra)
 [![CI](https://github.com/vinniefranco/exandra/actions/workflows/main.yml/badge.svg)](https://github.com/vinniefranco/exandra/actions/workflows/main.yml)
 [![Coverage Status](https://coveralls.io/repos/github/vinniefranco/exandra/badge.svg?branch=main)](https://coveralls.io/github/vinniefranco/exandra?branch=main)
