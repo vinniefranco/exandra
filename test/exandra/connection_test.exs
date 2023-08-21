@@ -69,7 +69,7 @@ defmodule Exandra.ConnectionTest do
     query = subquery("posts" |> select([r], %{x: r.x, y: r.y})) |> select([r], r.x) |> plan()
 
     assert_raise Ecto.QueryError,
-                 ~r"Scylla Adapter does not support subqueries at this time",
+                 ~r"Exandra does not support subqueries at this time",
                  fn ->
                    all(query)
                  end
@@ -79,7 +79,7 @@ defmodule Exandra.ConnectionTest do
     query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
 
     assert_raise Ecto.QueryError,
-                 ~r"Scylla Adapter does not support subqueries at this time",
+                 ~r"Exandra does not support subqueries at this time",
                  fn ->
                    all(query)
                  end
@@ -117,7 +117,7 @@ defmodule Exandra.ConnectionTest do
       |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Exandra does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -150,7 +150,7 @@ defmodule Exandra.ConnectionTest do
       |> with_cte("comments_scope", as: ^comments_scope_query)
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Exandra does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -164,7 +164,7 @@ defmodule Exandra.ConnectionTest do
       |> select([r], r.x)
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Exandra does not support CTEs at this time", fn ->
       all(query)
     end
   end
@@ -185,7 +185,7 @@ defmodule Exandra.ConnectionTest do
       |> update(set: [x: 123])
       |> plan(:update_all)
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Exandra does not support CTEs at this time", fn ->
       update_all(query)
     end
   end
@@ -205,7 +205,7 @@ defmodule Exandra.ConnectionTest do
       |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
       |> plan(:delete_all)
 
-    assert_raise Ecto.QueryError, ~r"Scylla Adapter does not support CTEs at this time", fn ->
+    assert_raise Ecto.QueryError, ~r"Exandra does not support CTEs at this time", fn ->
       assert delete_all(query)
     end
   end
@@ -248,7 +248,7 @@ defmodule Exandra.ConnectionTest do
     assert all(query) == ~s{SELECT x, y FROM schema}
 
     assert_raise Ecto.QueryError,
-                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 ~r"DISTINCT with multiple columns is not supported by Exandra",
                  fn ->
                    query =
                      Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
@@ -1164,6 +1164,11 @@ defmodule Exandra.ConnectionTest do
     assert_raise ArgumentError, "prefix index drop is not supported by Exandra", fn ->
       execute_ddl(drop)
     end
+  end
+
+  test "rename column" do
+    rename = {:rename, table(:posts), :title, :title2}
+    assert execute_ddl(rename) == [~s|ALTER TABLE posts RENAME title TO title2|]
   end
 
   # Unsupported types and clauses
