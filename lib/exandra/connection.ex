@@ -248,7 +248,7 @@ defmodule Exandra.Connection do
   defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
 
   defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
-    error!(query, "DISTINCT with multiple columns is not supported by MySQL")
+    error!(query, "DISTINCT with multiple columns is not supported by Exandra")
   end
 
   defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
@@ -286,14 +286,14 @@ defmodule Exandra.Connection do
   end
 
   defp from(query, _) do
-    error!(query, "Scylla Adapter does not support subqueries at this time.")
+    error!(query, "Exandra does not support subqueries at this time.")
   end
 
   defp cte(
          %{with_ctes: %WithExpr{recursive: _recursive, queries: [_ | _] = _queries}} = query,
          _sources
        ) do
-    error!(query, "Scylla Adapter does not support CTEs at this time.")
+    error!(query, "Exandra does not support CTEs at this time.")
   end
 
   defp cte(_, _), do: []
@@ -670,6 +670,15 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
+  def execute_ddl({:rename, %Table{} = table, current_column, new_column}) do
+    [
+      [
+        "ALTER TABLE #{quote_table(table.prefix, table.name)} RENAME #{quote_name(current_column)} TO #{quote_name(new_column)}"
+      ]
+    ]
+  end
+
+  @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Table{} = table, _})
       when command in [:drop, :drop_if_exists] do
     guard = if command == :drop_if_exists, do: " IF EXISTS ", else: ""
@@ -783,6 +792,12 @@ defmodule Exandra.Connection do
     Enum.map_join(columns, ", ", &column_definition(&1, alter))
   end
 
+  defp column_definition({_op, name, %Reference{}, _opts}, _) do
+    raise ArgumentError,
+          "illegal column #{inspect(name)} of type references(): " <>
+            "Exandra does not support associations"
+  end
+
   defp column_definition({:add, name, type, opts}, _alter? = true) do
     if Keyword.has_key?(opts, :primary_key) do
       raise ArgumentError, "altering PRIMARY KEY columns is not supported"
@@ -791,15 +806,8 @@ defmodule Exandra.Connection do
     end
   end
 
-  defp column_definition({_op, name, %Reference{}, _opts}, _) do
-    raise ArgumentError,
-          "illegal column #{inspect(name)} of type references(): " <>
-            "Exandra does not support associations"
-  end
-
-  defp column_definition({:add, name, type, opts}, alter) do
-    prefix = if alter, do: "ADD ", else: ""
-    prefix <> "#{quote_name(name)} #{type_for_ddl(type, opts, name)}"
+  defp column_definition({:add, name, type, opts}, _alter = false) do
+    "#{quote_name(name)} #{type_for_ddl(type, opts, name)}"
   end
 
   defp column_definition({:modify, name, type, opts}, _) do
