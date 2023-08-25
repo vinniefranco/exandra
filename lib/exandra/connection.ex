@@ -185,8 +185,7 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def insert(prefix, table, headers, rows, _on_conflict, _returning, opts)
-      when prefix in [nil, ""] do
+  def insert(prefix, table, headers, rows, _on_conflict, _returning, opts) do
     keys = Enum.join(headers, ", ")
     values = Enum.map(rows, &Enum.map_join(&1, ", ", fn _ -> "?" end))
 
@@ -200,13 +199,12 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def update_all(query) do
-    %Ecto.Query{from: %{source: {table, _schema}}} = query
-
     sources = create_names(query, [])
+    table = table_name(sources, 0)
     cte(query, sources)
     combinations(query)
 
-    "UPDATE #{quote_table(table)} SET #{updates(query)}#{where(query, sources)}"
+    ["UPDATE ", table, " SET ", updates(query) | where(query, sources)]
   end
 
   defp updates(%Ecto.Query{updates: updates} = query) do
@@ -281,8 +279,9 @@ defmodule Exandra.Connection do
     end)
   end
 
-  defp from(%{from: %{source: {from, _schema}, hints: hints}}, _sources) do
-    {[" FROM ", from], Enum.map(hints, &[?\s | &1])}
+  defp from(%{from: %{source: {_from, _schema}, hints: hints}}, sources) do
+    table = table_name(sources, 0)
+    {[" FROM " | table], Enum.map(hints, &[?\s | &1])}
   end
 
   defp from(query, _) do
@@ -820,6 +819,11 @@ defmodule Exandra.Connection do
 
   defp column_definition({:remove, name}, _) do
     "DROP #{quote_name(name)}"
+  end
+
+  defp table_name(sources, idx) do
+    {table, _name, _schema} = elem(sources, idx)
+    table
   end
 
   defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))

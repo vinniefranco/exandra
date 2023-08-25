@@ -127,5 +127,44 @@ defmodule Exandra.MigrationsTest do
 
       assert %{num_rows: 0} = TestRepo.query!(query, [keyspace, "rollbackable"])
     end
+
+    test "with prefix", %{start_opts: start_opts, xandra_conn: xandra_conn} do
+      prefix_keyspace = "myprefix"
+
+      create_keyspace(prefix_keyspace)
+
+      on_exit(fn ->
+        stub_with_real_modules()
+        drop_keyspace(prefix_keyspace)
+      end)
+
+      defmodule PrefixedMigration do
+        use Ecto.Migration
+
+        def change do
+          create_if_not_exists table("prefixed_table", prefix: "myprefix", primary_key: false) do
+            add :id, :uuid, primary_key: true
+            add :my_string, :string
+
+            timestamps()
+          end
+        end
+      end
+
+      vsn = System.unique_integer([:positive, :monotonic])
+      assert Ecto.Migrator.up(TestRepo, vsn, PrefixedMigration) == :ok
+      assert Ecto.Migrator.up(TestRepo, vsn, PrefixedMigration) == :already_up
+
+      query = """
+      SELECT table_name FROM system_schema.tables WHERE keyspace_name = ? AND table_name = ?
+      """
+
+      assert %{num_rows: 1} = TestRepo.query!(query, [prefix_keyspace, "prefixed_table"])
+
+      assert Ecto.Migrator.down(TestRepo, vsn, PrefixedMigration) == :ok
+      assert Ecto.Migrator.down(TestRepo, vsn, PrefixedMigration) == :already_down
+
+      assert %{num_rows: 0} = TestRepo.query!(query, [prefix_keyspace, "prefixed_table"])
+    end
   end
 end

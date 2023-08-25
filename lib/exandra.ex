@@ -119,6 +119,12 @@ defmodule Exandra do
   Cassandra/Scylla, and allow you to run multiple queries in a single request.
   See `Exandra.Batch` for more information and examples.
 
+  ## Multiple keyspaces using prefixes
+
+  You can use [query prefixes](https://hexdocs.pm/ecto/multi-tenancy-with-query-prefixes.html) to
+  query different keyspaces using the same schemas. Note that, as indicated in the Ecto docs,
+  migrations must be run for _each_ prefix in this case.
+
   ## Migrations
 
   You can use Exandra to run migrations as well, as it supports most of the DDL-related
