@@ -122,8 +122,8 @@ defmodule Exandra do
   ## Multiple keyspaces using prefixes
 
   You can use [query prefixes](https://hexdocs.pm/ecto/multi-tenancy-with-query-prefixes.html) to
-  query different keyspaces using the same schemas. Note that, as indicated in the Ecto docs,
-  migrations must be run for _each_ prefix in this case.
+  query different keyspaces using the same schemas. As pointed out in the Ecto docs,
+  migrations must be run for *each* prefix in this case.
 
   ## Migrations
 

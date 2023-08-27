@@ -24,30 +24,27 @@ defmodule Exandra.PrefixTest do
   describe "schema prefix" do
     setup do
       # We're only interested in the prepared statement here, so we stub execution
-      XandraMock
-      |> stub(:execute, fn _conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
+      stub(XandraMock :execute, fn _conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
 
       :ok
     end
 
     test "adds a keyspace to the table" do
-      XandraMock
-      |> expect(:prepare, fn _conn, stmt, _opts ->
+      expect(XandraMock, :prepare, fn _conn, stmt, _opts ->
         assert "INSERT INTO foo.my_schema (my_string, id) VALUES (?, ?) " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
-      TestRepo.insert(%MySchema{my_string: "string"})
+      assert {:ok, _} = TestRepo.insert(%MySchema{my_string: "string"})
     end
 
     test "can be overridden by query options" do
-      XandraMock
-      |> expect(:prepare, fn _conn, stmt, _options ->
+      expect(XandraMock, :prepare, fn _conn, stmt, _options ->
         assert "INSERT INTO bar.my_schema (my_string, id) VALUES (?, ?) " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
-      TestRepo.insert(%MySchema{my_string: "string"}, prefix: "bar")
+      assert {:ok, _} = TestRepo.insert(%MySchema{my_string: "string"}, prefix: "bar")
     end
   end
 end
