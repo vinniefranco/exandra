@@ -211,13 +211,16 @@ defmodule Exandra.ConnectionTest do
   end
 
   test "all with prefix" do
-    query =
-      Schema |> select([r], r.x) |> Queryable.to_query() |> Map.put(:prefix, "prefix") |> plan()
+    query = Schema |> select([r], r.x) |> Ecto.Query.put_query_prefix("prefix") |> plan()
 
     assert all(query) == ~s{SELECT x FROM prefix.schema}
 
     query =
-      Schema |> from(prefix: "first") |> select([r], r.x) |> Map.put(:prefix, "prefix") |> plan()
+      Schema
+      |> from(prefix: "first")
+      |> select([r], r.x)
+      |> Ecto.Query.put_query_prefix("prefix")
+      |> plan()
 
     assert all(query) == ~s{SELECT x FROM first.schema}
 
@@ -575,7 +578,9 @@ defmodule Exandra.ConnectionTest do
 
   test "update all with prefix" do
     query =
-      from(m in Schema, update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
+      from(m in Schema, update: [set: [x: 0]])
+      |> Ecto.Query.put_query_prefix("prefix")
+      |> plan(:update_all)
 
     assert update_all(query) == ~s{UPDATE prefix.schema SET x = 0}
   end
@@ -591,10 +596,10 @@ defmodule Exandra.ConnectionTest do
   end
 
   test "delete all with prefix" do
-    query = Schema |> Queryable.to_query() |> Map.put(:prefix, "prefix") |> plan()
+    query = Schema |> Ecto.Query.put_query_prefix("prefix") |> plan()
     assert delete_all(query) == ~s{DELETE FROM prefix.schema}
 
-    query = Schema |> from(prefix: "first") |> Map.put(:prefix, "prefix") |> plan()
+    query = Schema |> from(prefix: "first") |> Ecto.Query.put_query_prefix("prefix") |> plan()
     assert delete_all(query) == ~s{DELETE FROM first.schema}
   end
 

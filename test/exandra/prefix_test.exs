@@ -24,7 +24,7 @@ defmodule Exandra.PrefixTest do
   describe "schema prefix" do
     setup do
       # We're only interested in the prepared statement here, so we stub execution
-      stub(XandraMock :execute, fn _conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
+      stub(XandraMock, :execute, fn _conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
 
       :ok
     end

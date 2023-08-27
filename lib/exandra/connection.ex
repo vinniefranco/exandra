@@ -200,7 +200,7 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def update_all(query) do
     sources = create_names(query, [])
-    table = table_name(sources, 0)
+    table = table_name(sources)
     cte(query, sources)
     combinations(query)
 
@@ -280,7 +280,7 @@ defmodule Exandra.Connection do
   end
 
   defp from(%{from: %{source: {_from, _schema}, hints: hints}}, sources) do
-    table = table_name(sources, 0)
+    table = table_name(sources)
     {[" FROM " | table], Enum.map(hints, &[?\s | &1])}
   end
 
@@ -821,8 +821,8 @@ defmodule Exandra.Connection do
     "DROP #{quote_name(name)}"
   end
 
-  defp table_name(sources, idx) do
-    {table, _name, _schema} = elem(sources, idx)
+  defp table_name(sources) do
+    {table, _name, _schema} = elem(sources, 0)
     table
   end
 

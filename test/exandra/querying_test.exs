@@ -125,7 +125,7 @@ defmodule Exandra.QueryingTest do
       query = from(s in MySchema, prefix: "prefix")
 
       {sql, _params} = TestRepo.to_sql(:all, query)
-      assert sql =~ "FROM prefix.my_schema"
+      assert String.ends_with?(sql, "FROM prefix.my_schema")
     end
   end
 end
