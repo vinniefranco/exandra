@@ -1,7 +1,7 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
-  @version "0.7.5"
+  @version "0.8.5"
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
