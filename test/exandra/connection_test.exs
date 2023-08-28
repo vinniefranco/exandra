@@ -210,6 +210,24 @@ defmodule Exandra.ConnectionTest do
     end
   end
 
+  test "all with prefix" do
+    query = Schema |> select([r], r.x) |> Ecto.Query.put_query_prefix("prefix") |> plan()
+
+    assert all(query) == ~s{SELECT x FROM prefix.schema}
+
+    query =
+      Schema
+      |> from(prefix: "first")
+      |> select([r], r.x)
+      |> Ecto.Query.put_query_prefix("prefix")
+      |> plan()
+
+    assert all(query) == ~s{SELECT x FROM first.schema}
+
+    query = "posts" |> from(prefix: "prefix") |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT x FROM prefix.posts}
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT x, y FROM schema}
@@ -558,6 +576,15 @@ defmodule Exandra.ConnectionTest do
     assert update_all(query) == ~s{UPDATE schema SET x = 0}
   end
 
+  test "update all with prefix" do
+    query =
+      from(m in Schema, update: [set: [x: 0]])
+      |> Ecto.Query.put_query_prefix("prefix")
+      |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE prefix.schema SET x = 0}
+  end
+
   test "delete all" do
     query = Schema |> Queryable.to_query() |> plan()
     assert delete_all(query) == ~s{DELETE FROM schema}
@@ -566,6 +593,14 @@ defmodule Exandra.ConnectionTest do
 
     assert delete_all(query) ==
              ~s{DELETE FROM schema WHERE x = 123}
+  end
+
+  test "delete all with prefix" do
+    query = Schema |> Ecto.Query.put_query_prefix("prefix") |> plan()
+    assert delete_all(query) == ~s{DELETE FROM prefix.schema}
+
+    query = Schema |> from(prefix: "first") |> Ecto.Query.put_query_prefix("prefix") |> plan()
+    assert delete_all(query) == ~s{DELETE FROM first.schema}
   end
 
   ## Partitions and windows
@@ -603,16 +638,25 @@ defmodule Exandra.ConnectionTest do
 
     query = insert(nil, "schema", [], [[]], {:raise, [], []}, [])
     assert query == ~s{INSERT INTO schema () VALUES () }
+
+    query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO prefix.schema () VALUES () }
   end
 
   test "update" do
     query = update(nil, "schema", [:id], [x: 1, y: 2], [])
     assert query == ~s{UPDATE schema SET id = ? WHERE x = ? AND y = ?}
+
+    query = update("prefix", "schema", [:id], [x: 1, y: 2], [])
+    assert query == ~s{UPDATE prefix.schema SET id = ? WHERE x = ? AND y = ?}
   end
 
   test "delete" do
     query = delete(nil, "schema", [x: 1, y: 2], [])
     assert query == ~s{DELETE FROM schema WHERE x = ? AND y = ?}
+
+    query = delete("prefix", "schema", [x: 1, y: 2], [])
+    assert query == ~s{DELETE FROM prefix.schema WHERE x = ? AND y = ?}
   end
 
   test "table_exists_query/1" do

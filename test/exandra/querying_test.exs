@@ -120,5 +120,12 @@ defmodule Exandra.QueryingTest do
       assert sql == "DELETE FROM my_schema WHERE id = ?"
       assert params == [Ecto.UUID.dump!(uuid)]
     end
+
+    test "with prefix" do
+      query = from(s in MySchema, prefix: "prefix")
+
+      {sql, _params} = TestRepo.to_sql(:all, query)
+      assert String.ends_with?(sql, "FROM prefix.my_schema")
+    end
   end
 end
