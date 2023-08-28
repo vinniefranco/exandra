@@ -274,22 +274,26 @@ defmodule Exandra do
   def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
   def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
 
-  def loaders(:map, _type), do: [&load_json/1]
+  def loaders({:map, _}, type), do: [&decode_json/1, &Ecto.Type.embedded_load(type, &1, :map), type]
+  def loaders(:map, type), do: [&decode_json/1, type]
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []
-  def loaders(:decimal, type), do: [&load_decimal/1, type]
+  def loaders(:decimal, type), do: [&decimal_decode/1, type]
   def loaders(_, type), do: [type]
 
-  defp load_decimal({coefficient, exponent}) do
+  defp decimal_decode({coefficient, exponent}) do
     sign = if coefficient < 0, do: -1, else: 1
     {:ok, Decimal.new(sign, abs(coefficient), -exponent)}
   end
 
-  defp load_json(data), do: {:ok, Jason.decode!(data)}
+  defp decode_json(data) when is_binary(data), do: {:ok, json_library().decode!(data)}
+  defp decode_json(data), do: {:ok, data}
 
   defp encode_json(data) do
-    {:ok, Jason.encode!(data)}
+    {:ok, json_library().encode!(data)}
   end
+
+  defp json_library(), do: Application.get_env(:exandra, :json_library, Jason)
 
   defp naive_datetime_to_datetime(%NaiveDateTime{} = datetime) do
     case DateTime.from_naive(datetime, "Etc/UTC") do
