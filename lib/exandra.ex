@@ -274,7 +274,9 @@ defmodule Exandra do
   def loaders(:exandra_map, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_map), type]
   def loaders(:exandra_set, type), do: [&Ecto.Type.embedded_load(type, &1, :exandra_set), type]
 
-  def loaders({:map, _}, type), do: [&decode_json/1, &Ecto.Type.embedded_load(type, &1, :map), type]
+  def loaders({:map, _}, type),
+    do: [&decode_json/1, &Ecto.Type.embedded_load(type, &1, :map), type]
+
   def loaders(:map, type), do: [&decode_json/1, type]
   # Xandra returns UUIDs as strings, so we don't need to do any loading.
   def loaders(:uuid, _type), do: []
