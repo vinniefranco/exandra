@@ -39,7 +39,7 @@ defmodule Exandra.UDT do
 
   use Ecto.ParameterizedType
 
-  @type t :: map()
+  @type t() :: map()
 
   @opts_schema NimbleOptions.new!(opts_schema)
 

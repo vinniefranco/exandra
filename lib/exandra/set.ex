@@ -33,6 +33,8 @@ defmodule Exandra.Set do
 
   use Ecto.ParameterizedType
 
+  @type t() :: MapSet.t()
+
   @opts_schema NimbleOptions.new!(opts_schema)
 
   # Made public for testing.
