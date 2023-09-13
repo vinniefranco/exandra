@@ -34,6 +34,12 @@ defmodule Exandra.Connection do
   @child_spec_opts_schema NimbleOptions.new!(schema)
   @child_spec_opts_keys Keyword.keys(schema)
 
+  @op_map %{
+    add: "ADD",
+    modify: "ALTER",
+    remove: "DROP"
+  }
+
   # Internal to Exandra and its documentation.
   @doc false
   def start_opts_docs, do: NimbleOptions.docs(@child_spec_opts_schema)
@@ -643,7 +649,7 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({command, %Table{} = table, columns})
       when command in [:create, :create_if_not_exists] do
-    structure = column_definitions(columns) <> ", " <> key_definitions(columns)
+    structure = create_column_definitions(columns) <> ", " <> key_definitions(columns)
     orderings = ordering_bys(columns)
     with_options = table_options(table.options, orderings)
 
@@ -659,7 +665,7 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute_ddl({:alter, %Table{} = table, columns}) do
-    structure = column_definitions(columns, _modify = true)
+    structure = alter_column_definitions(columns)
 
     [
       [
@@ -785,10 +791,44 @@ defmodule Exandra.Connection do
     |> Enum.map(fn {_, name, _, opts} -> %{name: name, opts: opts} end)
   end
 
-  def column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
+  def alter_column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
 
-  def column_definitions(columns, alter \\ false) do
-    Enum.map_join(columns, ", ", &column_definition(&1, alter))
+  def alter_column_definitions(columns) do
+    {total_ops, columms_affected} =
+      Enum.reduce(columns, {MapSet.new(), 0}, fn column, {set, count} ->
+        {MapSet.put(set, elem(column, 0)), count + 1}
+      end)
+
+    op = total_ops |> MapSet.to_list() |> List.first()
+
+    error =
+      cond do
+        MapSet.size(total_ops) > 1 ->
+          "Exandra does not support more than one type of operation at a time. Found #{inspect(MapSet.to_list(total_ops))}"
+
+        op in [:modify, :rename] && columms_affected != 1 ->
+          "Exandra only supports multiple column alters when using :add, or :remove"
+
+        true ->
+          false
+      end
+
+    if error, do: raise(ArgumentError, error)
+
+    ops = Enum.map_join(columns, ", ", &column_definition(&1, true))
+
+    if columms_affected > 1 do
+      [@op_map[op], " ", ?(, ops, ?)]
+    else
+      [@op_map[op], " ", ops]
+    end
+  end
+
+  def create_column_definitions([]),
+    do: raise(RuntimeError, "you must define at least one column")
+
+  def create_column_definitions(columns) do
+    Enum.map_join(columns, ", ", &column_definition(&1, false))
   end
 
   defp column_definition({_op, name, %Reference{}, _opts}, _) do
@@ -801,7 +841,7 @@ defmodule Exandra.Connection do
     if Keyword.has_key?(opts, :primary_key) do
       raise ArgumentError, "altering PRIMARY KEY columns is not supported"
     else
-      "ADD #{quote_name(name)} #{type_for_ddl(type, opts, name)}"
+      "#{quote_name(name)} #{type_for_ddl(type, opts, name)}"
     end
   end
 
@@ -810,15 +850,15 @@ defmodule Exandra.Connection do
   end
 
   defp column_definition({:modify, name, type, opts}, _) do
-    "ALTER #{quote_name(name)} TYPE #{type_for_ddl(type, opts, name)}"
+    "#{quote_name(name)} TYPE #{type_for_ddl(type, opts, name)}"
   end
 
   defp column_definition({:remove, name, _type, _opts}, _) do
-    "DROP #{quote_name(name)}"
+    "#{quote_name(name)}"
   end
 
   defp column_definition({:remove, name}, _) do
-    "DROP #{quote_name(name)}"
+    "#{quote_name(name)}"
   end
 
   defp table_name(sources) do
@@ -905,7 +945,7 @@ defmodule Exandra.Connection do
   defp ecto_cast_to_db(:binary_id, _query), do: "uuid"
   defp ecto_cast_to_db(:decimal, _query), do: "decimal"
   defp ecto_cast_to_db(:id, _query), do: "uuid"
+  defp ecto_cast_to_db(:integer, _query), do: "int"
   defp ecto_cast_to_db(:string, _query), do: "text"
   defp ecto_cast_to_db(:uuid, _query), do: "uuid"
-  defp ecto_cast_to_db(:integer, _query), do: "int"
 end
