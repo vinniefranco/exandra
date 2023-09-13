@@ -806,7 +806,7 @@ defmodule Exandra.Connection do
         MapSet.size(total_ops) > 1 ->
           "Exandra does not support more than one type of operation at a time. Found #{inspect(MapSet.to_list(total_ops))}"
 
-        op in [:modify, :rename] && columms_affected != 1 ->
+        op in [:modify, :rename] and columms_affected != 1 ->
           "Exandra only supports multiple column alters when using :add, or :remove"
 
         true ->
