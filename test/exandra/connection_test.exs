@@ -526,6 +526,7 @@ defmodule Exandra.ConnectionTest do
 
   test "string type" do
     query = Schema |> select([], type(^"test", :string)) |> plan()
+
     assert all(query) == ~s{SELECT CAST(? AS text) FROM schema}
   end
 
@@ -708,6 +709,12 @@ defmodule Exandra.ConnectionTest do
 
     assert_raise RuntimeError, "you must define at least one column", fn ->
       execute_ddl(create)
+    end
+
+    alter = {:alter, table(:posts), []}
+
+    assert_raise RuntimeError, "you must define at least one column", fn ->
+      execute_ddl(alter)
     end
   end
 
@@ -1080,26 +1087,91 @@ defmodule Exandra.ConnectionTest do
     end
   end
 
-  test "alter table" do
+  test "alter table with more that one type of alter raises" do
     alter =
       {:alter, table(:posts),
        [
-         {:add, :title, :string, [default: "Untitled", size: 100, null: false]},
-         {:modify, :price, :decimal, [precision: 8, scale: 2, null: true]},
-         {:modify, :cost, :integer, [null: false, default: nil]},
+         {:add, :title, :string, []},
+         {:modify, :price, :decimal, []},
+         {:modify, :cost, :integer, []},
          {:modify, :status, :string, from: :integer},
          {:remove, :summary},
          {:remove, :body, :text, []}
        ]}
 
+    assert_raise ArgumentError,
+                 "Exandra does not support more than one type of operation at a time. Found [:add, :modify, :remove]",
+                 fn ->
+                   execute_ddl(alter)
+                 end
+  end
+
+  test "alter table with multiples" do
+    alter =
+      {:alter, table(:posts),
+       [
+         {:add, :title, :string, []},
+         {:add, :price, :decimal, []}
+       ]}
+
     assert execute_ddl(alter) == [
              """
-             ALTER TABLE posts ADD title text,
-             ALTER price TYPE decimal,
-             ALTER cost TYPE int,
-             ALTER status TYPE text,
-             DROP summary,
-             DROP body
+             ALTER TABLE posts ADD (title text, price decimal)
+             """
+             |> remove_newlines
+           ]
+
+    alter =
+      {:alter, table(:posts),
+       [
+         {:remove, :title},
+         {:remove, :price}
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE posts DROP (title, price)
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "alter table with single operations" do
+    alter =
+      {:alter, table(:posts),
+       [
+         {:add, :title, :string, []}
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE posts ADD title text
+             """
+             |> remove_newlines
+           ]
+
+    alter =
+      {:alter, table(:posts),
+       [
+         {:remove, :title}
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE posts DROP title
+             """
+             |> remove_newlines
+           ]
+
+    alter =
+      {:alter, table(:posts),
+       [
+         {:modify, :price, :decimal, []}
+       ]}
+
+    assert execute_ddl(alter) == [
+             """
+             ALTER TABLE posts ALTER price TYPE decimal
              """
              |> remove_newlines
            ]
@@ -1110,13 +1182,12 @@ defmodule Exandra.ConnectionTest do
       {:alter, table(:posts, prefix: :foo),
        [
          {:add, :author_id, :uuid, []},
-         {:modify, :permalink_id, :string, []}
+         {:add, :permalink_id, :string, []}
        ]}
 
     assert execute_ddl(alter) == [
              """
-             ALTER TABLE foo.posts ADD author_id uuid,
-             ALTER permalink_id TYPE text
+             ALTER TABLE foo.posts ADD (author_id uuid, permalink_id text)
              """
              |> remove_newlines
            ]
