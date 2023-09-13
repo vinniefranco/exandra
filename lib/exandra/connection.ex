@@ -824,10 +824,10 @@ defmodule Exandra.Connection do
     end
   end
 
-  def create_column_definitions([]),
-    do: raise(RuntimeError, "you must define at least one column")
+  defp create_column_definitions([]),
+    do: raise("you must define at least one column")
 
-  def create_column_definitions(columns) do
+  defp create_column_definitions(columns) do
     Enum.map_join(columns, ", ", &column_definition(&1, false))
   end
 
