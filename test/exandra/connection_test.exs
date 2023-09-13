@@ -710,6 +710,12 @@ defmodule Exandra.ConnectionTest do
     assert_raise RuntimeError, "you must define at least one column", fn ->
       execute_ddl(create)
     end
+
+    alter = {:alter, table(:posts), []}
+
+    assert_raise RuntimeError, "you must define at least one column", fn ->
+      execute_ddl(alter)
+    end
   end
 
   test "create table with reference raises an exception" do
