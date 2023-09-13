@@ -791,9 +791,9 @@ defmodule Exandra.Connection do
     |> Enum.map(fn {_, name, _, opts} -> %{name: name, opts: opts} end)
   end
 
-  def alter_column_definitions([]), do: raise("you must define at least one column")
+  defp alter_column_definitions([]), do: raise("you must define at least one column")
 
-  def alter_column_definitions(columns) do
+  defp alter_column_definitions(columns) do
     {total_ops, columms_affected} =
       Enum.reduce(columns, {MapSet.new(), 0}, fn column, {set, count} ->
         {MapSet.put(set, elem(column, 0)), count + 1}
@@ -801,19 +801,18 @@ defmodule Exandra.Connection do
 
     op = total_ops |> MapSet.to_list() |> List.first()
 
-    error =
-      cond do
-        MapSet.size(total_ops) > 1 ->
-          "Exandra does not support more than one type of operation at a time. Found #{inspect(MapSet.to_list(total_ops))}"
+    cond do
+      MapSet.size(total_ops) > 1 ->
+        raise ArgumentError,
+              "Exandra does not support more than one type of operation at a time. Found #{inspect(MapSet.to_list(total_ops))}"
 
-        op in [:modify, :rename] and columms_affected != 1 ->
-          "Exandra only supports multiple column alters when using :add, or :remove"
+      op in [:modify, :rename] and columms_affected != 1 ->
+        raise ArgumentError,
+              "Exandra only supports multiple column alters when using :add, or :remove"
 
-        true ->
-          false
-      end
-
-    if error, do: raise(ArgumentError, error)
+      true ->
+        :ok
+    end
 
     ops = Enum.map_join(columns, ", ", &column_definition(&1, true))
 
