@@ -791,7 +791,7 @@ defmodule Exandra.Connection do
     |> Enum.map(fn {_, name, _, opts} -> %{name: name, opts: opts} end)
   end
 
-  def alter_column_definitions([]), do: raise(RuntimeError, "you must define at least one column")
+  def alter_column_definitions([]), do: raise("you must define at least one column")
 
   def alter_column_definitions(columns) do
     {total_ops, columms_affected} =
