@@ -2,7 +2,19 @@
 
 ## v0.9.1
 
-  * Fix issues with migrations generating invalid CQL statements
+  * Fix issues with migrations generating invalid CQL statements.
+
+## v0.9.0
+
+  * Add the `Exandra.Counter.t/0` type.
+
+## v0.8.1
+
+  * Fix issue with types in map column.
+
+## v0.8.0
+
+  * Add support for multiple keyspaces.
 
 ## v0.6.5
 
