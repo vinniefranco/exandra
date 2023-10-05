@@ -52,18 +52,17 @@ defmodule Exandra.AdapterCase do
   end
 
   def create_keyspace(keyspace) when is_binary(keyspace) do
-    opts = [host: "localhost", port: @port, keyspace: keyspace, sync_connect: 1000]
+    opts = [nodes: ["localhost:#{@port}"], keyspace: keyspace, sync_connect: 1000]
     assert Exandra.storage_up(opts) in [:ok, {:error, :already_up}]
   end
 
   def drop_keyspace(keyspace) when is_binary(keyspace) do
-    opts = [host: "localhost", port: @port, keyspace: keyspace, sync_connect: 1000]
+    opts = [nodes: ["localhost:#{@port}"], keyspace: keyspace, sync_connect: 1000]
     assert Exandra.storage_down(opts) in [:ok, {:error, :already_down}]
   end
 
   def truncate_all_tables(keyspace) do
-    {:ok, conn} = Xandra.start_link(host: "localhost", port: @port, sync_connect: 1000)
-    Xandra.execute!(conn, "USE #{keyspace}")
+    {:ok, conn} = Xandra.start_link(nodes: ["localhost:#{@port}"], keyspace: keyspace)
 
     query = "SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?"
 
@@ -75,8 +74,7 @@ defmodule Exandra.AdapterCase do
   end
 
   def drop_all_tables(keyspace) do
-    {:ok, conn} = Xandra.start_link(host: "localhost", port: @port, sync_connect: 1000)
-    Xandra.execute!(conn, "USE #{keyspace}")
+    {:ok, conn} = Xandra.start_link(nodes: ["localhost:#{@port}"], keyspace: keyspace)
 
     query = "SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?"
 

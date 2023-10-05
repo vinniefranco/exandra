@@ -23,11 +23,6 @@ defmodule Exandra.Connection do
       type_doc: "`t:module/0`",
       required: true,
       doc: false
-    ],
-    keyspace: [
-      type: :string,
-      required: true,
-      doc: "The keyspace to use for the connection."
     ]
   ]
 
@@ -53,8 +48,9 @@ defmodule Exandra.Connection do
     {adapter_opts, opts} = Keyword.split(opts, @child_spec_opts_keys)
     adapter_opts = NimbleOptions.validate!(adapter_opts, @child_spec_opts_schema)
 
-    {keyspace, adapter_opts} = Keyword.pop!(adapter_opts, :keyspace)
-    opts = Keyword.put(opts, :after_connect, &Xandra.execute!(&1, "USE #{keyspace}"))
+    # Drop the options that Ecto injects here, because Xandra will raise
+    # for these.
+    opts = Keyword.drop(opts, [:telemetry_prefix, :otp_app, :timeout, :pool])
 
     Supervisor.child_spec({Xandra.Cluster, opts}, id: Keyword.fetch!(adapter_opts, :repo))
   end
@@ -63,6 +59,8 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
+    opts = remove_ecto_opts_for_xandra_execute_or_prepare(opts)
+
     with {:ok, %Prepared{} = prepared} <- @xandra_cluster_mod.prepare(cluster, stmt, opts) do
       execute(cluster, prepared, params, opts)
     end
@@ -70,6 +68,8 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def execute(cluster, query, params, opts) do
+    opts = remove_ecto_opts_for_xandra_execute_or_prepare(opts)
+
     @xandra_cluster_mod.run(cluster, opts, fn conn ->
       case @xandra_mod.execute(conn, query, params, opts) do
         {:ok, %Xandra.Void{}} ->
@@ -120,6 +120,8 @@ defmodule Exandra.Connection do
   end
 
   defp prepare_execute(cluster, sql, params, opts) do
+    opts = remove_ecto_opts_for_xandra_execute_or_prepare(opts)
+
     @xandra_cluster_mod.run(cluster, fn conn ->
       with {:ok, %Prepared{} = prepared} <- @xandra_mod.prepare(conn, sql, opts) do
         @xandra_mod.execute(conn, prepared, params, opts)
@@ -466,7 +468,7 @@ defmodule Exandra.Connection do
   end
 
   defp expr({:^, [], [_ix]}, _sources, _query) do
-    '?'
+    ~c"?"
   end
 
   defp expr({{:., _, [{:&, _, [_idx]}, field]}, _, []}, _sources, _query)
@@ -947,4 +949,20 @@ defmodule Exandra.Connection do
   defp ecto_cast_to_db(:integer, _query), do: "int"
   defp ecto_cast_to_db(:string, _query), do: "text"
   defp ecto_cast_to_db(:uuid, _query), do: "uuid"
+
+  defp remove_ecto_opts_for_xandra_execute_or_prepare(opts) do
+    Keyword.drop(opts, [
+      :schema_migration,
+      :repo,
+      :timeout,
+      :pool_size,
+      :pool,
+      :log,
+      :telemetry_options,
+      :source,
+      :cast_params,
+      :prefix,
+      :cache_statement
+    ])
+  end
 end

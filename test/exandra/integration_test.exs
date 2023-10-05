@@ -44,7 +44,7 @@ defmodule Exandra.IntegrationTest do
   end
 
   setup_all do
-    opts = [keyspace: @keyspace, hostname: "localhost", port: @port, sync_connect: 1000]
+    opts = [keyspace: @keyspace, nodes: ["localhost:#{@port}"], sync_connect: 1000]
 
     stub_with_real_modules()
     create_keyspace(@keyspace)
@@ -54,8 +54,7 @@ defmodule Exandra.IntegrationTest do
       drop_keyspace(@keyspace)
     end)
 
-    {:ok, conn} = Xandra.start_link(Keyword.drop(opts, [:keyspace]))
-    Xandra.execute!(conn, "USE #{@keyspace}")
+    {:ok, conn} = Xandra.start_link(Keyword.drop(opts, [:sync_connect]))
     Xandra.execute!(conn, "CREATE TYPE IF NOT EXISTS fullname (first_name text, last_name text)")
 
     for type <- ["my_complex", "my_embedded_type", "my_embedded_pk"] do

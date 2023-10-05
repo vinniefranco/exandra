@@ -4,7 +4,7 @@ defmodule Exandra.MigrationsTest do
   alias Exandra.TestRepo
 
   setup %{unique_keyspace: keyspace} do
-    opts = [keyspace: keyspace, hostname: "localhost", port: @port, sync_connect: 1000]
+    opts = [keyspace: keyspace, nodes: ["localhost:#{@port}"], sync_connect: 1000]
 
     create_keyspace(keyspace)
 
@@ -16,7 +16,7 @@ defmodule Exandra.MigrationsTest do
     start_supervised!({Ecto.Migrator, repos: []})
     start_supervised!({TestRepo, opts})
 
-    xandra_conn = start_link_supervised!({Xandra, Keyword.drop(opts, [:keyspace])})
+    xandra_conn = start_link_supervised!({Xandra, Keyword.drop(opts, [:sync_connect])})
     Xandra.execute!(xandra_conn, "USE #{keyspace}")
 
     %{start_opts: opts, xandra_conn: xandra_conn}

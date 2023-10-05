@@ -1100,7 +1100,7 @@ defmodule Exandra.ConnectionTest do
        ]}
 
     assert_raise ArgumentError,
-                 "Exandra does not support more than one type of operation at a time. Found [:add, :modify, :remove]",
+                 ~r"Exandra does not support more than one type of operation",
                  fn ->
                    execute_ddl(alter)
                  end
