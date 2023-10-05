@@ -70,8 +70,8 @@ defmodule Exandra.MixProject do
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.16.1", only: :test},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.17.1", only: :test},
       {:ex_doc, "~> 0.29", only: :dev, runtime: false}
     ]
   end
