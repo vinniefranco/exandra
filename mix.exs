@@ -13,7 +13,7 @@ defmodule Exandra.MixProject do
     [
       app: :exandra,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       description: @description,
       package: package(),
       start_permanent: Mix.env() == :prod,
