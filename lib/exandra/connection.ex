@@ -29,6 +29,23 @@ defmodule Exandra.Connection do
   @child_spec_opts_schema NimbleOptions.new!(schema)
   @child_spec_opts_keys Keyword.keys(schema)
 
+  # We need to drop these from the options we forward down to Xandra, so that
+  # Xandra doesn't blow up. These are documented in Ecto.Repo and Ecto.Migration.
+  @ecto_repo_start_opts_keys [
+    :log,
+    :migration_lock,
+    :migration_primary_key,
+    :migration_repo,
+    :migration_source,
+    :otp_app,
+    :pool,
+    :priv,
+    :stacktrace,
+    :start_apps_before_migration,
+    :telemetry_prefix,
+    :timeout,
+  ]
+
   @op_map %{
     add: "ADD",
     modify: "ALTER",
@@ -50,7 +67,7 @@ defmodule Exandra.Connection do
 
     # Drop the options that Ecto injects here, because Xandra will raise
     # for these.
-    opts = Keyword.drop(opts, [:telemetry_prefix, :otp_app, :timeout, :pool])
+    opts = Keyword.drop(opts, @ecto_repo_start_opts_keys)
 
     Supervisor.child_spec({Xandra.Cluster, opts}, id: Keyword.fetch!(adapter_opts, :repo))
   end
