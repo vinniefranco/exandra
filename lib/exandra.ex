@@ -369,7 +369,7 @@ defmodule Exandra do
     Application.ensure_all_started(:exandra)
 
     {:ok, conn} =
-      @xandra_mod.start_link(Keyword.take(opts, [:nodes, :protocol_version, :timeout]))
+      @xandra_mod.start_link(Keyword.take(opts, [:nodes, :protocol_version, :connect_timeout]))
 
     {keyspace, conn}
   end
