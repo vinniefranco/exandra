@@ -43,7 +43,7 @@ defmodule Exandra.Connection do
     :stacktrace,
     :start_apps_before_migration,
     :telemetry_prefix,
-    :timeout,
+    :timeout
   ]
 
   @op_map %{
