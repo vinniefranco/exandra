@@ -1,7 +1,7 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
-  @version "0.9.1"
+  @version "0.10.0-rc.4"
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
@@ -13,7 +13,7 @@ defmodule Exandra.MixProject do
     [
       app: :exandra,
       version: @version,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       description: @description,
       package: package(),
       start_permanent: Mix.env() == :prod,
@@ -65,13 +65,13 @@ defmodule Exandra.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.0"},
-      {:xandra, "~> 0.17.0"},
+      {:xandra, "0.18.0-rc.6"},
 
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.16.1", only: :test},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.17.1", only: :test},
       {:ex_doc, "~> 0.29", only: :dev, runtime: false}
     ]
   end

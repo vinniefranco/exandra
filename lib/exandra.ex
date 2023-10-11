@@ -369,7 +369,7 @@ defmodule Exandra do
     Application.ensure_all_started(:exandra)
 
     {:ok, conn} =
-      @xandra_mod.start_link(Keyword.take(opts, [:nodes, :protocol_version, :timeout]))
+      @xandra_mod.start_link(Keyword.take(opts, [:nodes, :protocol_version, :connect_timeout]))
 
     {keyspace, conn}
   end
@@ -399,7 +399,9 @@ defmodule Exandra do
   @spec stream!(Ecto.Repo.t(), String.t(), list(term()), Keyword.t()) :: Xandra.PageStream.t()
   def stream!(repo, sql, values, opts \\ []) do
     %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
-    prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, opts)
+
+    prepare_opts = Keyword.drop(opts, [:page_size])
+    prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, prepare_opts)
 
     @xandra_cluster_mod.stream_pages!(
       cluster_pid,

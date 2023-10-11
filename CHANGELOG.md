@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10.0
+
+  * Update the `:xandra` requirement to `~> 0.18.0`.
+
 ## v0.9.1
 
   * Fix issues with migrations generating invalid CQL statements.
