@@ -223,8 +223,18 @@ defmodule Exandra do
   """
   @spec execute_batch(Ecto.Repo.t(), Exandra.Batch.t(), keyword()) ::
           :ok | {:error, Exception.t()}
-  def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
+  def execute_batch(repo, operations, options \\ [])
+
+  def execute_batch(repo, %Exandra.Batch{status: :pending} = batch, options)
       when is_atom(repo) and is_list(options) do
+    case Exandra.Batch.__apply__(batch, repo) do
+      {:error, operation, reason} -> {:error, operation, reason}
+      executable_batch -> execute_batch(repo, executable_batch, options)
+    end
+  end
+
+  def execute_batch(repo, %Exandra.Batch{queries: queries, status: status} = _batch, options)
+      when is_atom(repo) and status in [:default, :applied] and is_list(options) do
     fun = fn conn ->
       try do
         # First, prepare all queries (doesn't matter the order).
