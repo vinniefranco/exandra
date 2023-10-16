@@ -356,6 +356,40 @@ defmodule Exandra.IntegrationTest do
     assert TestRepo.reload!(fetched_counter).my_counter == 6
   end
 
+  describe "Telemetry" do
+    test "can set extra Telemetry metadata through Ecto's :telemetry_options",
+         %{start_opts: start_opts} do
+      ref = make_ref()
+      event = [:xandra, :execute_query, :stop]
+      telemetry_ref = :telemetry_test.attach_event_handlers(self(), [event])
+
+      start_supervised!({TestRepo, start_opts})
+
+      # With a keyword list.
+      assert TestRepo.all(Schema, telemetry_options: [ref: ref]) == []
+
+      assert_receive {^event, ^telemetry_ref, %{},
+                      %{extra_metadata: %{ref: ^ref, repo: TestRepo}}}
+
+      # With a map.
+      assert TestRepo.all(Schema, telemetry_options: %{ref: ref}) == []
+
+      assert_receive {^event, ^telemetry_ref, %{},
+                      %{extra_metadata: %{ref: ^ref, repo: TestRepo}}}
+    end
+
+    test "raises for invalid :telemetry_options", %{start_opts: start_opts} do
+      start_supervised!({TestRepo, start_opts})
+
+      message =
+        ~s(Xandra only supports maps or keyword lists for telemetry metadata, got: "invalid extra meta")
+
+      assert_raise ArgumentError, message, fn ->
+        TestRepo.all(Schema, telemetry_options: "invalid extra meta") == []
+      end
+    end
+  end
+
   describe "Embeds" do
     defmodule UDTWithPK do
       use Ecto.Schema

@@ -968,18 +968,41 @@ defmodule Exandra.Connection do
   defp ecto_cast_to_db(:uuid, _query), do: "uuid"
 
   defp remove_ecto_opts_for_xandra_execute_or_prepare(opts) do
-    Keyword.drop(opts, [
-      :schema_migration,
-      :repo,
-      :timeout,
-      :pool_size,
-      :pool,
-      :log,
-      :telemetry_options,
-      :source,
-      :cast_params,
-      :prefix,
-      :cache_statement
-    ])
+    {repo, opts} = Keyword.pop(opts, :repo)
+    {source, opts} = Keyword.pop(opts, :source)
+
+    opts =
+      Keyword.drop(opts, [
+        :schema_migration,
+        :timeout,
+        :pool_size,
+        :pool,
+        :log,
+        :cast_params,
+        :prefix,
+        :cache_statement
+      ])
+
+    case Keyword.pop(opts, :telemetry_options) do
+      {nil, opts} ->
+        opts
+
+      {extra_meta, opts} ->
+        xandra_meta =
+          cond do
+            Keyword.keyword?(extra_meta) ->
+              Map.new(extra_meta)
+
+            is_map(extra_meta) ->
+              extra_meta
+
+            true ->
+              raise ArgumentError,
+                    "Xandra only supports maps or keyword lists for telemetry metadata, got: #{inspect(extra_meta)}"
+          end
+
+        xandra_meta = xandra_meta |> Map.put_new(:repo, repo) |> Map.put_new(:source, source)
+        Keyword.put(opts, :telemetry_metadata, xandra_meta)
+    end
   end
 end
