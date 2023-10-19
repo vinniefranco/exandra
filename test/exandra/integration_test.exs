@@ -145,6 +145,12 @@ defmodule Exandra.IntegrationTest do
 
       TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
 
+      telemetry_ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:xandra, :execute_query, :stop],
+          [:xandra, :prepare_query, :stop]
+        ])
+
       batch = %Exandra.Batch{
         queries: [
           {"INSERT INTO users (email) VALUES (?)", ["bob@example.com"]},
@@ -152,7 +158,16 @@ defmodule Exandra.IntegrationTest do
         ]
       }
 
-      assert Exandra.execute_batch(TestRepo, batch) == :ok
+      assert Exandra.execute_batch(TestRepo, batch,
+               telemetry_metadata: %{some: :value},
+               force: true
+             ) == :ok
+
+      assert_receive {[:xandra, :prepare_query, :stop], ^telemetry_ref, %{}, %{} = meta}
+      assert meta.extra_metadata == %{some: :value}
+
+      assert_receive {[:xandra, :execute_query, :stop], ^telemetry_ref, %{}, %{} = meta}
+      assert meta.extra_metadata == %{some: :value}
 
       assert %{num_rows: 2, rows: rows} = TestRepo.query!("SELECT email FROM users")
       assert rows == [["bob@example.com"], ["meg@example.com"]]
