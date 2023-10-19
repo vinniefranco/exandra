@@ -225,6 +225,20 @@ defmodule Exandra do
           :ok | {:error, Exception.t()}
   def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
       when is_atom(repo) and is_list(options) do
+    {shared_options, other_options} =
+      Keyword.split(options, [
+        :custom_payload,
+        :timeout,
+        :telemetry_metadata,
+        :tracing,
+        :compressor
+      ])
+
+    {prepare_options, execute_options} = Keyword.split(other_options, [:force])
+
+    execute_options = Keyword.merge(shared_options, execute_options)
+    prepare_options = Keyword.merge(shared_options, prepare_options)
+
     fun = fn conn ->
       try do
         # First, prepare all queries (doesn't matter the order).
@@ -232,7 +246,7 @@ defmodule Exandra do
           queries
           |> Enum.uniq_by(fn {sql, _values} -> sql end)
           |> Enum.reduce(%{}, fn {sql, _values}, acc ->
-            case @xandra_mod.prepare(conn, sql, options) do
+            case @xandra_mod.prepare(conn, sql, prepare_options) do
               {:ok, %Xandra.Prepared{} = prepared} -> Map.put(acc, sql, prepared)
               {:error, reason} -> throw({:prepare_error, reason})
             end
@@ -244,7 +258,7 @@ defmodule Exandra do
             Xandra.Batch.add(batch, Map.fetch!(prepared_queries, sql), values)
           end)
 
-        case @xandra_mod.execute(conn, batch) do
+        case @xandra_mod.execute(conn, batch, execute_options) do
           {:ok, %Xandra.Void{}} -> :ok
           {:error, reason} -> {:errror, reason}
         end

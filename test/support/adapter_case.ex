@@ -45,6 +45,7 @@ defmodule Exandra.AdapterCase do
 
     stub(XandraMock, :start_link, &Xandra.start_link/1)
     stub(XandraMock, :execute, &Xandra.execute/2)
+    stub(XandraMock, :execute, &Xandra.execute/3)
     stub(XandraMock, :execute, &Xandra.execute/4)
     stub(XandraMock, :prepare, &Xandra.prepare/3)
 

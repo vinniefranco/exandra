@@ -8,6 +8,9 @@ defmodule Exandra.XandraBehaviour do
   @callback execute(Xandra.conn(), String.t()) ::
               {:ok, Xandra.result()} | {:error, Xandra.error()}
 
+  @callback execute(Xandra.conn(), String.t() | Xandra.Batch.t(), keyword()) ::
+              {:ok, Xandra.result()} | {:error, Xandra.error()}
+
   @callback execute(Xandra.conn(), String.t(), Xandra.values(), keyword()) ::
               {:ok, Xandra.result()} | {:error, Xandra.error()}
 
