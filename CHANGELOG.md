@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10.1
+
+  * Fix a bug with `nil` decimals that happens on Ecto 3.11+.
+
 ## v0.10.0
 
   * Update the `:xandra` requirement to `~> 0.18.0`.
