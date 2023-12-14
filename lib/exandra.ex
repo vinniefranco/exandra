@@ -302,6 +302,8 @@ defmodule Exandra do
     {:ok, Decimal.new(sign, abs(coefficient), -exponent)}
   end
 
+  defp decimal_decode(nil), do: {:ok, nil}
+
   defp decode_json(data) when is_binary(data), do: {:ok, json_library().decode!(data)}
   defp decode_json(data), do: {:ok, data}
 

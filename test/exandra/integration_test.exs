@@ -297,10 +297,28 @@ defmodule Exandra.IntegrationTest do
       my_decimal: decimal2
     }
 
+    # Schema with all nils.
+    schema3 = %Schema{
+      id: nil,
+      my_map: nil,
+      my_exandra_map: nil,
+      my_set: nil,
+      my_list: nil,
+      my_udt: nil,
+      my_list_udt: nil,
+      my_complex_list_udt: nil,
+      my_complex_udt: nil,
+      my_bool: nil,
+      # my_integer is used for sorting.
+      my_integer: 6,
+      my_decimal: nil
+    }
+
     TestRepo.insert!(schema1)
     TestRepo.insert!(schema2)
+    TestRepo.insert!(schema3)
 
-    assert [returned_schema1, returned_schema2] =
+    assert [returned_schema1, returned_schema2, returned_schema3] =
              Schema |> TestRepo.all() |> Enum.sort_by(& &1.my_integer)
 
     assert %Schema{
@@ -352,6 +370,25 @@ defmodule Exandra.IntegrationTest do
              my_integer: 5,
              my_decimal: ^decimal2
            } = returned_schema2
+
+    empty_set = MapSet.new()
+
+    assert %Schema{
+             id: returned_schema3_id,
+             my_map: nil,
+             my_exandra_map: %{},
+             my_set: ^empty_set,
+             my_list: nil,
+             my_udt: %{},
+             my_list_udt: nil,
+             my_complex_list_udt: nil,
+             my_complex_udt: %{"meta" => %{}},
+             my_bool: nil,
+             my_integer: 6,
+             my_decimal: nil
+           } = returned_schema3
+
+    assert is_binary(returned_schema3_id)
 
     counter_id = Ecto.UUID.generate()
 
