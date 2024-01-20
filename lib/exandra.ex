@@ -6,6 +6,9 @@ defmodule Exandra do
   Uses [`Xandra`](https://github.com/lexhide/xandra) for communication with the
   underlying database.
 
+  Uses [`Ecto`](https://github.com/elixir-ecto/ecto) for database interfacing,
+  running schema migrations, and querying operations.
+
   ## Configuration
 
   To configure an `Ecto.Repo` that uses `Exandra` as its adapter, you can use
@@ -16,7 +19,7 @@ defmodule Exandra do
     * Any of the options supported by `Ecto.Repo` itself, which you can see
       in the `Ecto.Repo` documentation.
 
-    * Any of the option supported by `Xandra.Cluster.start_link/1`.
+    * Any of the options supported by `Xandra.Cluster.start_link/1`.
 
   #{Exandra.Connection.start_opts_docs()}
 
@@ -24,8 +27,27 @@ defmodule Exandra do
   `:adapter` option. For example, when defining the repo:
 
       defmodule MyApp.Repo do
-        use Ecto.Repo, otp_app: :my_app, adapter: Exandra
+        use Ecto.Repo,
+          otp_app: :my_app,
+          adapter: Exandra
       end
+
+  You can configure your database connection in `config/dev.exs`. Here's an example `dev configuration`:
+
+      # Configure your database
+      config :my_app, MyApp.Repo,
+        migration_primary_key: [name: :id, type: :binary_id], # Overrides the default type `bigserial` used for version attribute in schema migration
+        contact_points: ["127.0.0.1"],  # List of database connection endpoints
+        keyspace: "my_app_dev", # Name of your keyspace
+        port: 9042,                     # Default port
+        sync_connect: 5000,             # Waiting time in milliseconds for the database connection
+        log: :info,
+        stacktrace: true,
+        show_sensitive_data_on_connection_error: true,
+        pool_size: 10
+
+  **Note:** The `bigserial` data type is specific to PostgreSQL databases and is not present in Scylla/Cassandra.
+
 
   ## Schemas
 
@@ -52,7 +74,7 @@ defmodule Exandra do
 
   you can pass the field as an Elixir map when setting it, and Exandra will convert it to a map
   on the way from the database. Because Exandra uses JSON for this, you'll have to pay attention
-  to things such as atom keys (which can be used when writing, but will be strings when reading)
+  to things such as atom keys (which can be used when writing but will be strings when reading)
   and such.
 
   ### User-Defined Types (UDTs)
@@ -159,7 +181,7 @@ defmodule Exandra do
     * `<udt>` - User-Defined Types (UDTs) should be specified as their name, expressed as an
       atom. For example, a UDT called `full_name` would be specified as the type `:full_name`.
     * `:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec` -
-      these get all represented as the `timestamp` type.
+      these are all represented as the `timestamp` type.
 
   ### User-Defined Types (UDTs)
 
@@ -177,7 +199,7 @@ defmodule Exandra do
   """
 
   # This overrides the checkout/3 function defined in Ecto.Adapters.SQL. That function
-  # is private API, and is defined by "use Ecto.Adapters.SQL". This is why this function
+  # is a private API, and is defined by "use Ecto.Adapters.SQL". This is why this function
   # needs to appear BEFORE the call to "use Ecto.Adapters.SQL", so that we essentially
   # override the call. We'll work with the Ecto team to make that callback overridable.
   @doc false
