@@ -74,7 +74,7 @@ defmodule Exandra do
 
   you can pass the field as an Elixir map when setting it, and Exandra will convert it to a map
   on the way from the database. Because Exandra uses JSON for this, you'll have to pay attention
-  to things such as atom keys (which can be used when writing but will be strings when reading)
+  to things such as atom keys (which can be used when writing, but will be strings when reading)
   and such.
 
   ### User-Defined Types (UDTs)

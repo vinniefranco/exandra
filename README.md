@@ -38,7 +38,7 @@ defmodule MyApp.Repo do
 end
 ```
 
-You can configure your database connection in `config/dev.exs`. Here's an example `dev configuration`:
+You can configure your database connection in `config/dev.exs`. Here's an example:
 
 ```elixir
 # Configure your database
