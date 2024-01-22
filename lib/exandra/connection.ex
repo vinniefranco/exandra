@@ -65,7 +65,7 @@ defmodule Exandra.Connection do
     {adapter_opts, opts} = Keyword.split(opts, @child_spec_opts_keys)
     adapter_opts = NimbleOptions.validate!(adapter_opts, @child_spec_opts_schema)
 
-    # Drop the options that Ecto injects here, because Xandra will raise
+    # Drop the options that Ecto injects here because Xandra will raise
     # for these.
     opts = Keyword.drop(opts, @ecto_repo_start_opts_keys)
 
@@ -198,7 +198,7 @@ defmodule Exandra.Connection do
     ]
 
     # TODO: HELP! Aaargh! Cassandra/Scylla can't do CAST in DELETE queries, it's a
-    # syntax error. So anyways, this is what we do for now to support rolling back
+    # syntax error. So anyway, this is what we do for now to support rolling back
     # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
     # https://github.com/elixir-ecto/ecto_sql/pull/531.
     regex = ~r/^SELECT CAST\(version AS int\) FROM (?<table>\w+)$/
@@ -255,7 +255,7 @@ defmodule Exandra.Connection do
     result = ["DELETE", from, where]
 
     # TODO: HELP! Aaargh! Cassandra/Scylla can't do CAST in DELETE queries, it's a
-    # syntax error. So anyways, this is what we do for now to support rolling back
+    # syntax error. So anyway, this is what we do for now to support rolling back
     # migrations D:. This is fixed in Ecto, we need to wait for a new release that includes
     # https://github.com/elixir-ecto/ecto_sql/pull/531.
     regex = ~r/^DELETE FROM (?<table>\w+) WHERE version = CAST\(\? AS int\)$/

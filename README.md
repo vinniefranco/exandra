@@ -4,13 +4,16 @@
 ![GitHub](https://img.shields.io/github/license/vinniefranco/exandra)
 [![CI](https://github.com/vinniefranco/exandra/actions/workflows/main.yml/badge.svg)](https://github.com/vinniefranco/exandra/actions/workflows/main.yml)
 [![Coverage Status](https://coveralls.io/repos/github/vinniefranco/exandra/badge.svg?branch=main)](https://coveralls.io/github/vinniefranco/exandra?branch=main)
-![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/hex/exandra)
+![Libraries.io dependency status for the latest release](https://img.shields.io/librariesio/release/hex/exandra)
 
 Adapter module for [Apache Cassandra](https://cassandra.apache.org/_/index.html)
 and [ScyllaDB](https://www.scylladb.com/).
 
 Uses [`Xandra`](https://github.com/lexhide/xandra) for communication with the
 underlying database.
+
+Uses [`Ecto`](https://github.com/elixir-ecto/ecto) for database interfacing,
+running schema migrations, and querying operations.
 
 ## Configuration
 
@@ -22,7 +25,7 @@ You can use the following options:
 - Any of the options supported by `Ecto.Repo` itself, which you can see
       in the `Ecto.Repo` documentation.
 
-- Any of the option supported by `Xandra.Cluster.start_link/1`.
+- Any of the options supported by `Xandra.Cluster.start_link/1`.
 
 To configure your Ecto repository to use this adapter, you can use the
   `:adapter` option. For example, when defining the repo:
@@ -32,6 +35,24 @@ defmodule MyApp.Repo do
   use Ecto.Repo, otp_app: :my_app, adapter: Exandra
 end
 ```
+
+You can configure your database connection in `config/dev.exs`. Here's an example:
+
+```elixir
+# Configure your database
+config :my_app, MyApp.Repo,
+  migration_primary_key: [name: :id, type: :binary_id], # Overrides the default type `bigserial` used for version attribute in schema migration
+  contact_points: ["127.0.0.1"],  # List of database connection endpoints
+  keyspace: "my_app_dev", # Name of your keyspace
+  port: 9042,                     # Default port
+  sync_connect: 5000,             # Waiting time in milliseconds for the database connection
+  log: :info,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+```
+
+**Note:** The `bigserial` data type is specific to PostgreSQL databases and is not present in NoSQL databases.
 
 ## Schemas
 
@@ -73,6 +94,7 @@ If one of your fields is a UDT, you can use the `Exandra.UDT` type for it. For e
 field :home_phone, Exandra.UDT, type: :phone_number
 field :office_phone, Exandra.UDT, type: :phone_number
 ```
+
 ### Arrays
 
 You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
@@ -151,9 +173,9 @@ This is a non-comprehensive list of types you can use:
 - `<udt>` - User-Defined Types (UDTs) should be specified as their name, expressed as an
       atom. For example, a UDT called `full_name` would be specified as the type `:full_name`.
 - `:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec` -
-      these get all represented as the `timestamp` type.
+      these are all represented as the `timestamp` type.
 
-  ### User-Defined Types (UDTs)
+### User-Defined Types (UDTs)
 
   `Ecto.Migration` doesn't support creating, altering, or dropping Cassandra/Scylla **UDTs**.
   To do those operations in a migration, use `Ecto.Migration.execute/1`
