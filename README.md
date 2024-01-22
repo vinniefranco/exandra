@@ -32,9 +32,7 @@ To configure your Ecto repository to use this adapter, you can use the
 
 ```elixir
 defmodule MyApp.Repo do
-  use Ecto.Repo,
-    otp_app: :my_app,
-    adapter: Exandra
+  use Ecto.Repo, otp_app: :my_app, adapter: Exandra
 end
 ```
 
@@ -84,7 +82,7 @@ field :features, :map
 
 you can pass the field as an Elixir map when setting it, and Exandra will convert it to a map
 on the way from the database. Because Exandra uses JSON for this, you'll have to pay attention
-to things such as atom keys (which can be used when writing but will be strings when reading)
+to things such as atom keys (which can be used when writing, but will be strings when reading)
 and such.
 
 ### User-Defined Types (UDTs)
@@ -157,7 +155,7 @@ defmodule AddUsers do
 end
 ```
 
-  > ### Cassandra and Scylla Types {: .info}
+  > #### Cassandra and Scylla Types {: .info}
   >
   > When writing migrations, remember that you must use the **actual types** from Cassandra or
   > Scylla, which you must pass in as an *atom*.

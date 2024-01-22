@@ -27,9 +27,7 @@ defmodule Exandra do
   `:adapter` option. For example, when defining the repo:
 
       defmodule MyApp.Repo do
-        use Ecto.Repo,
-          otp_app: :my_app,
-          adapter: Exandra
+        use Ecto.Repo, otp_app: :my_app, adapter: Exandra
       end
 
   You can configure your database connection in `config/dev.exs`. Here's an example `dev configuration`:
