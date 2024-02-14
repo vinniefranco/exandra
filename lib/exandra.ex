@@ -208,6 +208,8 @@ defmodule Exandra do
 
   use Ecto.Adapters.SQL, driver: :exandra
 
+  alias Exandra.Connection
+
   @behaviour Ecto.Adapter.Storage
 
   @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
@@ -245,19 +247,8 @@ defmodule Exandra do
           :ok | {:error, Exception.t()}
   def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
       when is_atom(repo) and is_list(options) do
-    {shared_options, other_options} =
-      Keyword.split(options, [
-        :custom_payload,
-        :timeout,
-        :telemetry_metadata,
-        :tracing,
-        :compressor
-      ])
-
-    {prepare_options, execute_options} = Keyword.split(other_options, [:force])
-
-    execute_options = Keyword.merge(shared_options, execute_options)
-    prepare_options = Keyword.merge(shared_options, prepare_options)
+    {prepare_options, execute_options} =
+      Connection.split_prepare_and_execute_options(options)
 
     fun = fn conn ->
       try do
@@ -436,14 +427,14 @@ defmodule Exandra do
   def stream!(repo, sql, values, opts \\ []) do
     %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
 
-    prepare_opts = Keyword.drop(opts, [:page_size])
+    {prepare_opts, execute_opts} = Connection.split_prepare_and_execute_options(opts)
     prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, prepare_opts)
 
     @xandra_cluster_mod.stream_pages!(
       cluster_pid,
       prepared,
       values,
-      opts
+      execute_opts
     )
   end
 end
