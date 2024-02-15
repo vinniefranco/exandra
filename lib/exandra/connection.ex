@@ -998,7 +998,8 @@ defmodule Exandra.Connection do
   @doc false
   def split_prepare_and_execute_options(opts) do
     opts =
-      Enum.uniq_by(opts, fn {key, _value} -> key end)
+      opts
+      |> Enum.uniq_by(fn {key, _value} -> key end)
       |> apply_ecto_telemetry_options_to_xandra()
 
     prepare_opts = Keyword.take(opts, @xandra_prepare_opts)
@@ -1008,7 +1009,8 @@ defmodule Exandra.Connection do
   end
 
   defp remove_ecto_opts_for_xandra_execute_or_prepare(opts) do
-    Keyword.drop(opts, [
+    opts
+    |> Keyword.drop([
       :schema_migration,
       :timeout,
       :pool_size,

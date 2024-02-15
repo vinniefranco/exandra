@@ -208,8 +208,6 @@ defmodule Exandra do
 
   use Ecto.Adapters.SQL, driver: :exandra
 
-  alias Exandra.Connection
-
   @behaviour Ecto.Adapter.Storage
 
   @xandra_mod Application.compile_env(:exandra, :xandra_module, Xandra)
@@ -248,7 +246,7 @@ defmodule Exandra do
   def execute_batch(repo, %Exandra.Batch{queries: queries} = _batch, options \\ [])
       when is_atom(repo) and is_list(options) do
     {prepare_options, execute_options} =
-      Connection.split_prepare_and_execute_options(options)
+      Exandra.Connection.split_prepare_and_execute_options(options)
 
     fun = fn conn ->
       try do
@@ -427,7 +425,8 @@ defmodule Exandra do
   def stream!(repo, sql, values, opts \\ []) do
     %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
 
-    {prepare_opts, execute_opts} = Connection.split_prepare_and_execute_options(opts)
+    {prepare_opts, execute_opts} =
+      Exandra.Connection.split_prepare_and_execute_options(opts)
     prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, prepare_opts)
 
     @xandra_cluster_mod.stream_pages!(
