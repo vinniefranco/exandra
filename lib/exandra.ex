@@ -427,6 +427,7 @@ defmodule Exandra do
 
     {prepare_opts, execute_opts} =
       Exandra.Connection.split_prepare_and_execute_options(opts)
+
     prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, prepare_opts)
 
     @xandra_cluster_mod.stream_pages!(
