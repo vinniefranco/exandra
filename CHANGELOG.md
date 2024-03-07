@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10.2
+
+  * Fix a bug with index creation/deletions in migrations
+
 ## v0.10.1
 
   * Fix a bug with `nil` decimals that happens on Ecto 3.11+.
