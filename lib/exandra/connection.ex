@@ -782,11 +782,13 @@ defmodule Exandra.Connection do
     if index.prefix,
       do: raise(ArgumentError, "prefix index drop is not supported by Exandra")
 
-      stmt = Enum.join([
+    stmt =
+      Enum.join([
         "DROP INDEX ",
         if_do(command == :drop_if_exists, "IF EXISTS "),
         quote_table(index.prefix, index.name)
       ])
+
     [[stmt]]
   end
 
