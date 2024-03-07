@@ -52,6 +52,13 @@ defmodule Exandra.MigrationsTest do
             timestamps()
           end
 
+          create_if_not_exists table("testing_indexes", primary_key: false) do
+            add :my_int, :int, primary_key: true
+            add :my_string, :string
+          end
+
+          create_if_not_exists index("testing_indexes", [:my_string])
+
           create_if_not_exists table("just_counters", primary_key: false) do
             add :id, :uuid, primary_key: true
             add :my_counter, :counter

@@ -761,18 +761,19 @@ defmodule Exandra.Connection do
     if error_msg,
       do: raise(ArgumentError, "#{error_msg} index creation is not supported by Exandra")
 
-    [
-      [
+    stmt =
+      Enum.join([
         "CREATE INDEX ",
         if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
         quote_name(index.name),
         " ON ",
         quote_table(index.prefix, index.table),
-        ?(,
+        "(",
         intersperse_map(index.columns, ", ", &index_expr/1),
-        ?)
-      ]
-    ]
+        ")"
+      ])
+
+    [[stmt]]
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -781,13 +782,12 @@ defmodule Exandra.Connection do
     if index.prefix,
       do: raise(ArgumentError, "prefix index drop is not supported by Exandra")
 
-    [
-      [
+      stmt = Enum.join([
         "DROP INDEX ",
         if_do(command == :drop_if_exists, "IF EXISTS "),
         quote_table(index.prefix, index.name)
-      ]
-    ]
+      ])
+    [[stmt]]
   end
 
   def execute_ddl({command, %Index{}, :cascade}) when command in [:drop, :drop_if_exists],
