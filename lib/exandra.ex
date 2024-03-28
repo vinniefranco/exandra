@@ -35,9 +35,8 @@ defmodule Exandra do
       # Configure your database
       config :my_app, MyApp.Repo,
         migration_primary_key: [name: :id, type: :binary_id], # Overrides the default type `bigserial` used for version attribute in schema migration
-        contact_points: ["127.0.0.1"],  # List of database connection endpoints
+        nodes: ["127.0.0.1"],  # List of database connection endpoints
         keyspace: "my_app_dev", # Name of your keyspace
-        port: 9042,                     # Default port
         sync_connect: 5000,             # Waiting time in milliseconds for the database connection
         log: :info,
         stacktrace: true,
