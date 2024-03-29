@@ -41,10 +41,9 @@ You can configure your database connection in `config/dev.exs`. Here's an exampl
 ```elixir
 # Configure your database
 config :my_app, MyApp.Repo,
-  migration_primary_key: [name: :id, type: :binary_id], # Overrides the default type `bigserial` used for version attribute in schema migration
-  contact_points: ["127.0.0.1"],  # List of database connection endpoints
+  migration_primary_key: [name: :id, type: :uuid], # Overrides the default type `bigserial` used for version attribute in schema migration
+  nodes: ["127.0.0.1"],  # List of database connection endpoints
   keyspace: "my_app_dev", # Name of your keyspace
-  port: 9042,                     # Default port
   sync_connect: 5000,             # Waiting time in milliseconds for the database connection
   log: :info,
   stacktrace: true,
@@ -62,7 +61,7 @@ You can regularly use `Ecto.Schema` with Exandra. For example:
 defmodule User do
   use Ecto.Schema
   
-  @primary_key {:id, :binary_id, autogenerate: true}
+  @primary_key {:id, Ecto.UUID, autogenerate: true}
   schema "users" do
     field :email, :string
     field :meta, Exandra.Map, key: :string, value: :string
