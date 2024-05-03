@@ -48,6 +48,7 @@ defmodule Exandra.MigrationsTest do
             add :my_udt, :fullname
             add :my_exandra_map, :"map<int, boolean>"
             add :my_set, :"set<uuid>"
+            add :my_tuple, :"tuple<int, text>"
 
             timestamps()
           end
@@ -98,6 +99,7 @@ defmodule Exandra.MigrationsTest do
                ["my_string", "regular", "text"],
                ["my_text", "regular", "text"],
                ["my_tinyint", "regular", "tinyint"],
+               ["my_tuple", "regular", "frozen<tuple<int, text>>"],
                ["my_udt", "regular", "fullname"],
                ["updated_at", "regular", "timestamp"]
              ]

@@ -18,6 +18,7 @@ defmodule Exandra.IntegrationTest do
       field :my_set, Exandra.Set, type: :integer
       field :my_udt, Exandra.UDT, type: :fullname
       field :my_list_udt, {:array, Exandra.UDT}, type: :fullname
+      field :my_tuple, Exandra.Tuple, types: [:integer, :string]
 
       field :my_complex_list_udt, {:array, Exandra.UDT},
         type: :my_complex,
@@ -91,6 +92,7 @@ defmodule Exandra.IntegrationTest do
       my_list_udt FROZEN<list<FROZEN<fullname>>>,
       my_complex_list_udt list<FROZEN<my_complex>>,
       my_complex_udt my_complex,
+      my_tuple tuple<int, text>,
       my_embedded_udt my_embedded_type,
       my_list list<varchar>,
       my_utc timestamp,
@@ -259,6 +261,7 @@ defmodule Exandra.IntegrationTest do
       my_list: ["a", "b", "c"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
       my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+      my_tuple: {1, "foo"},
       my_complex_list_udt: [
         %{
           amount: 8,
@@ -284,6 +287,7 @@ defmodule Exandra.IntegrationTest do
       my_list: ["1", "2", "3"],
       my_udt: %{"first_name" => "frank", "last_name" => "beans"},
       my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+      my_tuple: {2, "bar"},
       my_complex_list_udt: [
         %{amount: 4, meta: %{"foo" => "bar"}, happened: ~U[2018-01-01T00:00:00Z]}
       ],
@@ -306,6 +310,7 @@ defmodule Exandra.IntegrationTest do
       my_list: nil,
       my_udt: nil,
       my_list_udt: nil,
+      my_tuple: nil,
       my_complex_list_udt: nil,
       my_complex_udt: nil,
       my_bool: nil,
@@ -329,6 +334,7 @@ defmodule Exandra.IntegrationTest do
              my_list: ["a", "b", "c"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
              my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+             my_tuple: {1, "foo"},
              my_complex_list_udt: [
                %{
                  "amount" => 8,
@@ -354,6 +360,7 @@ defmodule Exandra.IntegrationTest do
              my_list: ["1", "2", "3"],
              my_udt: %{"first_name" => "frank", "last_name" => "beans"},
              my_list_udt: [%{"first_name" => "frank", "last_name" => "beans"}],
+             my_tuple: {2, "bar"},
              my_complex_list_udt: [
                %{
                  "amount" => 4,
@@ -379,6 +386,7 @@ defmodule Exandra.IntegrationTest do
              my_exandra_map: %{},
              my_set: ^empty_set,
              my_list: nil,
+             my_tuple: nil,
              my_udt: %{},
              my_list_udt: nil,
              my_complex_list_udt: nil,
