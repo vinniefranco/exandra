@@ -10,7 +10,7 @@ defmodule Exandra.MapTest do
       field :my_int_key_map, Exandra.Map, key: :integer, value: :string
       field :my_int_value_map, Exandra.Map, key: :string, value: :integer
       field :my_int_map, Exandra.Map, key: :integer, value: :integer
-      field :my_atom_map, Exandra.Map, key: :atom, value: :integer
+      field :my_map_of_sets, Exandra.Map, key: Exandra.Set, type: :integer, value: :integer
     end
   end
 
@@ -19,12 +19,12 @@ defmodule Exandra.MapTest do
              :parameterized,
              Map,
              %{
-               field: :my_atom_map,
-               key: :atom,
+               field: :my_int_key_map,
+               key: :integer,
                schema: Schema,
-               value: :integer
+               value: :string
              }
-           } = Schema.__schema__(:type, :my_atom_map)
+           } = Schema.__schema__(:type, :my_int_key_map)
   end
 
   @p_dump_type {:parameterized, Map, Map.params(:dump)}
@@ -38,11 +38,11 @@ defmodule Exandra.MapTest do
     assert :self = Ecto.Type.embed_as(@p_self_type, :foo)
     assert :self = Ecto.Type.embed_as(@p_dump_type, :foo)
 
-    type = Schema.__schema__(:type, :my_atom_map)
-    assert {:ok, %{}} = Ecto.Type.load(type, :my_atom_map)
+    type = Schema.__schema__(:type, :my_int_key_map)
+    assert {:ok, %{}} = Ecto.Type.load(type, :my_int_key_map)
 
-    type = Schema.__schema__(:type, :my_int_map)
-    assert Ecto.Type.dump(type, %{1 => 3}) == {:ok, %{1 => 3}}
+    type = Schema.__schema__(:type, :my_int_key_map)
+    assert Ecto.Type.dump(type, %{1 => "a"}) == {:ok, %{1 => "a"}}
   end
 
   test "type/1" do
