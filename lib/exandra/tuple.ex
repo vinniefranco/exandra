@@ -16,7 +16,9 @@ defmodule Exandra.Tuple do
   ]
 
   @moduledoc """
-  `Ecto.ParameterizedType` for sets.
+  `Ecto.ParameterizedType` for tuples.
+
+  *Available since v0.11.0*.
 
   ## Options
 
@@ -29,6 +31,8 @@ defmodule Exandra.Tuple do
       end
 
   """
+
+  @moduledoc since: "0.11.0"
 
   use Ecto.ParameterizedType
 
@@ -50,8 +54,8 @@ defmodule Exandra.Tuple do
       |> NimbleOptions.validate!(@opts_schema)
       |> Map.new()
 
-    if opts.types |> Enum.empty?() do
-      raise ArgumentError, "CQL tuples must have at least one element."
+    if opts.types == [] do
+      raise ArgumentError, "CQL tuples must have at least one element, got: []"
     end
 
     opts
@@ -71,7 +75,16 @@ defmodule Exandra.Tuple do
         end
       end)
 
-    if is_list(casted), do: {:ok, List.to_tuple(casted)}, else: casted
+    if is_list(casted) do
+      casted =
+        casted
+        |> Enum.reverse()
+        |> List.to_tuple()
+
+      {:ok, casted}
+    else
+      casted
+    end
   end
 
   def cast(val, %{types: [type]}) do
