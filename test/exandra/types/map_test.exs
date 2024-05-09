@@ -29,6 +29,7 @@ defmodule Exandra.MapTest do
 
   @p_dump_type {:parameterized, Map, Map.params(:dump)}
   @p_self_type {:parameterized, Map, Map.params(:self)}
+  @uuid_map_type {:parameterized, Map, %{key: Ecto.UUID, value: Ecto.UUID}}
 
   test "operations" do
     assert Ecto.Type.type(@p_self_type) == :exandra_map
@@ -71,6 +72,31 @@ defmodule Exandra.MapTest do
              Map.load(%{"string" => "value"}, nil, %{key: :string, value: :string})
 
     assert {:ok, %{}} = Map.load(nil, nil, %{key: :string, value: :string})
+
+    key = Ecto.UUID.bingenerate()
+    value = Ecto.UUID.bingenerate()
+
+    str_key = Ecto.UUID.load!(key)
+    str_value = Ecto.UUID.load!(value)
+
+    assert {:ok, %{str_key => str_value}} == Ecto.Type.load(@uuid_map_type, %{key => value})
+  end
+
+  describe "dump/3" do
+    test "returns nil when the value is nil" do
+      assert {:ok, nil} == Ecto.Type.dump(@uuid_map_type, nil)
+    end
+
+    test "dumps the key and the value" do
+      key = Ecto.UUID.generate()
+      value = Ecto.UUID.generate()
+
+      binary_key = Ecto.UUID.dump!(key)
+      binary_value = Ecto.UUID.dump!(value)
+
+      assert {:ok, %{binary_key => binary_value}} ==
+               Ecto.Type.dump(@uuid_map_type, %{key => value})
+    end
   end
 
   describe "equal?/3" do
