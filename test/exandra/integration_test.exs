@@ -30,6 +30,7 @@ defmodule Exandra.IntegrationTest do
       field :my_integer, :integer
       field :my_bool, :boolean
       field :my_decimal, :decimal
+      field :my_inet, Exandra.Tuple, types: [:integer, :integer, :integer, :integer]
 
       timestamps type: :utc_datetime
     end
@@ -99,6 +100,7 @@ defmodule Exandra.IntegrationTest do
       my_integer int,
       my_bool boolean,
       my_decimal decimal,
+      my_inet inet,
       inserted_at timestamp,
       updated_at timestamp,
       PRIMARY KEY (id)
@@ -252,6 +254,8 @@ defmodule Exandra.IntegrationTest do
     decimal2 = Decimal.new("-3.14")
     set1 = MapSet.new([1])
     set2 = MapSet.new([1, 2, 3])
+    inet1 = {192, 168, 0, 1}
+    inet2 = {10, 0, 0, 1}
 
     schema1 = %Schema{
       id: row1_id,
@@ -276,7 +280,8 @@ defmodule Exandra.IntegrationTest do
       },
       my_bool: true,
       my_integer: 4,
-      my_decimal: decimal1
+      my_decimal: decimal1,
+      my_inet: inet1
     }
 
     schema2 = %Schema{
@@ -298,7 +303,8 @@ defmodule Exandra.IntegrationTest do
       },
       my_bool: false,
       my_integer: 5,
-      my_decimal: decimal2
+      my_decimal: decimal2,
+      my_inet: inet2
     }
 
     # Schema with all nils.
@@ -316,7 +322,8 @@ defmodule Exandra.IntegrationTest do
       my_bool: nil,
       # my_integer is used for sorting.
       my_integer: 6,
-      my_decimal: nil
+      my_decimal: nil,
+      my_inet: nil
     }
 
     TestRepo.insert!(schema1)
@@ -349,7 +356,8 @@ defmodule Exandra.IntegrationTest do
              },
              my_bool: true,
              my_integer: 4,
-             my_decimal: ^decimal1
+             my_decimal: ^decimal1,
+             my_inet: ^inet1
            } = returned_schema1
 
     assert %Schema{
@@ -375,7 +383,8 @@ defmodule Exandra.IntegrationTest do
              },
              my_bool: false,
              my_integer: 5,
-             my_decimal: ^decimal2
+             my_decimal: ^decimal2,
+             my_inet: ^inet2
            } = returned_schema2
 
     empty_set = MapSet.new()
@@ -393,7 +402,8 @@ defmodule Exandra.IntegrationTest do
              my_complex_udt: %{"meta" => %{}},
              my_bool: nil,
              my_integer: 6,
-             my_decimal: nil
+             my_decimal: nil,
+             my_inet: nil
            } = returned_schema3
 
     assert is_binary(returned_schema3_id)
