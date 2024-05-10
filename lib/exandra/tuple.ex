@@ -34,6 +34,8 @@ defmodule Exandra.Tuple do
 
   @moduledoc since: "0.11.0"
 
+  @moduledoc since: "0.11.0"
+
   use Ecto.ParameterizedType
 
   @type t() :: Tuple.t()
