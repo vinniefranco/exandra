@@ -20,13 +20,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - otp: "26.2"
+            elixir: "1.16.2"
+            lint: true
           - otp: "25.3"
             elixir: "1.15.4"
-            lint: true
 
     steps:
       - name: Clone the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Start Docker and wait for it to be up
         run: |
@@ -41,7 +43,7 @@ jobs:
 
       - name: Cache dependencies
         id: cache-deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps
@@ -56,18 +58,21 @@ jobs:
 
       - name: Check for unused dependencies
         run: mix deps.unlock --check-unused
+        if: ${{ matrix.lint}}
 
       - name: Check for compilation warnings
         run: mix compile --force --warnings-as-errors
 
       - name: Check for formatted files
         run: mix format --check-formatted
+        if: ${{ matrix.lint}}
 
       - name: Run tests
         run: mix test.all
 
       - name: Report
         run: mix coveralls.github
+        if: ${{ matrix.lint}}
 
       - name: Dump Docker logs on failure
         uses: jwalton/gh-docker-logs@v1
