@@ -7,7 +7,7 @@ defmodule Exandra.SetTest do
     use Ecto.Schema
 
     schema "my_schema" do
-      field :my_set, Set, type: :uuid
+      field :my_set, Set, type: Ecto.UUID
     end
   end
 
@@ -17,7 +17,7 @@ defmodule Exandra.SetTest do
              Set,
              %{
                field: :my_set,
-               type: :uuid,
+               type: Ecto.UUID,
                schema: Schema
              }
            } = Schema.__schema__(:type, :my_set)
@@ -33,11 +33,14 @@ defmodule Exandra.SetTest do
     assert :self = Ecto.Type.embed_as(@p_self_type, :foo)
     assert :self = Ecto.Type.embed_as(@p_dump_type, :foo)
 
+    string_uuid = Ecto.UUID.generate()
+    binary_uuid = string_uuid |> Ecto.UUID.dump!()
+
     type = Schema.__schema__(:type, :my_set)
     assert {:ok, %{}} = Ecto.Type.load(type, :my_set)
+    assert {:ok, MapSet.new([string_uuid])} == Ecto.Type.load(type, MapSet.new([binary_uuid]))
 
-    set = MapSet.new([Ecto.UUID.generate()])
-    assert Ecto.Type.dump(type, set) == {:ok, set}
+    assert Ecto.Type.dump(type, MapSet.new([string_uuid])) == {:ok, MapSet.new([binary_uuid])}
   end
 
   test "params/1 returns embed with given value as key" do

@@ -80,11 +80,11 @@ defmodule Exandra.Map do
   def cast(_, _), do: :error
 
   @impl Ecto.ParameterizedType
-  def load(%{} = map, _loader, %{key: key_type, value: value_type}) do
+  def load(%{} = map, loader, %{key: key_type, value: value_type}) do
     loaded =
       Enum.reduce_while(map, %{}, fn {k, v}, acc ->
-        with {:ok, loaded_key} <- Ecto.Type.cast(key_type, k),
-             {:ok, loaded_value} <- Ecto.Type.cast(value_type, v) do
+        with {:ok, loaded_key} <- Ecto.Type.load(key_type, k, loader),
+             {:ok, loaded_value} <- Ecto.Type.load(value_type, v, loader) do
           {:cont, Map.put(acc, loaded_key, loaded_value)}
         else
           _ -> {:halt, :error}
@@ -101,7 +101,21 @@ defmodule Exandra.Map do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(map, _dumper, _opts), do: {:ok, map}
+  def dump(nil, _dumper, _params), do: {:ok, nil}
+
+  def dump(map, dumper, %{key: key_type, value: value_type}) do
+    dumped =
+      Enum.reduce_while(map, %{}, fn {k, v}, acc ->
+        with {:ok, dumped_key} <- Ecto.Type.dump(key_type, k, dumper),
+             {:ok, dumped_value} <- Ecto.Type.dump(value_type, v, dumper) do
+          {:cont, Map.put(acc, dumped_key, dumped_value)}
+        else
+          _ -> {:halt, :error}
+        end
+      end)
+
+    if is_map(dumped), do: {:ok, dumped}, else: :error
+  end
 
   @impl Ecto.ParameterizedType
   def equal?({_, _}, _, _), do: false

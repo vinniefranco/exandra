@@ -85,10 +85,10 @@ defmodule Exandra.Set do
   def cast(_key, _val), do: :error
 
   @impl Ecto.ParameterizedType
-  def load(%MapSet{} = mapset, _loader, %{type: type}) do
+  def load(%MapSet{} = mapset, loader, %{type: type}) do
     loaded =
       Enum.reduce_while(mapset, [], fn elem, acc ->
-        case Ecto.Type.cast(type, elem) do
+        case Ecto.Type.load(type, elem, loader) do
           {:ok, loaded} -> {:cont, [loaded | acc]}
           err -> {:halt, err}
         end
@@ -104,7 +104,19 @@ defmodule Exandra.Set do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(mapset, _dumper, _opts), do: {:ok, mapset}
+  def dump(nil, _dumper, _params), do: {:ok, nil}
+
+  def dump(mapset, dumper, %{type: type}) do
+    dumped =
+      Enum.reduce_while(mapset, [], fn elem, acc ->
+        case Ecto.Type.dump(type, elem, dumper) do
+          {:ok, dumped} -> {:cont, [dumped | acc]}
+          err -> {:halt, err}
+        end
+      end)
+
+    if is_list(dumped), do: {:ok, MapSet.new(dumped)}, else: :error
+  end
 
   @impl Ecto.ParameterizedType
   def equal?({_, _}, _, _), do: false
