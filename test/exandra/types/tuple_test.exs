@@ -8,9 +8,9 @@ defmodule Exandra.TupleTest do
              :parameterized,
              Tuple,
              %{
-               types: [:uuid, :integer, :string]
+               types: [Ecto.UUID, :integer, :string]
              }
-           } = Ecto.ParameterizedType.init(Tuple, types: [:uuid, :integer, :string])
+           } = Ecto.ParameterizedType.init(Tuple, types: [Ecto.UUID, :integer, :string])
   end
 
   @p_dump_type {:parameterized, Tuple, Tuple.params(:dump)}
@@ -23,11 +23,18 @@ defmodule Exandra.TupleTest do
     assert :self = Ecto.Type.embed_as(@p_self_type, :foo)
     assert :self = Ecto.Type.embed_as(@p_dump_type, :foo)
 
-    type = Ecto.ParameterizedType.init(Tuple, types: [:uuid, :integer, :string])
+    type = Ecto.ParameterizedType.init(Tuple, types: [Ecto.UUID, :integer, :string])
     assert {:ok, nil} = Ecto.Type.load(type, :my_tuple)
 
-    tuple = {Ecto.UUID.generate(), :rand.uniform(1000), :crypto.strong_rand_bytes(20)}
-    assert Ecto.Type.dump(type, tuple) == {:ok, tuple}
+    binary_uuid = Ecto.UUID.bingenerate()
+    string_uuid = Ecto.UUID.cast!(binary_uuid)
+
+    second = :rand.uniform(1000)
+    third = :crypto.strong_rand_bytes(20)
+
+    tuple_in = {string_uuid, second, third}
+    tuple_out = {binary_uuid, second, third}
+    assert Ecto.Type.dump(type, tuple_in) == {:ok, tuple_out}
   end
 
   test "type/1" do
