@@ -21,7 +21,7 @@ defmodule Exandra.QueryingTest do
   end
 
   setup do
-    start_link_supervised!({TestRepo, host: "localhost", port: @port, keyspace: "unused"})
+    start_link_supervised!({TestRepo, nodes: ["localhost:#{@port}"], keyspace: "unused"})
     :ok
   end
 
