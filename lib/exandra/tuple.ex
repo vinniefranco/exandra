@@ -34,8 +34,6 @@ defmodule Exandra.Tuple do
 
   @moduledoc since: "0.11.0"
 
-  @moduledoc since: "0.11.0"
-
   use Ecto.ParameterizedType
 
   @type t() :: Tuple.t()
@@ -132,7 +130,31 @@ defmodule Exandra.Tuple do
   end
 
   @impl Ecto.ParameterizedType
-  def dump(tuple, _dumper, _opts), do: {:ok, tuple}
+  def dump(nil, _dumper, _opts), do: {:ok, nil}
+
+  def dump(tuple, dumper, %{types: types}) do
+    dumped =
+      tuple
+      |> Tuple.to_list()
+      |> Enum.zip(types)
+      |> Enum.reduce_while([], fn {element, type}, acc ->
+        case Ecto.Type.dump(type, element, dumper) do
+          {:ok, value} -> {:cont, [value | acc]}
+          error -> {:halt, error}
+        end
+      end)
+
+    if is_list(dumped) do
+      dumped =
+        dumped
+        |> Enum.reverse()
+        |> List.to_tuple()
+
+      {:ok, dumped}
+    else
+      dumped
+    end
+  end
 
   # From Ecto.Type
   @doc false
