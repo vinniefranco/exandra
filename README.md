@@ -94,21 +94,27 @@ field :home_phone, Exandra.UDT, type: :phone_number
 field :office_phone, Exandra.UDT, type: :phone_number
 ```
 
-### Arrays
+### Tuples
 
-You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
-`list<_>` native Cassandra/Scylla type. For example, you can declare a field as
+Tuples can be declared using the `Exandra.Tuple` type.
 
 ```elixir
-field :checkins, {:array, :utc_datetime}
+field :version, Exandra.Tuple, types: [:integer, :integer, :integer]
 ```
 
-This field will use the native type `list<timestamp>`.
+### Native Collections (Lists, Maps, Sets)
 
-  > #### Exandra Types {: .tip}
-  >
-  > If you want to use actual Cassandra/Scylla types such as `map<_, _>` or
-  > `set<_>`, you can use the corresponding Exandra types `Exandra.Map` and `Exandra.Set`.
+Access to native Cassandra/Scylla collections is available
+using the appropriate data types in the field definition.
+
+```elixir
+@primary_key false
+schema "hotels" do
+  field :checkins, {:array, :utc_datetime}                            # list<timestamp>
+  field :room_to_customer, Exandra.Map, key: :integer, value: :string # map<int, string>
+  field :available_rooms, Exandra.Set, type: :integer                 # set<int>
+end
+```
 
 ### Counter Tables
 

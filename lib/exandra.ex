@@ -96,19 +96,45 @@ defmodule Exandra do
 
       field :home_phone, Exandra.EmbeddedType, cardinality: :many, using: MyApp.PhoneSchema
 
-  ### Arrays
+  ### Tuples
 
-  You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
-  `list<_>` native Cassandra/Scylla type. For example, you can declare a field as
+  Tuples can be declared using the `Exandra.Tuple` type.
 
-      field :checkins, {:array, :utc_datetime}
+  ```elixir
+  field :version, Exandra.Tuple, types: [:integer, :integer, :integer]
+  ```
 
-  This field will use the native type `list<timestamp>`.
+  ### Native Collections (Lists, Maps, Sets)
 
-  > #### Exandra Types {: .tip}
+  Access to native Cassandra/Scylla collections is available
+  using the appropriate data types in the field definition.
+
+  ```elixir
+  @primary_key false
+  schema "hotels" do
+   field :checkins, {:array, :utc_datetime}                            # list<timestamp>
+   field :room_to_customer, Exandra.Map, key: :integer, value: :string # map<int, string>
+   field :available_rooms, Exandra.Set, type: :integer                 # set<int>
+  end
+  ```
+
+  > #### Composite Collections {: .tip}
   >
-  > If you want to use actual Cassandra/Scylla types such as `map<_, _>` or
-  > `set<_>`, you can use the corresponding Exandra types `Exandra.Map` and `Exandra.Set`.
+  > It's possible to create composite collections using the following syntax:
+  >
+  > ```elixir
+  > field :complex_type, {:array, Exandra.Map}, key: :string, value: Exandra.Set, type: :integer
+  > ```
+  >
+  > This creates a `list<map<tuple<integer>, set<string>>>`.
+  >
+  > However, please note that due to the limited expressivity of this representation,
+  > each collection at the same level will have the same typing information:
+  >
+  > ```elixir
+  > field :valid, Exandra.Set, type: Exandra.Set, type: :integer                                     # set<set<int>>
+  > field :invalid, Exandra.Map, key: Exandra.Set, type: :integer, value: Exandra.Set, type: :string # map<set<int>, set<int>> not map<set<int>, set<string>>
+  > ```
 
   ### Counter Tables
 
