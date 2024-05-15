@@ -96,6 +96,15 @@ defmodule Exandra do
 
       field :home_phone, Exandra.EmbeddedType, cardinality: :many, using: MyApp.PhoneSchema
 
+  ### Inets
+
+  Cassandra/Scylla has a native `inet` type which represents either an ipv4 or an ipv6 address.
+  Exandra provides the `Exandra.Inet` type for these fields.
+
+  ```elixir
+  field :last_ip, Exandra.Inet
+  ```
+
   ### Arrays
 
   You can use arrays with the Ecto `{:array, <type>}` type. This gets translated to the
