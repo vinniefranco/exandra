@@ -67,6 +67,12 @@ defmodule Exandra.SetTest do
     assert {:ok, MapSet.new([1])} == Set.cast(1, %{type: :integer})
     assert {:ok, MapSet.new([1])} == Set.cast([1], %{type: :integer})
     assert :error = Set.cast(:asd, nil)
+
+    assert {:ok, MapSet.new([[1, 2, 3], [4, 5, 6]])} ==
+             Set.cast([[1, 2, 3], [4, 5, 6]], %{type: {:array, :integer}})
+
+    assert {:ok, MapSet.new([MapSet.new([1, 2, 3]), MapSet.new([4, 5, 6])])} ==
+             Set.cast([[1, 2, 3], [4, 5, 6]], %{type: {:parameterized, Set, %{type: :integer}}})
   end
 
   test "equal?/3" do

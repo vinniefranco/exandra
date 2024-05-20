@@ -24,6 +24,11 @@ defmodule Exandra.IntegrationTest do
         type: :my_complex,
         encoded_fields: [:meta]
 
+      field :my_composite, Exandra.Map,
+        key: Exandra.Tuple,
+        types: [:string, :integer],
+        value: :integer
+
       field :my_complex_udt, Exandra.UDT, type: :my_complex, encoded_fields: [:meta]
       field :my_list, {:array, :string}
       field :my_utc, :utc_datetime_usec
@@ -94,6 +99,7 @@ defmodule Exandra.IntegrationTest do
       my_complex_list_udt list<FROZEN<my_complex>>,
       my_complex_udt my_complex,
       my_tuple tuple<int, text>,
+      my_composite map<FROZEN<tuple<ascii, int>>, bigint>,
       my_embedded_udt my_embedded_type,
       my_list list<varchar>,
       my_utc timestamp,
@@ -278,6 +284,7 @@ defmodule Exandra.IntegrationTest do
         meta: %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
         happened: ~U[2020-01-01T00:00:00Z]
       },
+      my_composite: %{{"foo", 1} => 1, {"bar", 8} => 4},
       my_bool: true,
       my_integer: 4,
       my_decimal: decimal1,
@@ -301,6 +308,7 @@ defmodule Exandra.IntegrationTest do
         meta: %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
         happened: ~U[2020-01-01T00:00:00Z]
       },
+      my_composite: %{{"baz", 0} => 2},
       my_bool: false,
       my_integer: 5,
       my_decimal: decimal2,
@@ -319,6 +327,7 @@ defmodule Exandra.IntegrationTest do
       my_tuple: nil,
       my_complex_list_udt: nil,
       my_complex_udt: nil,
+      my_composite: nil,
       my_bool: nil,
       # my_integer is used for sorting.
       my_integer: 6,
@@ -354,6 +363,7 @@ defmodule Exandra.IntegrationTest do
                "meta" => %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
                "happened" => ~U[2020-01-01T00:00:00.000Z]
              },
+             my_composite: %{{"bar", 8} => 4, {"foo", 1} => 1},
              my_bool: true,
              my_integer: 4,
              my_decimal: ^decimal1,
@@ -381,6 +391,7 @@ defmodule Exandra.IntegrationTest do
                "meta" => %{"foo" => "bar", "baz" => %{"qux" => "quux"}},
                "happened" => ~U[2020-01-01T00:00:00.000Z]
              },
+             my_composite: %{{"baz", 0} => 2},
              my_bool: false,
              my_integer: 5,
              my_decimal: ^decimal2,
@@ -399,6 +410,7 @@ defmodule Exandra.IntegrationTest do
              my_udt: %{},
              my_list_udt: nil,
              my_complex_list_udt: nil,
+             my_composite: %{},
              my_complex_udt: %{"meta" => %{}},
              my_bool: nil,
              my_integer: 6,

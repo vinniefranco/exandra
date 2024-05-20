@@ -33,7 +33,7 @@ defmodule Exandra.MixProject do
         source_ref: "v#{@version}",
         source_url: @repo_url,
         groups_for_modules: [
-          "Ecto types": [Exandra.UDT, Exandra.Counter, Exandra.Inet, Exandra.Map, Exandra.Set]
+          "Ecto types": [Exandra.UDT, Exandra.Counter, Exandra.Map, Exandra.Set, Exandra.Inet, Exandra.Tuple]
         ]
       ]
     ]
