@@ -1,7 +1,7 @@
 defmodule Exandra.Tuple do
   opts_schema = [
     types: [
-      type: {:list, :atom},
+      type: {:list, :any},
       required: true,
       doc: "The types of the elements in the tuple."
     ],
@@ -36,6 +36,8 @@ defmodule Exandra.Tuple do
 
   use Ecto.ParameterizedType
 
+  alias Exandra.Types
+
   @type t() :: Tuple.t()
 
   @opts_schema NimbleOptions.new!(opts_schema)
@@ -49,16 +51,19 @@ defmodule Exandra.Tuple do
 
   @impl Ecto.ParameterizedType
   def init(opts) do
-    opts =
-      opts
-      |> NimbleOptions.validate!(@opts_schema)
-      |> Map.new()
+    {types, opts} = Keyword.pop_first(opts, :types)
 
-    if opts.types == [] do
+    if types == [] do
       raise ArgumentError, "CQL tuples must have at least one element, got: []"
     end
 
+    types = types |> Enum.map(&Types.check_type!(__MODULE__, &1, opts))
+
     opts
+    |> Keyword.put(:types, types)
+    |> Keyword.take(Keyword.keys(@opts_schema.schema))
+    |> NimbleOptions.validate!(@opts_schema)
+    |> Map.new()
   end
 
   @impl Ecto.ParameterizedType

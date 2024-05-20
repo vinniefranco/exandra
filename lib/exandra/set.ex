@@ -1,7 +1,7 @@
 defmodule Exandra.Set do
   opts_schema = [
     type: [
-      type: :atom,
+      type: :any,
       required: true,
       doc: "The type of the elements in the set."
     ],
@@ -33,6 +33,8 @@ defmodule Exandra.Set do
 
   use Ecto.ParameterizedType
 
+  alias Exandra.Types
+
   @type t() :: MapSet.t()
 
   @opts_schema NimbleOptions.new!(opts_schema)
@@ -46,7 +48,12 @@ defmodule Exandra.Set do
 
   @impl Ecto.ParameterizedType
   def init(opts) do
+    {type, opts} = Keyword.pop_first(opts, :type)
+    checked_type = Types.check_type!(__MODULE__, type, opts)
+
     opts
+    |> Keyword.put(:type, checked_type)
+    |> Keyword.take(Keyword.keys(@opts_schema.schema))
     |> NimbleOptions.validate!(@opts_schema)
     |> Map.new()
   end

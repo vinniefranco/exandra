@@ -1,12 +1,12 @@
 defmodule Exandra.Map do
   opts_schema = [
     key: [
-      type: :atom,
+      type: :any,
       required: true,
       doc: "The type of the keys in the map."
     ],
     value: [
-      type: :atom,
+      type: :any,
       required: true,
       doc: "The type of the values in the map."
     ],
@@ -37,6 +37,8 @@ defmodule Exandra.Map do
 
   use Ecto.ParameterizedType
 
+  alias Exandra.Types
+
   @opts_schema NimbleOptions.new!(opts_schema)
 
   # Made public for testing.
@@ -45,7 +47,16 @@ defmodule Exandra.Map do
 
   @impl Ecto.ParameterizedType
   def init(opts) do
+    {key, opts} = Keyword.pop_first(opts, :key)
+    {value, opts} = Keyword.pop_first(opts, :value)
+
+    key = Types.check_type!(__MODULE__, key, opts)
+    value = Types.check_type!(__MODULE__, value, opts)
+
     opts
+    |> Keyword.put(:key, key)
+    |> Keyword.put(:value, value)
+    |> Keyword.take(Keyword.keys(@opts_schema.schema))
     |> NimbleOptions.validate!(@opts_schema)
     |> Map.new()
   end

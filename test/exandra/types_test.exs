@@ -30,4 +30,42 @@ defmodule Exandra.TypesTest do
     # With types that are modules that export the type/0 callback.
     assert Types.for(Exandra.Counter) == {:ok, "counter"}
   end
+
+  test "check_type!/3" do
+    assert Types.check_type!(nil, :string, []) == :string
+
+    assert Types.check_type!(nil, {:array, Exandra.Set}, type: :integer) ==
+             {:array, {:parameterized, Exandra.Set, %{type: :integer}}}
+
+    assert Types.check_type!(nil, Exandra.Set, type: :integer) ==
+             {:parameterized, Exandra.Set, %{type: :integer}}
+
+    assert Types.check_type!(nil, Exandra.Map, key: Exandra.Set, type: :integer, value: :integer) ==
+             {:parameterized, Exandra.Map,
+              %{key: {:parameterized, Exandra.Set, %{type: :integer}}, value: :integer}}
+
+    assert Types.check_type!(nil, Exandra.Set, type: Exandra.Set, type: :integer) ==
+             {:parameterized, Exandra.Set,
+              %{type: {:parameterized, Exandra.Set, %{type: :integer}}}}
+
+    assert Types.check_type!(nil, Exandra.Tuple,
+             types: [:integer, Exandra.Set, Exandra.Map],
+             type: :string,
+             key: :integer,
+             value: :binary_id
+           ) ==
+             {:parameterized, Exandra.Tuple,
+              %{
+                types: [
+                  :integer,
+                  {:parameterized, Exandra.Set, %{type: :string}},
+                  {:parameterized, Exandra.Map, %{key: :integer, value: :binary_id}}
+                ]
+              }}
+
+    assert_raise ArgumentError, fn -> Types.check_type!(nil, :nonexsisting, []) end
+    assert_raise ArgumentError, fn -> Types.check_type!(nil, {:array, :nonexisting}, []) end
+    assert_raise ArgumentError, fn -> Types.check_type!(nil, {:nonexisting, :string}, []) end
+    assert_raise ArgumentError, fn -> Types.check_type!(nil, Exandra.Types, []) end
+  end
 end

@@ -53,6 +53,17 @@ defmodule Exandra.TupleTest do
     assert {:ok, {1}} == Tuple.cast([1], %{types: [:integer]})
 
     assert {:ok, {1, "a"}} == Tuple.cast({1, "a"}, %{types: [:integer, :string]})
+
+    assert {:ok, {MapSet.new([1]), %{2 => 3}, [4], {5}, 6}} ==
+             Tuple.cast({[1], %{2 => 3}, [4], 5, 6}, %{
+               types: [
+                 {:parameterized, Exandra.Set, %{type: :integer}},
+                 {:parameterized, Exandra.Map, %{key: :integer, value: :integer}},
+                 {:array, :integer},
+                 {:parameterized, Exandra.Tuple, %{types: [:integer]}},
+                 :integer
+               ]
+             })
   end
 
   test "load/2" do

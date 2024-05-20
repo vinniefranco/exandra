@@ -43,4 +43,39 @@ defmodule Exandra.Types do
   end
 
   def for(_ecto_type, _opts), do: :error
+
+  @spec check_type!(module(), any(), keyword()) :: Ecto.Type.t()
+  def check_type!(name, type, opts) when is_atom(type) do
+    cond do
+      Ecto.Type.base?(type) -> type
+      Code.ensure_compiled(type) == {:module, type} -> check_parameterized(name, type, opts)
+      true -> raise ArgumentError, "#{name}: not a valid type parameter, got #{inspect(type)}"
+    end
+  end
+
+  def check_type!(name, {composite, inner}, opts) do
+    if Ecto.Type.composite?(composite) do
+      inner = check_type!(name, inner, opts)
+      {composite, inner}
+    else
+      raise ArgumentError, "#{name}: expected Ecto composite type, got: #{inspect(composite)}"
+    end
+  end
+
+  def check_type!(name, any, _opts),
+    do: raise(ArgumentError, "#{name}: unknown type parameter, got: #{inspect(any)}")
+
+  defp check_parameterized(name, type, opts) do
+    cond do
+      function_exported?(type, :type, 0) ->
+        type
+
+      function_exported?(type, :type, 1) ->
+        Ecto.ParameterizedType.init(type, opts)
+
+      true ->
+        raise ArgumentError,
+              "#{name}: expected Ecto.Type/Ecto.ParameterizedType, got: #{inspect(type)}"
+    end
+  end
 end
