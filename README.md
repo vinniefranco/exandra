@@ -94,6 +94,15 @@ field :home_phone, Exandra.UDT, type: :phone_number
 field :office_phone, Exandra.UDT, type: :phone_number
 ```
 
+### Inets
+
+Cassandra/Scylla has a native `inet` type which represents either an ipv4 or an ipv6 address.
+Exandra provides the `Exandra.Inet` type for these fields.
+
+```elixir
+field :last_ip, Exandra.Inet
+```
+
 ### Tuples
 
 Tuples can be declared using the `Exandra.Tuple` type.

@@ -35,7 +35,7 @@ defmodule Exandra.IntegrationTest do
       field :my_integer, :integer
       field :my_bool, :boolean
       field :my_decimal, :decimal
-      field :my_inet, Exandra.Tuple, types: [:integer, :integer, :integer, :integer]
+      field :my_inet, Exandra.Inet
 
       timestamps type: :utc_datetime
     end
@@ -261,7 +261,7 @@ defmodule Exandra.IntegrationTest do
     set1 = MapSet.new([1])
     set2 = MapSet.new([1, 2, 3])
     inet1 = {192, 168, 0, 1}
-    inet2 = {10, 0, 0, 1}
+    inet2 = {0xFE80, 0, 0, 0, 0, 0, 0, 1}
 
     schema1 = %Schema{
       id: row1_id,
