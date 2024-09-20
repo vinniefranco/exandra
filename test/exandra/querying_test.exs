@@ -28,13 +28,16 @@ defmodule Exandra.QueryingTest do
   describe "querying" do
     test "create" do
       XandraMock
-      |> expect(:prepare, fn _conn, stmt, _opts ->
-        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
-        {:ok, %Xandra.Prepared{}}
-      end)
       |> expect(:execute, fn _conn, _stmt, values, _opts ->
         assert ["string", _uuid] = values
         {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _opts ->
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
+        {:ok, %Xandra.Prepared{}}
       end)
 
       TestRepo.insert(%MySchema{my_string: "string"})
@@ -44,13 +47,16 @@ defmodule Exandra.QueryingTest do
       uuid = Ecto.UUID.generate()
 
       XandraMock
-      |> expect(:prepare, fn _conn, stmt, _options ->
-        assert "UPDATE my_schema SET my_counter = ? WHERE id = ?" = stmt
-        {:ok, %Xandra.Prepared{}}
-      end)
       |> expect(:execute, fn _conn, _stmt, values, _adapter ->
         assert values == [5, Ecto.UUID.dump!(uuid)]
         {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _options ->
+        assert "UPDATE my_schema SET my_counter = ? WHERE id = ?" = stmt
+        {:ok, %Xandra.Prepared{}}
       end)
 
       record = %MySchema{id: uuid, my_counter: 4}

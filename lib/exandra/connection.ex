@@ -155,23 +155,9 @@ defmodule Exandra.Connection do
         other -> other
       end
 
-    case prepare_execute(cluster, sql, params, opts) do
-      {:ok, %Xandra.SchemaChange{} = schema_change} -> {:ok, schema_change}
-      {:ok, %Xandra.Void{}} -> {:ok, %{rows: nil, num_rows: 1}}
-      {:ok, %Xandra.Page{paging_state: nil} = page} -> {:ok, process_page(page)}
-      {:ok, %Xandra.Page{content: []}} -> {:ok, %{rows: [], num_rows: 1}}
-      {:error, _} = err -> err
+    with {:ok, _query, result} <- prepare_execute(cluster, _name = "", sql, params, opts) do
+      {:ok, result}
     end
-  end
-
-  defp prepare_execute(cluster, sql, params, opts) do
-    {prepare_opts, execute_opts} = split_prepare_and_execute_options(opts)
-
-    @xandra_cluster_mod.run(cluster, fn conn ->
-      with {:ok, %Prepared{} = prepared} <- @xandra_mod.prepare(conn, sql, prepare_opts) do
-        @xandra_mod.execute(conn, prepared, params, execute_opts)
-      end
-    end)
   end
 
   @doc false
