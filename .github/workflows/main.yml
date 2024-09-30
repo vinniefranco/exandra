@@ -32,7 +32,7 @@ jobs:
 
       - name: Start Docker and wait for it to be up
         run: |
-          docker-compose up --detach --build
+          docker compose up --detach --build
           ./test/docker/health-check-services.sh
 
       - name: Install Erlang/OTP and Elixir
