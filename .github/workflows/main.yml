@@ -20,6 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - otp: "27.1"
+            elixir: "1.17.3"
+            lint: true
           - otp: "26.2"
             elixir: "1.16.2"
             lint: true
@@ -32,7 +35,7 @@ jobs:
 
       - name: Start Docker and wait for it to be up
         run: |
-          docker-compose up --detach --build
+          docker compose up --detach --build
           ./test/docker/health-check-services.sh
 
       - name: Install Erlang/OTP and Elixir
