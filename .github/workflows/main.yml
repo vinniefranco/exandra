@@ -20,6 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - otp: "27.1"
+            elixir: "1.17.3"
+            lint: true
           - otp: "26.2"
             elixir: "1.16.2"
             lint: true
