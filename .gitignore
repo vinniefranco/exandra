@@ -25,5 +25,7 @@ exandra-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
-# LSP 
+# LSP
 .elixir-tools/
+
+.direnv/
