@@ -26,11 +26,13 @@ defmodule Exandra.PrefixTest do
       # We're only interested in the prepared statement here, so we stub execution
       stub(XandraMock, :execute, fn _conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
 
+      stub(XandraClusterMock, :run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+
       :ok
     end
 
     test "adds a keyspace to the table" do
-      expect(XandraMock, :prepare, fn _conn, stmt, _opts ->
+      expect(XandraClusterMock, :prepare, fn _conn, stmt, _opts ->
         assert "INSERT INTO foo.my_schema (my_string, id) VALUES (?, ?) " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
@@ -39,7 +41,7 @@ defmodule Exandra.PrefixTest do
     end
 
     test "can be overridden by query options" do
-      expect(XandraMock, :prepare, fn _conn, stmt, _options ->
+      expect(XandraClusterMock, :prepare, fn _conn, stmt, _options ->
         assert "INSERT INTO bar.my_schema (my_string, id) VALUES (?, ?) " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
