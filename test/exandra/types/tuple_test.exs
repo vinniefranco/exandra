@@ -7,10 +7,10 @@ defmodule Exandra.TupleTest do
     assert {
              :parameterized,
              {Tuple,
-             %{
-               types: [Ecto.UUID, :integer, :string]
-             }
-           }} = Ecto.ParameterizedType.init(Tuple, types: [Ecto.UUID, :integer, :string])
+              %{
+                types: [Ecto.UUID, :integer, :string]
+              }}
+           } = Ecto.ParameterizedType.init(Tuple, types: [Ecto.UUID, :integer, :string])
   end
 
   @p_dump_type {:parameterized, {Tuple, Tuple.params(:dump)}}

@@ -15,12 +15,12 @@ defmodule Exandra.SetTest do
     assert {
              :parameterized,
              {Set,
-             %{
-               field: :my_set,
-               type: Ecto.UUID,
-               schema: Schema
-             }
-           }} = Schema.__schema__(:type, :my_set)
+              %{
+                field: :my_set,
+                type: Ecto.UUID,
+                schema: Schema
+              }}
+           } = Schema.__schema__(:type, :my_set)
   end
 
   @p_dump_type {:parameterized, {Set, Set.params(:dump)}}

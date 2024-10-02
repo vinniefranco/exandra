@@ -18,13 +18,13 @@ defmodule Exandra.MapTest do
     assert {
              :parameterized,
              {Map,
-             %{
-               field: :my_int_key_map,
-               key: :integer,
-               schema: Schema,
-               value: :string
-             }
-           }} = Schema.__schema__(:type, :my_int_key_map)
+              %{
+                field: :my_int_key_map,
+                key: :integer,
+                schema: Schema,
+                value: :string
+              }}
+           } = Schema.__schema__(:type, :my_int_key_map)
   end
 
   @p_dump_type {:parameterized, {Map, Map.params(:dump)}}
