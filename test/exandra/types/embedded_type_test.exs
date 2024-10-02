@@ -39,17 +39,17 @@ defmodule Exandra.EmbeddedTypeTest do
   test "init" do
     assert {
              :parameterized,
-             EmbeddedType,
-             %Exandra.EmbeddedType{
-               cardinality: :one,
-               field: :my_embedded_udt,
-               using: EmbeddedSchema
-             }
+             {EmbeddedType,
+              %Exandra.EmbeddedType{
+                cardinality: :one,
+                field: :my_embedded_udt,
+                using: EmbeddedSchema
+              }}
            } = Schema.__schema__(:type, :my_embedded_udt)
   end
 
-  @p_dump_type {:parameterized, EmbeddedType, EmbeddedType.params(:dump)}
-  @p_self_type {:parameterized, EmbeddedType, EmbeddedType.params(:self)}
+  @p_dump_type {:parameterized, {EmbeddedType, EmbeddedType.params(:dump)}}
+  @p_self_type {:parameterized, {EmbeddedType, EmbeddedType.params(:self)}}
 
   test "operations" do
     assert Ecto.Type.type(@p_self_type) == :exandra_embedded_type

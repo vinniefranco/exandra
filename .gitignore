@@ -29,4 +29,6 @@ exandra-*.tar
 .elixir-tools/
 
 # Nix flake
-.direnv/
+/.direnv/
+/.nix-mix/
+/.nix-hex/

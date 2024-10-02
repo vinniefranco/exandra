@@ -6,15 +6,15 @@ defmodule Exandra.TupleTest do
   test "init" do
     assert {
              :parameterized,
-             Tuple,
-             %{
-               types: [Ecto.UUID, :integer, :string]
-             }
+             {Tuple,
+              %{
+                types: [Ecto.UUID, :integer, :string]
+              }}
            } = Ecto.ParameterizedType.init(Tuple, types: [Ecto.UUID, :integer, :string])
   end
 
-  @p_dump_type {:parameterized, Tuple, Tuple.params(:dump)}
-  @p_self_type {:parameterized, Tuple, Tuple.params(:self)}
+  @p_dump_type {:parameterized, {Tuple, Tuple.params(:dump)}}
+  @p_self_type {:parameterized, {Tuple, Tuple.params(:self)}}
 
   test "operations" do
     assert Ecto.Type.type(@p_self_type) == :exandra_tuple
@@ -57,10 +57,10 @@ defmodule Exandra.TupleTest do
     assert {:ok, {MapSet.new([1]), %{2 => 3}, [4], {5}, 6}} ==
              Tuple.cast({[1], %{2 => 3}, [4], 5, 6}, %{
                types: [
-                 {:parameterized, Exandra.Set, %{type: :integer}},
-                 {:parameterized, Exandra.Map, %{key: :integer, value: :integer}},
+                 {:parameterized, {Exandra.Set, %{type: :integer}}},
+                 {:parameterized, {Exandra.Map, %{key: :integer, value: :integer}}},
                  {:array, :integer},
-                 {:parameterized, Exandra.Tuple, %{types: [:integer]}},
+                 {:parameterized, {Exandra.Tuple, %{types: [:integer]}}},
                  :integer
                ]
              })

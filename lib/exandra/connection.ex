@@ -40,7 +40,7 @@ defmodule Exandra.Connection do
   ]
 
   alias Ecto.Migration.{Constraint, Index, Reference, Table}
-  alias Ecto.Query.{BooleanExpr, LimitExpr, QueryExpr, WithExpr}
+  alias Ecto.Query.{BooleanExpr, ByExpr, LimitExpr, QueryExpr, WithExpr}
   alias Exandra.Types
   alias Xandra.Prepared
 
@@ -179,17 +179,18 @@ defmodule Exandra.Connection do
   @impl Ecto.Adapters.SQL.Connection
   def all(query, as_prefix \\ []) do
     sources = create_names(query, as_prefix)
+    {select_distinct, order_by_distinct} = distinct(query.distinct, sources, query)
 
     cte = cte(query, sources)
     {from, hints} = from(query, sources)
-    select = select(query, sources)
+    select = select(query, select_distinct, sources)
     join = join(query, sources)
     where = where(query, sources)
     group_by = group_by(query, sources)
     having = having(query, sources)
     window = window(query, sources)
     combinations = combinations(query)
-    order_by = order_by(query, sources)
+    order_by = order_by(query, order_by_distinct, sources)
     limit = limit(query, sources)
     offset = offset(query, sources)
     lock = lock(query, sources)
@@ -280,23 +281,24 @@ defmodule Exandra.Connection do
     end
   end
 
-  defp distinct(nil, _sources, _query), do: []
-  defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
-  defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+  defp distinct(nil, _sources, _query), do: {[], []}
+  defp distinct(%ByExpr{expr: []}, _, _), do: {[], []}
+  defp distinct(%ByExpr{expr: true}, _sources, _query), do: {" DISTINCT", []}
+  defp distinct(%ByExpr{expr: false}, _sources, _query), do: {[], []}
 
-  defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+  defp distinct(%ByExpr{expr: exprs}, _sources, query) when is_list(exprs) do
     error!(query, "DISTINCT with multiple columns is not supported by Exandra")
   end
 
-  defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
-    ["SELECT ", distinct(distinct, sources, query) | select(fields, sources, query)]
+  defp select(%{select: %{fields: fields}} = query, select_distinct, sources) do
+    ["SELECT", select_distinct, ?\s | select_fields(fields, sources, query)]
   end
 
-  defp select([], _sources, _query),
+  defp select_fields([], _sources, _query),
     do: "TRUE"
 
-  defp select(fields, sources, query) do
-    intersperse_map(fields, ", ", fn
+  defp select_fields(fields, sources, query) do
+    Enum.map_intersperse(fields, ", ", fn
       {:&, _, [idx]} ->
         case elem(sources, idx) do
           {source, _, nil} ->
@@ -311,7 +313,7 @@ defmodule Exandra.Connection do
         end
 
       {key, value} ->
-        [expr(value, sources, query), " AS ", quote_name(key)]
+        [expr(value, sources, query), " AS " | quote_name(key)]
 
       value ->
         expr(value, sources, query)
@@ -360,15 +362,25 @@ defmodule Exandra.Connection do
     error!(query, "`offset` is not supported by Exandra")
   end
 
-  defp order_by(%{order_bys: []}, _sources), do: []
+  defp order_by(%{order_bys: []}, _distinct, _sources), do: []
 
-  defp order_by(%{order_bys: order_bys} = query, sources) do
-    [
-      " ORDER BY "
-      | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
-          intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
-        end)
-    ]
+  defp order_by(%{order_bys: order_bys} = query, distinct, sources) do
+    order_bys = Enum.flat_map(order_bys, & &1.expr)
+    order_bys = order_by_concat(distinct, order_bys)
+    [" ORDER BY " | Enum.map_intersperse(order_bys, ", ", &order_by_expr(&1, sources, query))]
+  end
+
+  defp order_by_concat([head | left], [head | right]), do: [head | order_by_concat(left, right)]
+  defp order_by_concat(left, right), do: left ++ right
+
+  defp order_by_expr({dir, expr}, sources, query) do
+    str = expr(expr, sources, query)
+
+    case dir do
+      :asc -> [str | " ASC"]
+      :desc -> [str | " DESC"]
+      _ -> error!(query, "#{dir} is not supported in ORDER BY in Exandra")
+    end
   end
 
   defp set(fields), do: Enum.map_join(fields, ", ", &"#{&1} = ?")
@@ -431,23 +443,13 @@ defmodule Exandra.Connection do
     combinations
   end
 
-  defp order_by_expr({dir, expr}, sources, query) do
-    str = expr(expr, sources, query)
-
-    case dir do
-      :asc -> [str | " ASC"]
-      :desc -> [str | " DESC"]
-      _ -> error!(query, "#{dir} is not supported in ORDER BY in Exandra")
-    end
-  end
-
   defp group_by(%{group_bys: []}, _sources), do: []
 
   defp group_by(%{group_bys: group_bys} = query, sources) do
     [
       " GROUP BY "
-      | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
-          intersperse_map(expr, ", ", &expr(&1, sources, query))
+      | Enum.map_intersperse(group_bys, ", ", fn %ByExpr{expr: expr} ->
+          Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
         end)
     ]
   end
@@ -536,7 +538,7 @@ defmodule Exandra.Connection do
   end
 
   defp expr({:{}, _, elems}, sources, query) do
-    [?(, intersperse_map(elems, ?,, &expr(&1, sources, query)), ?)]
+    [?(, Enum.map_intersperse(elems, ?,, &expr(&1, sources, query)), ?)]
   end
 
   defp expr({:count, _, []}, _sources, _query), do: "count(*)"
@@ -561,7 +563,7 @@ defmodule Exandra.Connection do
         error!(query, "COALESCE function is not supported by Exandra")
 
       {:fun, fun} ->
-        [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
+        [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &expr(&1, sources, query)), ?)]
     end
   end
 
@@ -585,6 +587,10 @@ defmodule Exandra.Connection do
   defp expr(literal, _sources, _query) when is_float(literal) do
     # Scylla doesn't support float cast
     ["(0 + ", Float.to_string(literal), ?)]
+  end
+
+  defp expr(expr, _sources, query) do
+    error!(query, "unsupported expression: #{inspect(expr)}")
   end
 
   defp index_expr(literal) when is_binary(literal),
