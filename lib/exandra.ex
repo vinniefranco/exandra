@@ -16,49 +16,54 @@ defmodule Exandra do
 
   You can use the following options:
 
-    * Any of the options supported by `Ecto.Repo` itself, which you can see
-      in the `Ecto.Repo` documentation.
+  * Any of the options supported by `Ecto.Repo` itself, which you can see
+    in the `Ecto.Repo` documentation.
 
-    * Any of the options supported by `Xandra.Cluster.start_link/1`.
+  * Any of the options supported by `Xandra.Cluster.start_link/1`.
 
   #{Exandra.Connection.start_opts_docs()}
 
   To configure your Ecto repository to use this adapter, you can use the
   `:adapter` option. For example, when defining the repo:
 
-      defmodule MyApp.Repo do
-        use Ecto.Repo, otp_app: :my_app, adapter: Exandra
-      end
+  ```elixir
+  defmodule MyApp.Repo do
+    use Ecto.Repo, otp_app: :my_app, adapter: Exandra
+  end
+  ```
 
   You can configure your database connection in `config/dev.exs`. Here's an example `dev configuration`:
 
-      # Configure your database
-      config :my_app, MyApp.Repo,
-        migration_primary_key: [name: :id, type: :uuid], # Overrides the default type `bigserial` used for version attribute in schema migration
-        nodes: ["127.0.0.1"],  # List of database connection endpoints
-        keyspace: "my_app_dev", # Name of your keyspace
-        sync_connect: 5000,             # Waiting time in milliseconds for the database connection
-        log: :info,
-        stacktrace: true,
-        show_sensitive_data_on_connection_error: true,
-        pool_size: 10
+  ```elixir
+  # Configure your database
+  config :my_app, MyApp.Repo,
+    migration_primary_key: [name: :id, type: :uuid], # Overrides the default type `bigserial` used for version attribute in schema migration
+    nodes: ["127.0.0.1"],  # List of database connection endpoints
+    keyspace: "my_app_dev", # Name of your keyspace
+    sync_connect: 5000,             # Waiting time in milliseconds for the database connection
+    log: :info,
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10
+  ```
 
   **Note:** The `bigserial` data type is specific to PostgreSQL databases and is not present in Scylla/Cassandra.
-
 
   ## Schemas
 
   You can regularly use `Ecto.Schema` with Exandra. For example:
 
-      defmodule User do
-        use Ecto.Schema
+  ```elixir
+  defmodule User do
+    use Ecto.Schema
 
-        @primary_key {:id, Ecto.UUID, autogenerate: true}
-        schema "users" do
-          field :email, :string
-          field :meta, Exandra.Map, key: :string, value: :string
-        end
-      end
+    @primary_key {:id, Ecto.UUID, autogenerate: true}
+    schema "users" do
+      field :email, :string
+      field :meta, Exandra.Map, key: :string, value: :string
+    end
+  end
+  ```
 
   You can use all the usual types (`:string`, `Ecto.UUID`, and so on).
 
@@ -67,7 +72,9 @@ defmodule Exandra do
   The `:map` type gets stored in Cassandra/Scylla as a blob of text with the map encoded as
   JSON. For example, if you have a schema with
 
-      field :features, :map
+  ```elixir
+  field :features, :map
+  ```
 
   you can pass the field as an Elixir map when setting it, and Exandra will convert it to a map
   on the way from the database. Because Exandra uses JSON for this, you'll have to pay attention
@@ -79,8 +86,10 @@ defmodule Exandra do
   If one of your fields is a UDT, you can use the `Exandra.UDT` type for it. For example, if you
   have a `phone_number` UDT, you can declare fields with that type as:
 
-      field :home_phone, Exandra.UDT, type: :phone_number
-      field :office_phone, Exandra.UDT, type: :phone_number
+  ```elixir
+  field :home_phone, Exandra.UDT, type: :phone_number
+  field :office_phone, Exandra.UDT, type: :phone_number
+  ```
 
   > #### String Keys {: .warning}
   >
@@ -89,12 +98,16 @@ defmodule Exandra do
   Alternatively, you can use the `Exandra.EmbeddedType` for `Ecto.Schema`-backed UDTs. For example, if you have a
   `phone_number` UDT, you can use:
 
-      field :home_phone, Exandra.EmbeddedType, using: MyApp.PhoneSchema
+  ```elixir
+  field :home_phone, Exandra.EmbeddedType, using: MyApp.PhoneSchema
+  ```
 
   Finally, if you have a column of frozen UDTs `list<frozen<phone_number>>`, you can still use the
   `Exandra.EmbeddedType` just as before with `cardinality: :many` like so:
 
-      field :home_phone, Exandra.EmbeddedType, cardinality: :many, using: MyApp.PhoneSchema
+  ```elixir
+  field :home_phone, Exandra.EmbeddedType, cardinality: :many, using: MyApp.PhoneSchema
+  ```
 
   ### Inets
 
@@ -121,9 +134,9 @@ defmodule Exandra do
   ```elixir
   @primary_key false
   schema "hotels" do
-   field :checkins, {:array, :utc_datetime}                            # list<timestamp>
-   field :room_to_customer, Exandra.Map, key: :integer, value: :string # map<int, string>
-   field :available_rooms, Exandra.Set, type: :integer                 # set<int>
+    field :checkins, {:array, :utc_datetime}                            # list<timestamp>
+    field :room_to_customer, Exandra.Map, key: :integer, value: :string # map<int, string>
+    field :available_rooms, Exandra.Set, type: :integer                 # set<int>
   end
   ```
 
@@ -150,22 +163,37 @@ defmodule Exandra do
   You can use the `Exandra.Counter` type to create counter fields (in counter tables). For
   example:
 
-      @primary_key false
-      schema "page_views" do
-        field :route, :string, primary_key: true
-        field :total, Exandra.Counter
-      end
-
+  ```elixir
+  @primary_key false
+  schema "page_views" do
+    field :route, :string, primary_key: true
+    field :total, Exandra.Counter
+  end
+  ```
   You can only *update* counter fields. You'll have to use `c:Ecto.Repo.update_all/2`
   to insert or update counters. For example, in the table above, you'd update the
   `:total` counter field with:
 
-      query =
-        from page_view in "page_views",
-          where: page_view.route == "/browse",
-          update: [set: [total: 1]]
+  ```elixir
+  query =
+    from page_view in "page_views",
+      where: page_view.route == "/browse",
+      update: [set: [total: 1]]
 
-      MyApp.Repo.update_all(query)
+  MyApp.Repo.update_all(query)
+  ```
+
+  ## Batch Queries
+
+  You can run **batch queries** through Exandra. Batch queries are supported by
+  Cassandra/Scylla, and allow you to run multiple queries in a single request.
+  See `Exandra.Batch` for more information and examples.
+
+  ## Multiple keyspaces using prefixes
+
+  You can use [query prefixes](https://hexdocs.pm/ecto/multi-tenancy-with-query-prefixes.html) to
+  query different keyspaces using the same schemas. As pointed out in the Ecto docs,
+  migrations must be run for *each* prefix in this case.
 
   ## Batch Queries
 
@@ -184,16 +212,18 @@ defmodule Exandra do
   You can use Exandra to run migrations as well, as it supports most of the DDL-related
   commands from `Ecto.Migration`. For example:
 
-      defmodule AddUsers do
-        use Ecto.Migration
+  ```elixir
+  defmodule AddUsers do
+    use Ecto.Migration
 
-        def change do
-          create table("users", primary_key: false) do
-            add :email, :string, primary_key: true
-            add :age, :int
-          end
-        end
+    def change do
+      create table("users", primary_key: false) do
+        add :email, :string, primary_key: true
+        add :age, :int
       end
+    end
+  end
+  ```
 
   > #### Cassandra and Scylla Types {: .info}
   >
@@ -206,14 +236,14 @@ defmodule Exandra do
 
   This is a non-comprehensive list of types you can use:
 
-    * `:"map<key_type, value_type>"` - maps (such as `:"map<int, boolean>"`).
-    * `:"list<type>"` - lists (such as `:"list<uuid>"`).
-    * `:string` - gets translated to the `text` type.
-    * `:map` - maps get stored as text, and Exandra dumps and loads them automatically.
-    * `<udt>` - User-Defined Types (UDTs) should be specified as their name, expressed as an
-      atom. For example, a UDT called `full_name` would be specified as the type `:full_name`.
-    * `:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec` -
-      these are all represented as the `timestamp` type.
+  * `:"map<key_type, value_type>"` - maps (such as `:"map<int, boolean>"`).
+  * `:"list<type>"` - lists (such as `:"list<uuid>"`).
+  * `:string` - gets translated to the `text` type.
+  * `:map` - maps get stored as text, and Exandra dumps and loads them automatically.
+  * `<udt>` - User-Defined Types (UDTs) should be specified as their name, expressed as an
+    atom. For example, a UDT called `full_name` would be specified as the type `:full_name`.
+  * `:naive_datetime`, `:naive_datetime_usec`, `:utc_datetime`, `:utc_datetime_usec` -
+    these are all represented as the `timestamp` type.
 
   ### User-Defined Types (UDTs)
 
@@ -221,13 +251,14 @@ defmodule Exandra do
   To do those operations in a migration, use `Ecto.Migration.execute/1`
   or `Ecto.Migration.execute/2`. For example, in your migration module:
 
-      def change do
-        execute(
-          _up_query = "CREATE TYPE full_name (first_name text, last_name text))",
-          _down_query = "DROP TYPE full_name"
-        )
-      end
-
+  ```elixir
+  def change do
+    execute(
+      _up_query = "CREATE TYPE full_name (first_name text, last_name text))",
+      _down_query = "DROP TYPE full_name"
+    )
+  end
+  ```
   """
 
   # This overrides the checkout/3 function defined in Ecto.Adapters.SQL. That function
