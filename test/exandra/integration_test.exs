@@ -436,6 +436,13 @@ defmodule Exandra.IntegrationTest do
     # Let's run the query again and see the counter updated, since that's what counters do.
     assert {1, _} = TestRepo.update_all(query, [])
     assert TestRepo.reload!(fetched_counter).my_counter == 6
+
+    query =
+      from s in Schema,
+        distinct: true,
+        select: s.id
+
+    assert query |> TestRepo.all() |> is_list()
   end
 
   describe "Telemetry" do

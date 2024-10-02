@@ -17,19 +17,19 @@ defmodule Exandra.MapTest do
   test "init" do
     assert {
              :parameterized,
-             Map,
+             {Map,
              %{
                field: :my_int_key_map,
                key: :integer,
                schema: Schema,
                value: :string
              }
-           } = Schema.__schema__(:type, :my_int_key_map)
+           }} = Schema.__schema__(:type, :my_int_key_map)
   end
 
-  @p_dump_type {:parameterized, Map, Map.params(:dump)}
-  @p_self_type {:parameterized, Map, Map.params(:self)}
-  @uuid_map_type {:parameterized, Map, %{key: Ecto.UUID, value: Ecto.UUID}}
+  @p_dump_type {:parameterized, {Map, Map.params(:dump)}}
+  @p_self_type {:parameterized, {Map, Map.params(:self)}}
+  @uuid_map_type {:parameterized, {Map, %{key: Ecto.UUID, value: Ecto.UUID}}}
 
   test "operations" do
     assert Ecto.Type.type(@p_self_type) == :exandra_map

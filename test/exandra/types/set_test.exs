@@ -14,17 +14,17 @@ defmodule Exandra.SetTest do
   test "init" do
     assert {
              :parameterized,
-             Set,
+             {Set,
              %{
                field: :my_set,
                type: Ecto.UUID,
                schema: Schema
              }
-           } = Schema.__schema__(:type, :my_set)
+           }} = Schema.__schema__(:type, :my_set)
   end
 
-  @p_dump_type {:parameterized, Set, Set.params(:dump)}
-  @p_self_type {:parameterized, Set, Set.params(:self)}
+  @p_dump_type {:parameterized, {Set, Set.params(:dump)}}
+  @p_self_type {:parameterized, {Set, Set.params(:self)}}
 
   test "operations" do
     assert Ecto.Type.type(@p_self_type) == :exandra_set
@@ -72,7 +72,7 @@ defmodule Exandra.SetTest do
              Set.cast([[1, 2, 3], [4, 5, 6]], %{type: {:array, :integer}})
 
     assert {:ok, MapSet.new([MapSet.new([1, 2, 3]), MapSet.new([4, 5, 6])])} ==
-             Set.cast([[1, 2, 3], [4, 5, 6]], %{type: {:parameterized, Set, %{type: :integer}}})
+             Set.cast([[1, 2, 3], [4, 5, 6]], %{type: {:parameterized, {Set, %{type: :integer}}}})
   end
 
   test "equal?/3" do
