@@ -71,7 +71,7 @@ defmodule Exandra.TupleTest do
     assert {:ok, {1, "a"}} == Tuple.load({1, "a"}, %{types: [:integer, :string]})
   end
 
-  test "embed_as/1 returns :self" do
-    assert :self == Tuple.embed_as(nil)
+  test "embed_as/2 returns :self" do
+    assert :self == Tuple.embed_as(nil, nil)
   end
 end

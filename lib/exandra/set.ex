@@ -134,9 +134,9 @@ defmodule Exandra.Set do
   def equal?(%MapSet{} = a, %MapSet{} = b, _), do: MapSet.equal?(a, b)
   def equal?(_, _, _), do: false
 
-  # From Ecto.Type
   @doc false
-  def embed_as(_format), do: :self
+  @impl Ecto.ParameterizedType
+  def embed_as(_format, _opts), do: :self
 
   defimpl Jason.Encoder, for: MapSet do
     def encode(set, opts) do

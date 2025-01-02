@@ -110,7 +110,7 @@ defmodule Exandra.MapTest do
     refute Map.equal?(true, true, nil)
   end
 
-  test "embed_as/1 returns :self" do
-    assert :self == Map.embed_as(nil)
+  test "embed_as/2 returns :self" do
+    assert :self == Map.embed_as(nil, nil)
   end
 end
