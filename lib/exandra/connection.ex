@@ -997,7 +997,12 @@ defmodule Exandra.Connection do
       |> apply_ecto_telemetry_options_to_xandra()
 
     prepare_opts = Keyword.take(opts, @xandra_prepare_opts)
-    execute_opts = Keyword.take(opts, @xandra_exec_opts)
+
+    execute_opts =
+      opts
+      |> Keyword.take(@xandra_exec_opts)
+      |> Keyword.put(:uuid_format, :binary)
+      |> Keyword.put(:timeuuid_format, :binary)
 
     {prepare_opts, execute_opts}
   end
