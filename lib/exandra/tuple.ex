@@ -161,7 +161,7 @@ defmodule Exandra.Tuple do
     end
   end
 
-  # From Ecto.Type
   @doc false
-  def embed_as(_format), do: :self
+  @impl Ecto.ParameterizedType
+  def embed_as(_format, _opts), do: :self
 end

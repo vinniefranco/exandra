@@ -86,7 +86,7 @@ defmodule Exandra.SetTest do
     refute Set.equal?(true, true, nil)
   end
 
-  test "embed_as/1 returns :self" do
-    assert :self == Set.embed_as(nil)
+  test "embed_as/2 returns :self" do
+    assert :self == Set.embed_as(nil, nil)
   end
 end
