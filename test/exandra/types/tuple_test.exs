@@ -42,9 +42,9 @@ defmodule Exandra.TupleTest do
   end
 
   test "cast/2" do
-    assert :error == Tuple.cast(nil, %{types: [:any, :any, :any]})
-
     assert :error = Tuple.cast({1}, %{types: [:string]})
+
+    assert {:ok, nil} == Tuple.cast(nil, %{types: [:any, :any, :any]})
 
     assert {:ok, {"a"}} == Tuple.cast({"a"}, %{types: [:string]})
     assert {:ok, {"a"}} == Tuple.cast("a", %{types: [:string]})
