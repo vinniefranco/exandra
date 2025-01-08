@@ -50,6 +50,22 @@ defmodule Exandra.IntegrationTest do
     end
   end
 
+  defmodule UUIDSchema do
+    use Ecto.Schema
+
+    @primary_key {:id, :binary_id, autogenerate: true}
+    schema "my_uuid_schema" do
+      field :my_uuid, Ecto.UUID
+      field :my_set, Exandra.Set, type: Ecto.UUID
+      field :my_map, Exandra.Map, key: Ecto.UUID, value: Ecto.UUID
+      field :my_tuple, Exandra.Tuple, types: [Ecto.UUID]
+      field :time_uuid, Ecto.UUID
+      field :time_set, Exandra.Set, type: Ecto.UUID
+      field :time_map, Exandra.Map, key: Ecto.UUID, value: Ecto.UUID
+      field :time_tuple, Exandra.Tuple, types: [Ecto.UUID]
+    end
+  end
+
   setup_all do
     opts = [keyspace: @keyspace, nodes: ["localhost:#{@port}"], sync_connect: 1000]
 
@@ -121,6 +137,21 @@ defmodule Exandra.IntegrationTest do
       my_embedded_udt_list FROZEN<list<FROZEN<my_embedded_type>>>,
       my_pk_udt my_embedded_pk,
       PRIMARY KEY (my_name)
+    )
+    """)
+
+    Xandra.execute!(conn, """
+    CREATE TABLE my_uuid_schema (
+      id uuid,
+      my_uuid uuid,
+      my_set set<uuid>,
+      my_map map<uuid, uuid>,
+      my_tuple tuple<uuid>,
+      time_uuid timeuuid,
+      time_set set<timeuuid>,
+      time_map map<timeuuid, timeuuid>,
+      time_tuple tuple<timeuuid>,
+      PRIMARY KEY (id)
     )
     """)
 
@@ -443,6 +474,61 @@ defmodule Exandra.IntegrationTest do
         select: s.id
 
     assert query |> TestRepo.all() |> is_list()
+  end
+
+  test "UUID types are correctly loaded from the database", %{start_opts: start_opts} do
+    start_supervised!({TestRepo, start_opts})
+
+    uuid = Ecto.UUID.generate()
+    uuid_set = MapSet.new([Ecto.UUID.generate(), Ecto.UUID.generate()])
+
+    uuid_map = %{
+      Ecto.UUID.generate() => Ecto.UUID.generate(),
+      Ecto.UUID.generate() => Ecto.UUID.generate()
+    }
+
+    uuid_tuple = {Ecto.UUID.generate()}
+
+    timeuuid = "8c8fddf0-6155-11ec-b2e9-8f88a6d02d59"
+
+    timeuuid_set =
+      MapSet.new([
+        "8c8fddf1-6155-11ec-b2e9-8f88a6d02d59",
+        "8c8fddf2-6155-11ec-b2e9-8f88a6d02d59"
+      ])
+
+    timeuuid_map = %{
+      "8c8fddf3-6155-11ec-b2e9-8f88a6d02d59" => "8c8fddf4-6155-11ec-b2e9-8f88a6d02d59",
+      "8c8fddf5-6155-11ec-b2e9-8f88a6d02d59" => "8c8fddf6-6155-11ec-b2e9-8f88a6d02d59"
+    }
+
+    timeuuid_tuple = {"8c8fddf7-6155-11ec-b2e9-8f88a6d02d59"}
+
+    uuid_schema = %UUIDSchema{
+      my_uuid: uuid,
+      my_set: uuid_set,
+      my_map: uuid_map,
+      my_tuple: uuid_tuple,
+      time_uuid: timeuuid,
+      time_set: timeuuid_set,
+      time_map: timeuuid_map,
+      time_tuple: timeuuid_tuple
+    }
+
+    TestRepo.insert!(uuid_schema)
+    result = UUIDSchema |> TestRepo.one()
+
+    # The id was correctly loaded as a UUID string
+    assert {:ok, _} = result.id |> Ecto.UUID.dump()
+
+    assert result.my_uuid == uuid
+    assert result.my_set == uuid_set
+    assert result.my_map == uuid_map
+    assert result.my_tuple == uuid_tuple
+    assert result.time_uuid == timeuuid
+    assert result.time_set == timeuuid_set
+    assert result.time_map == timeuuid_map
+    assert result.time_tuple == timeuuid_tuple
   end
 
   describe "Telemetry" do
