@@ -334,7 +334,7 @@ defmodule Exandra do
 
         case @xandra_mod.execute(conn, batch, execute_options) do
           {:ok, %Xandra.Void{}} -> :ok
-          {:error, reason} -> {:errror, reason}
+          {:error, reason} -> {:error, reason}
         end
       catch
         {:prepare_error, reason} -> {:error, reason}
