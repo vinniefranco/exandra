@@ -225,7 +225,11 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def insert(prefix, table, headers, rows, _on_conflict, _returning, opts) do
+  def insert(prefix, table, headers, rows, on_conflict, returning, placeholders) do
+    insert(prefix, table, headers, rows, on_conflict, returning, placeholders, [])
+  end
+
+  def insert(prefix, table, headers, rows, _on_conflict, _returning, _placeholders, opts) do
     keys = Enum.join(headers, ", ")
     values = Enum.map(rows, &Enum.map_join(&1, ", ", fn _ -> "?" end))
 
