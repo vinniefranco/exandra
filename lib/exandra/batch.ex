@@ -25,6 +25,8 @@ defmodule Exandra.Batch do
 
   """
 
+  @type t() :: %__MODULE__{queries: [{String.t(), list()}]}
+
   @enforce_keys [:queries]
   defstruct [:queries]
 end
