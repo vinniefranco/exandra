@@ -43,6 +43,42 @@ defmodule Exandra.QueryingTest do
       TestRepo.insert(%MySchema{my_string: "string"})
     end
 
+    test "create with options" do
+      XandraMock
+      |> expect(:execute, fn _conn, _stmt, values, _opts ->
+        assert ["string", _uuid] = values
+        {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _opts ->
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?)  USING TTL 2" = stmt
+        {:ok, %Xandra.Prepared{}}
+      end)
+
+      TestRepo.insert(%MySchema{my_string: "string"}, ttl: 2)
+    end
+
+    test "create many" do
+      XandraMock
+      |> expect(:execute, fn _conn, _stmt, values, _opts ->
+        assert [_uuid, "string"] = values
+        {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _opts ->
+        assert "INSERT INTO my_schema (id, my_string) VALUES (?, ?)  IF NOT EXISTS" = stmt
+        {:ok, %Xandra.Prepared{}}
+      end)
+
+      uuid = Ecto.UUID.generate()
+
+      TestRepo.insert_all("my_schema", [%{my_string: "string", id: uuid}], overwrite: false)
+    end
+
     test "update counters" do
       uuid = Ecto.UUID.generate()
 
