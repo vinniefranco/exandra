@@ -41,6 +41,10 @@ defmodule Exandra.Map do
 
   @opts_schema NimbleOptions.new!(opts_schema)
 
+  @type key() :: term()
+  @type value() :: term()
+  @type t() :: %{optional(key) => value}
+
   # Made public for testing.
   @doc false
   def params(embed), do: %{embed: embed}
