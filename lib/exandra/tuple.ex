@@ -92,6 +92,8 @@ defmodule Exandra.Tuple do
     end
   end
 
+  def cast(nil, _), do: {:ok, nil}
+
   def cast(val, %{types: [type]}) do
     case Ecto.Type.cast(type, val) do
       {:ok, casted} -> {:ok, {casted}}
