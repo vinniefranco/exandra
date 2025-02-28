@@ -248,7 +248,13 @@ defmodule Exandra.Connection do
   end
 
   defp updates(%Ecto.Query{updates: updates} = query) do
-    Enum.map_join(updates, ", ", fn %Ecto.Query.QueryExpr{expr: [set: [{field, expr}]]} ->
+    Enum.map_join(updates, ", ", fn %Ecto.Query.QueryExpr{expr: expressions} ->
+      Enum.map_join(expressions, ", ", &update_expression(query, &1))
+    end)
+  end
+
+  defp update_expression(query, {:set, fields}) do
+    Enum.map_join(fields, ", ", fn {field, expr} ->
       [quote_name(field), " = ", expr(expr, _sources = [], query)]
     end)
   end

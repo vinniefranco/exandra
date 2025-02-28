@@ -575,6 +575,10 @@ defmodule Exandra.ConnectionTest do
     query = from(m in Schema, update: [set: [x: 0]]) |> plan(:update_all)
 
     assert update_all(query) == ~s{UPDATE schema SET x = 0}
+
+    query = from(m in Schema, update: [set: [x: 0, y: 1], set: [z: 2]]) |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET x = 0, y = 1, z = 2}
   end
 
   test "update all with prefix" do
