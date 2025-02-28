@@ -344,6 +344,94 @@ defmodule Exandra do
     repo.checkout(fun, options)
   end
 
+  @impl Ecto.Adapter.Schema
+  def insert(adapter_meta, schema_meta, params, on_conflict, returning, opts) do
+    %{source: source, prefix: prefix} = schema_meta
+    {kind, conflict_params, _} = on_conflict
+    {fields, values} = :lists.unzip(params)
+    sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning, [], opts)
+
+    Ecto.Adapters.SQL.struct(
+      adapter_meta,
+      @conn,
+      sql,
+      :insert,
+      source,
+      [],
+      values ++ conflict_params,
+      kind,
+      returning,
+      opts
+    )
+  end
+
+  @impl Ecto.Adapter.Schema
+  def insert_all(
+        adapter_meta,
+        schema_meta,
+        header,
+        rows,
+        on_conflict,
+        returning,
+        placeholders,
+        opts
+      ) do
+    %{source: source, prefix: prefix} = schema_meta
+    {_, conflict_params, _} = on_conflict
+
+    {rows, params} =
+      case rows do
+        {%Ecto.Query{} = query, params} -> {query, Enum.reverse(params)}
+        rows -> unzip_inserts(header, rows)
+      end
+
+    sql =
+      @conn.insert(
+        prefix,
+        source,
+        header,
+        rows,
+        on_conflict,
+        returning,
+        placeholders,
+        opts
+      )
+
+    opts =
+      if is_nil(Keyword.get(opts, :cache_statement)) do
+        [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
+      else
+        opts
+      end
+
+    all_params = placeholders ++ Enum.reverse(params, conflict_params)
+
+    %{num_rows: num, rows: rows} =
+      Ecto.Adapters.SQL.query!(adapter_meta, sql, all_params, [source: source] ++ opts)
+
+    {num, rows}
+  end
+
+  defp unzip_inserts(header, rows) do
+    Enum.map_reduce(rows, [], fn fields, params ->
+      Enum.map_reduce(header, params, fn key, acc ->
+        case :lists.keyfind(key, 1, fields) do
+          {^key, {%Ecto.Query{} = query, query_params}} ->
+            {{query, length(query_params)}, Enum.reverse(query_params, acc)}
+
+          {^key, {:placeholder, placeholder_index}} ->
+            {{:placeholder, Integer.to_string(placeholder_index)}, acc}
+
+          {^key, value} ->
+            {key, [value | acc]}
+
+          false ->
+            {nil, acc}
+        end
+      end)
+    end)
+  end
+
   @doc false
   def autogenerate(Ecto.UUID), do: Ecto.UUID.generate()
   def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
