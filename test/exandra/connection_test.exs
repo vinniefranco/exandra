@@ -846,7 +846,7 @@ defmodule Exandra.ConnectionTest do
        ]}
 
     assert_raise ArgumentError,
-                 "you must define at least one primary, partition, or clustering key",
+                 "you must define at least one primary, or clustering key",
                  fn ->
                    execute_ddl(create)
                  end
@@ -883,6 +883,29 @@ defmodule Exandra.ConnectionTest do
            {:add, :race_year, :integer, [primary_key: true]},
            {:add, :race_name, :text, [primary_key: true]},
            {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, [cluster_key: true]}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               PRIMARY KEY ((race_year, race_name), rank))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "deprecated partition_key option still works" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true]},
+           {:add, :race_name, :text, [primary_key: true]},
+           {:add, :cyclist_name, :text, []},
            {:add, :rank, :integer, [partition_key: true]}
          ]}
 
@@ -906,7 +929,7 @@ defmodule Exandra.ConnectionTest do
            {:add, :race_year, :integer, [primary_key: true, primary_key_order: 1]},
            {:add, :race_name, :text, [primary_key: true, primary_key_order: 0]},
            {:add, :cyclist_name, :text, []},
-           {:add, :rank, :integer, [partition_key: true]}
+           {:add, :rank, :integer, [cluster_key: true]}
          ]}
 
       assert execute_ddl(create) == [
@@ -923,6 +946,31 @@ defmodule Exandra.ConnectionTest do
     end
 
     test "supports composite primary key with ordering in parition definition" do
+      create =
+        {:create, table(:cycling),
+         [
+           {:add, :race_year, :integer, [primary_key: true, primary_key_order: 1]},
+           {:add, :race_name, :text, [primary_key: true, primary_key_order: 0]},
+           {:add, :cyclist_name, :text, []},
+           {:add, :rank, :integer, [cluster_key: true, cluster_key_order: 1]},
+           {:add, :region, :text, [cluster_key: true, cluster_key_order: 0]}
+         ]}
+
+      assert execute_ddl(create) == [
+               """
+               CREATE TABLE cycling
+               (race_year int,
+               race_name text,
+               cyclist_name text,
+               rank int,
+               region text,
+               PRIMARY KEY ((race_name, race_year), region, rank))
+               """
+               |> remove_newlines
+             ]
+    end
+
+    test "supports deprecated partition key with ordering in parition definition" do
       create =
         {:create, table(:cycling),
          [
@@ -1038,7 +1086,7 @@ defmodule Exandra.ConnectionTest do
     create =
       {:create, table(:posts),
        [
-         {:add, :published_at, :naive_datetime, [precision: 3, partition_key: true]},
+         {:add, :published_at, :naive_datetime, [precision: 3, cluster_key: true]},
          {:add, :submitted_at, :naive_datetime, [primary_key: true]}
        ]}
 

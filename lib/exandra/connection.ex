@@ -802,18 +802,30 @@ defmodule Exandra.Connection do
 
   defp key_definitions(columns) do
     primary_keys = columns_with_opts(columns, :primary_key)
-    partition_keys = columns_with_opts(columns, :partition_key)
+    clustering_keys = clustering_keys_with_options(columns)
 
-    if [[], []] == [primary_keys, partition_keys] do
-      raise ArgumentError, "you must define at least one primary, partition, or clustering key"
+    if [[], []] == [primary_keys, clustering_keys] do
+      raise ArgumentError, "you must define at least one primary, or clustering key"
     end
 
-    case {primary_keys, partition_keys} do
+    case {primary_keys, clustering_keys} do
       {primary_keys, []} when primary_keys != [] ->
         "PRIMARY KEY (#{key_join(primary_keys)})"
 
       _ ->
-        "PRIMARY KEY ((#{key_join(primary_keys)}), #{key_join(partition_keys)})"
+        "PRIMARY KEY ((#{key_join(primary_keys)}), #{key_join(clustering_keys)})"
+    end
+  end
+
+  defp clustering_keys_with_options(columns) do
+    partition_keys = columns_with_opts(columns, :partition_key)
+
+    if Enum.empty?(partition_keys) do
+      columns_with_opts(columns, :cluster_key)
+    else
+      IO.warn(":partition_key is deprecated, use :cluster_key instead")
+
+      partition_keys
     end
   end
 
@@ -824,7 +836,11 @@ defmodule Exandra.Connection do
           Enum.sort_by(keys, fn key -> key.opts[:primary_key_order] end)
 
         opts[:partition_key_order] ->
+          IO.warn(":partition_key_order is deprecated, use :cluster_key_order instead")
           Enum.sort_by(keys, fn key -> key.opts[:partition_key_order] end)
+
+        opts[:cluster_key_order] ->
+          Enum.sort_by(keys, fn key -> key.opts[:cluster_key_order] end)
 
         true ->
           keys
