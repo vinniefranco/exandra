@@ -237,8 +237,12 @@ defmodule Exandra.Connection do
   end
 
   @impl Ecto.Adapters.SQL.Connection
-  def update(prefix, table, fields, filters, _returning) do
-    "UPDATE #{quote_table(prefix, table)} SET #{set(fields)} WHERE #{where(filters)}"
+  def update(prefix, table, fields, filters, returning) do
+    update(prefix, table, fields, filters, returning, [])
+  end
+
+  def update(prefix, table, fields, filters, _returning, opts) do
+    "UPDATE #{quote_table(prefix, table)} SET #{set(fields)} WHERE #{where(filters)} #{update_suffix(opts)}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -425,6 +429,16 @@ defmodule Exandra.Connection do
 
       epoch_in_microseconds when is_number(epoch_in_microseconds) ->
         suffix ++ [" AND TIMESTAMP #{epoch_in_microseconds}"]
+    end
+  end
+
+  defp update_suffix(opts) do
+    case Keyword.get(opts, :allow_insert, true) do
+      true ->
+        []
+
+      _ ->
+        [" IF EXISTS"]
     end
   end
 
