@@ -27,6 +27,7 @@ exandra-*.tar
 
 # LSP
 .elixir-tools/
+/.lexical/
 
 # Nix flake
 /.direnv/
