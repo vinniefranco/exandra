@@ -91,7 +91,7 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _options ->
-        assert "UPDATE my_schema SET my_counter = ? WHERE id = ?" = stmt
+        assert "UPDATE my_schema SET my_counter = ? WHERE id = ? " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -103,6 +103,32 @@ defmodule Exandra.QueryingTest do
         [:my_counter]
       )
       |> TestRepo.update()
+    end
+
+    test "update with options" do
+      uuid = Ecto.UUID.generate()
+
+      XandraMock
+      |> expect(:execute, fn _conn, _stmt, values, _adapter ->
+        assert values == [5, Ecto.UUID.dump!(uuid)]
+        {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _options ->
+        assert "UPDATE my_schema SET my_counter = ? WHERE id = ?  IF EXISTS" = stmt
+        {:ok, %Xandra.Prepared{}}
+      end)
+
+      record = %MySchema{id: uuid, my_counter: 4}
+
+      record
+      |> Ecto.Changeset.cast(
+        %{my_counter: 5},
+        [:my_counter]
+      )
+      |> TestRepo.update(allow_insert: false)
     end
   end
 

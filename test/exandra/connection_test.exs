@@ -35,8 +35,8 @@ defmodule Exandra.ConnectionTest do
     IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
   end
 
-  defp update(prefx, table, fields, filter, returning) do
-    IO.iodata_to_binary(SQL.update(prefx, table, fields, filter, returning))
+  defp update(prefx, table, fields, filter, returning, opts \\ []) do
+    IO.iodata_to_binary(SQL.update(prefx, table, fields, filter, returning, opts))
   end
 
   defp delete(prefx, table, filter, returning) do
@@ -650,10 +650,10 @@ defmodule Exandra.ConnectionTest do
 
   test "update" do
     query = update(nil, "schema", [:id], [x: 1, y: 2], [])
-    assert query == ~s{UPDATE schema SET id = ? WHERE x = ? AND y = ?}
+    assert query == ~s{UPDATE schema SET id = ? WHERE x = ? AND y = ? }
 
-    query = update("prefix", "schema", [:id], [x: 1, y: 2], [])
-    assert query == ~s{UPDATE prefix.schema SET id = ? WHERE x = ? AND y = ?}
+    query = update("prefix", "schema", [:id], [x: 1, y: 2], [], allow_insert: false)
+    assert query == ~s{UPDATE prefix.schema SET id = ? WHERE x = ? AND y = ?  IF EXISTS}
   end
 
   test "delete" do

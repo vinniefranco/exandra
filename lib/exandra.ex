@@ -432,6 +432,27 @@ defmodule Exandra do
     end)
   end
 
+  @impl Ecto.Adapter.Schema
+  def update(adapter_meta, schema_meta, fields, params, returning, opts) do
+    %{source: source, prefix: prefix} = schema_meta
+    {fields, field_values} = :lists.unzip(fields)
+    filter_values = Keyword.values(params)
+    sql = @conn.update(prefix, source, fields, params, returning, opts)
+
+    Ecto.Adapters.SQL.struct(
+      adapter_meta,
+      @conn,
+      sql,
+      :update,
+      source,
+      params,
+      field_values ++ filter_values,
+      :raise,
+      returning,
+      opts
+    )
+  end
+
   @doc false
   def autogenerate(Ecto.UUID), do: Ecto.UUID.generate()
   def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
