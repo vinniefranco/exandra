@@ -1,0 +1,414 @@
+13:52:15.321 [debug] Child {LoggerFileBackend, :general_log} of Supervisor Logger.Backends.Supervisor started
+Pid: #PID<0.114.0>
+Start Call: Logger.Backends.Watcher.start_link({{LoggerFileBackend, :general_log}, {LoggerFileBackend, :general_log}})
+Restart: :transient
+Shutdown: 5000
+Type: :worker
+13:52:15.322 [info] Child Logger.Backends.Supervisor of Supervisor Logger.Backends.Internal started
+Pid: #PID<0.113.0>
+Start Call: Logger.Backends.Supervisor.start_link([{LoggerFileBackend, :general_log}])
+Restart: :permanent
+Shutdown: :infinity
+Type: :supervisor
+13:52:15.322 [info] Child Logger.Backends.Internal of Supervisor Logger.Supervisor started
+Pid: #PID<0.109.0>
+Start Call: Logger.Backends.Internal.start_link([])
+Restart: :permanent
+Shutdown: :infinity
+Type: :supervisor
+13:52:15.322 [info] Application logger started at :nonode@nohost
+13:52:16.103 [info] Child :ttb_autostart of Supervisor :runtime_tools_sup started
+Pid: #PID<0.1480.0>
+Start Call: :ttb_autostart.start_link()
+Restart: :temporary
+Shutdown: 3000
+Type: :worker
+13:52:16.103 [info] Application runtime_tools started at :nonode@nohost
+13:52:16.104 [info] Application erts started at :nonode@nohost
+13:52:16.104 [info] Application lx_lexical_shared started at :nonode@nohost
+13:52:16.105 [info] Child LXSnowflake.Generator of Supervisor #PID<0.1483.0> (Supervisor.Default) started
+Pid: #PID<0.1484.0>
+Start Call: LXSnowflake.Generator.start_link(1704070800000, 1)
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.105 [info] Application lx_snowflake started at :nonode@nohost
+13:52:16.105 [info] Application lx_sourceror started at :nonode@nohost
+13:52:16.105 [info] Application lx_common started at :nonode@nohost
+13:52:16.105 [info] Application lx_elixir_sense started at :nonode@nohost
+13:52:16.107 [info] Application jason started at :nonode@nohost
+13:52:16.107 [info] Application logger_file_backend started at :nonode@nohost
+13:52:16.107 [info] Application lx_path_glob started at :nonode@nohost
+13:52:16.107 [info] Application lx_proto started at :nonode@nohost
+13:52:16.107 [info] Application lx_protocol started at :nonode@nohost
+13:52:16.117 [info] Child LXical.Document.Store of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1488.0>
+Start Call: LXical.Document.Store.start_link([derive: [analysis: &LXical.Ast.analyze/1]])
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.119 [info] Child LXical.Server of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1489.0>
+Start Call: LXical.Server.start_link([])
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.120 [info] Child LXical.Server.ProjectSupervisor of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1490.0>
+Start Call: DynamicSupervisor.start_link([name: LXical.Server.ProjectSupervisor, strategy: :one_for_one])
+Restart: :permanent
+Shutdown: :infinity
+Type: :supervisor
+13:52:16.120 [info] Child LXical.Server.TaskQueue.State.TaskSupervisor of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1491.0>
+Start Call: Task.Supervisor.start_link([name: LXical.Server.TaskQueue.State.TaskSupervisor])
+Restart: :permanent
+Shutdown: :infinity
+Type: :supervisor
+13:52:16.120 [info] Child LXical.Server.TaskQueue of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1492.0>
+Start Call: LXical.Server.TaskQueue.start_link([])
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.120 [info] Child LXical.Server.Transport.StdIO of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1493.0>
+Start Call: LXical.Server.Transport.StdIO.start_link(:standard_io, &LXical.Server.protocol_message/1)
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.120 [info] Application lx_server started at :nonode@nohost
+13:52:16.136 [info] Starting project at uri file:///home/vinnie/exandra
+13:52:16.148 [info] Child {LXical.Server.Project.Progress, "exandra"} of Supervisor :"exandra::supervisor" started
+Pid: #PID<0.1495.0>
+Start Call: LXical.Server.Project.Progress.start_link(%LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896})
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.151 [info] Child {LXical.RemoteControl.ProjectNodeSupervisor, "exandra"} of Supervisor :"exandra::supervisor" started
+Pid: #PID<0.1496.0>
+Start Call: LXical.RemoteControl.ProjectNodeSupervisor.start_link(%LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896})
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.161 [info] Child :erl_epmd of Supervisor :net_sup started
+Pid: #PID<0.1499.0>
+Start Call: :erl_epmd.start_link()
+Restart: :permanent
+Shutdown: 2000
+Type: :worker
+13:52:16.163 [info] Child :auth of Supervisor :net_sup started
+Pid: #PID<0.1500.0>
+Start Call: :auth.start_link()
+Restart: :permanent
+Shutdown: 2000
+Type: :worker
+13:52:16.166 [info] Child :net_kernel of Supervisor :net_sup started
+Pid: #PID<0.1501.0>
+Start Call: :net_kernel.start_link(%{name: :"manager-exandra-26896@127.0.0.1", supervisor: :net_sup_dynamic, name_domain: :longnames, clean_halt: false})
+Restart: :permanent
+Shutdown: 2000
+Type: :worker
+13:52:16.166 [debug] Child :net_sup_dynamic of Supervisor :kernel_sup started
+Pid: #PID<0.1498.0>
+Start Call: :erl_distribution.start_link(%{name: :"manager-exandra-26896@127.0.0.1", supervisor: :net_sup_dynamic, name_domain: :longnames, clean_halt: false})
+Restart: :permanent
+Shutdown: 1000
+Type: :supervisor
+13:52:16.177 [error] GenServer :"exandra::node_process" terminating
+** (MatchError) no match of right hand side value: {:error, :no_elixir}
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/port.ex:25: LXical.RemoteControl.Port.open_elixir/2
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:43: LXical.RemoteControl.ProjectNode.State.start/3
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:161: LXical.RemoteControl.ProjectNode.handle_call/3
+    (stdlib 6.2.2.1) gen_server.erl:2381: :gen_server.try_handle_call/4
+    (stdlib 6.2.2.1) gen_server.erl:2410: :gen_server.handle_msg/6
+    (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Last message (from :"exandra::node"): {:start, [~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/priv", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_common.ez/lx_common/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_elixir_sense.ez/lx_elixir_sense/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_plugin.ez/lx_lexical_plugin/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_shared.ez/lx_lexical_shared/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_path_glob.ez/lx_path_glob/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_remote_control.ez/lx_remote_control/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_snowflake.ez/lx_snowflake/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_sourceror.ez/lx_sourceror/ebin"]}
+State: %LXical.RemoteControl.ProjectNode.State{project: %LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896}, port: nil, cookie: :lexical, stopped_by: nil, stop_timeout: nil, started_by: nil, status: :initializing}
+Client :"exandra::node" is alive
+
+    (stdlib 6.2.2.1) gen.erl:260: :gen.do_call/4
+    (elixir 1.18.4) lib/gen_server.ex:1125: GenServer.call/3
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:116: LXical.RemoteControl.ProjectNode.start/2
+    (lx_remote_control 0.7.2) lib/lexical/remote_control.ex:72: LXical.RemoteControl.start_link/1
+    (lx_server 0.7.2) lib/lexical/server/project/node.ex:94: LXical.Server.Project.Node.start_node/1
+    (lx_server 0.7.2) lib/lexical/server/project/progress/support.ex:18: LXical.Server.Project.Progress.Support.with_progress/3
+    (lx_server 0.7.2) lib/lexical/server/project/node.ex:52: LXical.Server.Project.Node.init/1
+    (stdlib 6.2.2.1) gen_server.erl:2229: :gen_server.init_it/2
+13:52:16.183 [error] Process :"exandra::node_process" (#PID<0.1504.0>) terminating
+** (MatchError) no match of right hand side value: {:error, :no_elixir}
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/port.ex:25: LXical.RemoteControl.Port.open_elixir/2
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:43: LXical.RemoteControl.ProjectNode.State.start/3
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:161: LXical.RemoteControl.ProjectNode.handle_call/3
+    (stdlib 6.2.2.1) gen_server.erl:2381: :gen_server.try_handle_call/4
+    (stdlib 6.2.2.1) gen_server.erl:2410: :gen_server.handle_msg/6
+    (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Initial Call: LXical.RemoteControl.ProjectNode.init/1
+Ancestors: [LXical.RemoteControl.ProjectNodeSupervisor, :"exandra::supervisor", LXical.Server.ProjectSupervisor, LXical.Server.Supervisor, #PID<0.1486.0>]
+Message Queue Length: 0
+Messages: []
+Links: [#PID<0.1496.0>]
+Dictionary: []
+Trapping Exits: true
+Status: :running
+Heap Size: 6772
+Stack Size: 29
+Reductions: 87234
+13:52:16.183 [error] Process #PID<0.1497.0> terminating
+** (exit) exited in: GenServer.call(:"exandra::node_process", {:start, [~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/priv", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_common.ez/lx_common/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_elixir_sense.ez/lx_elixir_sense/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_plugin.ez/lx_lexical_plugin/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_shared.ez/lx_lexical_shared/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_path_glob.ez/lx_path_glob/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_remote_control.ez/lx_remote_control/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_snowflake.ez/lx_snowflake/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_sourceror.ez/lx_sourceror/ebin"]}, 3500)
+    ** (EXIT) an exception was raised:
+        ** (MatchError) no match of right hand side value: {:error, :no_elixir}
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/port.ex:25: LXical.RemoteControl.Port.open_elixir/2
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:43: LXical.RemoteControl.ProjectNode.State.start/3
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:161: LXical.RemoteControl.ProjectNode.handle_call/3
+            (stdlib 6.2.2.1) gen_server.erl:2381: :gen_server.try_handle_call/4
+            (stdlib 6.2.2.1) gen_server.erl:2410: :gen_server.handle_msg/6
+            (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+    (elixir 1.18.4) lib/gen_server.ex:1128: GenServer.call/3
+    (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:116: LXical.RemoteControl.ProjectNode.start/2
+    (lx_remote_control 0.7.2) lib/lexical/remote_control.ex:72: LXical.RemoteControl.start_link/1
+    (lx_server 0.7.2) lib/lexical/server/project/node.ex:94: LXical.Server.Project.Node.start_node/1
+    (lx_server 0.7.2) lib/lexical/server/project/progress/support.ex:18: LXical.Server.Project.Progress.Support.with_progress/3
+    (lx_server 0.7.2) lib/lexical/server/project/node.ex:52: LXical.Server.Project.Node.init/1
+    (stdlib 6.2.2.1) gen_server.erl:2229: :gen_server.init_it/2
+    (stdlib 6.2.2.1) gen_server.erl:2184: :gen_server.init_it/6
+Initial Call: LXical.Server.Project.Node.init/1
+Ancestors: [:"exandra::supervisor", LXical.Server.ProjectSupervisor, LXical.Server.Supervisor, #PID<0.1486.0>]
+Message Queue Length: 0
+Messages: []
+Links: [#PID<0.1494.0>]
+Dictionary: []
+Trapping Exits: false
+Status: :running
+Heap Size: 6772
+Stack Size: 29
+Reductions: 194198
+13:52:16.183 [error] Child :undefined of Supervisor LXical.RemoteControl.ProjectNodeSupervisor terminated
+** (exit) an exception was raised:
+    ** (MatchError) no match of right hand side value: {:error, :no_elixir}
+        (lx_remote_control 0.7.2) lib/lexical/remote_control/port.ex:25: LXical.RemoteControl.Port.open_elixir/2
+        (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:43: LXical.RemoteControl.ProjectNode.State.start/3
+        (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:161: LXical.RemoteControl.ProjectNode.handle_call/3
+        (stdlib 6.2.2.1) gen_server.erl:2381: :gen_server.try_handle_call/4
+        (stdlib 6.2.2.1) gen_server.erl:2410: :gen_server.handle_msg/6
+        (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Pid: #PID<0.1504.0>
+Start Call: LXical.RemoteControl.ProjectNode.start_link(%LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896})
+Restart: :transient
+Shutdown: 5000
+Type: :worker
+13:52:16.184 [error] Child {LXical.Server.Project.Node, "exandra"} of Supervisor :"exandra::supervisor" failed to start
+** (exit) exited in: GenServer.call(:"exandra::node_process", {:start, [~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/priv", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_common.ez/lx_common/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_elixir_sense.ez/lx_elixir_sense/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_plugin.ez/lx_lexical_plugin/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_lexical_shared.ez/lx_lexical_shared/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_path_glob.ez/lx_path_glob/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_remote_control.ez/lx_remote_control/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_snowflake.ez/lx_snowflake/ebin", ~c"/nix/store/rndw9zsrcwyqiw5s913dqzxkf5iypf4s-lexical-0.7.3/lib/lx_sourceror.ez/lx_sourceror/ebin"]}, 3500)
+    ** (EXIT) an exception was raised:
+        ** (MatchError) no match of right hand side value: {:error, :no_elixir}
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/port.ex:25: LXical.RemoteControl.Port.open_elixir/2
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:43: LXical.RemoteControl.ProjectNode.State.start/3
+            (lx_remote_control 0.7.2) lib/lexical/remote_control/project_node.ex:161: LXical.RemoteControl.ProjectNode.handle_call/3
+            (stdlib 6.2.2.1) gen_server.erl:2381: :gen_server.try_handle_call/4
+            (stdlib 6.2.2.1) gen_server.erl:2410: :gen_server.handle_msg/6
+            (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Start Call: LXical.Server.Project.Node.start_link(%LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896})
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:16.186 [info] Lexical Initialized
+13:52:16.186 [info] opened file:///home/vinnie/exandra/mix.exs
+13:52:16.193 [info] Child of Supervisor :inet_gethost_native_sup started
+Pid: #PID<0.1508.0>
+Start Call: :inet_gethost_native.init([])
+13:52:16.193 [debug] Child :inet_gethost_native_sup of Supervisor :kernel_safe_sup started
+Pid: #PID<0.1507.0>
+Start Call: :inet_gethost_native.start_link()
+Restart: :temporary
+Shutdown: 1000
+Type: :worker
+13:52:16.195 [error] ** (ErlangError) Erlang error: {:erpc, :noconnection}
+    (kernel 10.2.7.1) erpc.erl:1376: :erpc.call/5
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:16: LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:16.195 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  5 ms. Result :success
+13:52:17.072 [error] GenServer LXical.Server terminating
+** (stop) {:erpc, :noconnection}
+    (kernel 10.2.7.1) erpc.erl:1376: :erpc.call/5
+    (lx_server 0.7.2) lib/lexical/server/state.ex:164: LXical.Server.State.apply/2
+    (lx_server 0.7.2) lib/lexical/server.ex:154: LXical.Server.apply_to_state/2
+    (lx_server 0.7.2) lib/lexical/server.ex:117: LXical.Server.handle_message/2
+    (lx_server 0.7.2) lib/lexical/server.ex:59: LXical.Server.handle_cast/2
+    (stdlib 6.2.2.1) gen_server.erl:2371: :gen_server.try_handle_cast/3
+    (stdlib 6.2.2.1) gen_server.erl:2433: :gen_server.handle_msg/6
+    (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Last message: {:"$gen_cast", {:protocol_message, %LXical.Protocol.Notifications.DidChange{lsp: %LXical.Protocol.Notifications.DidChange.LSP{jsonrpc: "2.0", method: "textDocument/didChange", content_changes: [#Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent<[text: "", range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 12]>, end: #Protocol.Types.Position<[line: 3, character: 13]>]>, range_length: 1]>, #Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent<[text: "1", range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 12]>, end: #Protocol.Types.Position<[line: 3, character: 12]>]>, range_length: 0]>, #Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent<[text: "", range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 19]>, end: #Protocol.Types.Position<[line: 3, character: 19]>]>, range_length: 0]>], text_document: #Protocol.Types.TextDocument.Versioned.Identifier<[version: 5, uri: "file:///home/vinnie/exandra/mix.exs"]>}, document: nil, jsonrpc: "2.0", method: "textDocument/didChange", content_changes: nil, text_document: nil}}}
+State: %LXical.Server.State{configuration: %LXical.Server.Configuration{project: %LXical.Project{root_uri: "file:///home/vinnie/exandra", mix_exs_uri: "file:///home/vinnie/exandra/mix.exs", mix_project?: true, mix_env: nil, mix_target: nil, env_variables: %{}, project_module: nil, entropy: 26896}, support: %LXical.Server.Configuration.Support{code_action_dynamic_registration: true, hierarchical_symbols: true, snippet: true, deprecated: true, tags: #Protocol.Types.Completion.ClientCapabilities.TagSupport<[value_set: [:deprecated]]>, signature_help: #Protocol.Types.SignatureHelp.ClientCapabilities<[dynamic_registration: false, signature_information: #Protocol.Types.SignatureHelp.ClientCapabilities.SignatureInformation<[documentation_format: [:markdown, :plain_text], active_parameter_support: true, parameter_information: #Protocol.Types.SignatureHelp.ClientCapabilities.ParameterInformation<[label_offset_support: true]>]>]>, work_done_progress: true}, client_name: "Neovim", additional_watched_extensions: nil, dialyzer_enabled?: false}, initialized?: true, shutdown_received?: false, in_flight_requests: %{}}
+13:52:17.076 [error] Process LXical.Server (#PID<0.1489.0>) terminating
+** (ErlangError) Erlang error: {:erpc, :noconnection}
+    (kernel 10.2.7.1) erpc.erl:1376: :erpc.call/5
+    (lx_server 0.7.2) lib/lexical/server/state.ex:164: LXical.Server.State.apply/2
+    (lx_server 0.7.2) lib/lexical/server.ex:154: LXical.Server.apply_to_state/2
+    (lx_server 0.7.2) lib/lexical/server.ex:117: LXical.Server.handle_message/2
+    (lx_server 0.7.2) lib/lexical/server.ex:59: LXical.Server.handle_cast/2
+    (stdlib 6.2.2.1) gen_server.erl:2371: :gen_server.try_handle_cast/3
+    (stdlib 6.2.2.1) gen_server.erl:2433: :gen_server.handle_msg/6
+    (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Initial Call: LXical.Server.init/1
+Ancestors: [LXical.Server.Supervisor, #PID<0.1486.0>]
+Message Queue Length: 0
+Messages: []
+Links: [#PID<0.1487.0>]
+Dictionary: [rand_seed: {%{type: :exsss, next: #Function<0.40079776/1 in :rand.exsss_next>, bits: 58, uniform: #Function<1.40079776/1 in :rand.exsss_uniform>, uniform_n: #Function<2.40079776/2 in :rand.exsss_uniform>, jump: #Function<3.40079776/1 in :rand.exsplus_jump>}, [96913661714867068 | 138394378487484806]}]
+Trapping Exits: false
+Status: :running
+Heap Size: 4185
+Stack Size: 29
+Reductions: 30070
+13:52:17.076 [error] Child LXical.Server of Supervisor LXical.Server.Supervisor terminated
+** (exit) an exception was raised:
+    ** (ErlangError) Erlang error: {:erpc, :noconnection}
+        (kernel 10.2.7.1) erpc.erl:1376: :erpc.call/5
+        (lx_server 0.7.2) lib/lexical/server/state.ex:164: LXical.Server.State.apply/2
+        (lx_server 0.7.2) lib/lexical/server.ex:154: LXical.Server.apply_to_state/2
+        (lx_server 0.7.2) lib/lexical/server.ex:117: LXical.Server.handle_message/2
+        (lx_server 0.7.2) lib/lexical/server.ex:59: LXical.Server.handle_cast/2
+        (stdlib 6.2.2.1) gen_server.erl:2371: :gen_server.try_handle_cast/3
+        (stdlib 6.2.2.1) gen_server.erl:2433: :gen_server.handle_msg/6
+        (stdlib 6.2.2.1) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Pid: #PID<0.1489.0>
+Start Call: LXical.Server.start_link([])
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:17.076 [info] Child LXical.Server of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1513.0>
+Start Call: LXical.Server.start_link([])
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:17.147 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 3, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 12]>, end: #Protocol.Types.Position<[line: 3, character: 12]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 13>>...<<4, 13>>], id: 3, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:17.147 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  4 ms. Result :success
+13:52:17.754 [error] Received textDocument/didChange before server was initialized
+13:52:17.755 [error] Failed to handle Elixir.LXical.Protocol.Notifications.DidChange, {{:error, :not_initialized}, %LXical.Server.State{configuration: nil, initialized?: false, shutdown_received?: false, in_flight_requests: %{}}}
+13:52:17.755 [error] Could not handle message LXical.Protocol.Notifications.DidChange :ok
+13:52:17.994 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 4, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 0]>, end: #Protocol.Types.Position<[line: 3, character: 0]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 1>>...<<4, 1>>], id: 4, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:17.994 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  1 ms. Result :success
+13:52:18.423 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 5, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 1]>, end: #Protocol.Types.Position<[line: 3, character: 1]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 2>>...<<4, 2>>], id: 5, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:18.423 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  1 ms. Result :success
+13:52:19.500 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 6, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 14]>, end: #Protocol.Types.Position<[line: 3, character: 14]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 15>>...<<4, 15>>], id: 6, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:19.500 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  1 ms. Result :success
+13:52:19.882 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 7, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 15]>, end: #Protocol.Types.Position<[line: 3, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 16>>...<<4, 16>>], id: 7, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:19.882 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  1 ms. Result :success
+13:52:20.178 [error] Received textDocument/didChange before server was initialized
+13:52:20.179 [error] Failed to handle Elixir.LXical.Protocol.Notifications.DidChange, {{:error, :not_initialized}, %LXical.Server.State{configuration: nil, initialized?: false, shutdown_received?: false, in_flight_requests: %{}}}
+13:52:20.179 [error] Could not handle message LXical.Protocol.Notifications.DidChange :ok
+13:52:20.328 [error] Received textDocument/didChange before server was initialized
+13:52:20.329 [error] Failed to handle Elixir.LXical.Protocol.Notifications.DidChange, {{:error, :not_initialized}, %LXical.Server.State{configuration: nil, initialized?: false, shutdown_received?: false, in_flight_requests: %{}}}
+13:52:20.329 [error] Could not handle message LXical.Protocol.Notifications.DidChange :ok
+13:52:20.403 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 8, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 15]>, end: #Protocol.Types.Position<[line: 3, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 16>>...<<4, 16>>], id: 8, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:20.403 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  2 ms. Result :success
+13:52:20.754 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.Formatting.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/formatting.ex:10: LXical.Server.Provider.Handlers.Formatting.handle(%LXical.Protocol.Requests.Formatting{lsp: %LXical.Protocol.Requests.Formatting.LSP{id: 9, jsonrpc: "2.0", method: "textDocument/formatting", options: #Protocol.Types.Formatting.Options<[insert_spaces: true, tab_size: 2]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, id: 9, jsonrpc: "2.0", method: "textDocument/formatting", options: #Protocol.Types.Formatting.Options<[insert_spaces: true, tab_size: 2]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:20.754 [warning] Task Elixir.LXical.Server.Provider.Handlers.Formatting.handle/2 ran for  9 ms. Result :success
+13:52:20.774 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.Completion.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/completion.ex:13: LXical.Server.Provider.Handlers.Completion.handle(%LXical.Protocol.Requests.Completion{lsp: %LXical.Protocol.Requests.Completion.LSP{id: 10, jsonrpc: "2.0", method: "textDocument/completion", context: #Protocol.Types.Completion.Context<[trigger_kind: :invoked]>, partial_result_token: nil, position: #Protocol.Types.Position<[line: 3, character: 15]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, position: LxPos<<4, 16>>, id: 10, jsonrpc: "2.0", method: "textDocument/completion", context: #Protocol.Types.Completion.Context<[trigger_kind: :invoked]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:20.774 [warning] Task Elixir.LXical.Server.Provider.Handlers.Completion.handle/2 ran for  4 ms. Result :success
+13:52:20.788 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.Formatting.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/formatting.ex:10: LXical.Server.Provider.Handlers.Formatting.handle(%LXical.Protocol.Requests.Formatting{lsp: %LXical.Protocol.Requests.Formatting.LSP{id: 11, jsonrpc: "2.0", method: "textDocument/formatting", options: #Protocol.Types.Formatting.Options<[insert_spaces: true, tab_size: 2]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, id: 11, jsonrpc: "2.0", method: "textDocument/formatting", options: #Protocol.Types.Formatting.Options<[insert_spaces: true, tab_size: 2]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:20.788 [warning] Task Elixir.LXical.Server.Provider.Handlers.Formatting.handle/2 ran for  1 ms. Result :success
+13:52:20.791 [error] Received textDocument/didSave before server was initialized
+13:52:20.792 [error] Failed to handle Elixir.LXical.Protocol.Notifications.DidSave, {{:error, :not_initialized}, %LXical.Server.State{configuration: nil, initialized?: false, shutdown_received?: false, in_flight_requests: %{}}}
+13:52:20.792 [error] Could not handle message LXical.Protocol.Notifications.DidSave :ok
+13:52:21.003 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 12, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 3, character: 15]>, end: #Protocol.Types.Position<[line: 3, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<4, 16>>...<<4, 16>>], id: 12, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:21.004 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  2 ms. Result :success
+13:52:21.817 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 13, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 4, character: 0]>, end: #Protocol.Types.Position<[line: 4, character: 0]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<5, 1>>...<<5, 1>>], id: 13, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:21.817 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  2 ms. Result :success
+13:52:22.836 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 14, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 15, character: 15]>, end: #Protocol.Types.Position<[line: 15, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<16, 16>>...<<16, 16>>], id: 14, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:22.836 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  6 ms. Result :success
+13:52:24.023 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 15, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 51, character: 15]>, end: #Protocol.Types.Position<[line: 51, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<52, 16>>...<<52, 16>>], id: 15, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:24.023 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  2 ms. Result :success
+13:52:24.964 [error] ** (FunctionClauseError) no function clause matching in LXical.Server.Provider.Handlers.CodeAction.handle/2
+    (lx_server 0.7.2) lib/lexical/server/provider/handlers/code_action.ex:12: LXical.Server.Provider.Handlers.CodeAction.handle(%LXical.Protocol.Requests.CodeAction{lsp: %LXical.Protocol.Requests.CodeAction.LSP{id: 16, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, range: #Protocol.Types.Range<[start: #Protocol.Types.Position<[line: 87, character: 15]>, end: #Protocol.Types.Position<[line: 87, character: 15]>]>, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, document: #LXical.Document<path: "/home/vinnie/exandra/mix.exs", version: 5, dirty?: true, lines: %Lines<"defmodule Exandra.MixProject do..."(100 lines)>, ...>, range: LxRange[<<88, 16>>...<<88, 16>>], id: 16, jsonrpc: "2.0", method: "textDocument/codeAction", context: #Protocol.Types.CodeAction.Context<[diagnostics: []]>, partial_result_token: nil, text_document: #Protocol.Types.TextDocument.Identifier<[uri: "file:///home/vinnie/exandra/mix.exs"]>, work_done_token: nil}, nil)
+    (lx_server 0.7.2) lib/lexical/server/task_queue.ex:79: anonymous fn/4 in LXical.Server.TaskQueue.State.as_task/2
+    (elixir 1.18.4) lib/task/supervised.ex:101: Task.Supervised.invoke_mfa/2
+    (elixir 1.18.4) lib/task/supervised.ex:36: Task.Supervised.reply/4
+
+13:52:24.964 [warning] Task Elixir.LXical.Server.Provider.Handlers.CodeAction.handle/2 ran for  1 ms. Result :success
+13:52:34.596 [error] Received shutdown before server was initialized
+13:52:34.597 [error] Failed to handle Elixir.LXical.Protocol.Requests.Shutdown, {{:error, :not_initialized}, %LXical.Server.State{configuration: nil, initialized?: false, shutdown_received?: false, in_flight_requests: %{}}}
+13:52:34.597 [error] Could not handle message LXical.Protocol.Requests.Shutdown :ok
+13:52:34.610 [error] stdio received :eof, server will stop.
+13:52:34.610 [error] Child LXical.Server.Transport.StdIO of Supervisor LXical.Server.Supervisor terminated
+** (exit) normal
+Pid: #PID<0.1493.0>
+Start Call: LXical.Server.Transport.StdIO.start_link(:standard_io, &LXical.Server.protocol_message/1)
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+13:52:34.610 [info] Child LXical.Server.Transport.StdIO of Supervisor LXical.Server.Supervisor started
+Pid: #PID<0.1528.0>
+Start Call: LXical.Server.Transport.StdIO.start_link(:standard_io, &LXical.Server.protocol_message/1)
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
