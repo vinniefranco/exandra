@@ -1,7 +1,7 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
-  @version "0.15.0"
+  @version "0.16.0"
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
@@ -68,11 +68,11 @@ defmodule Exandra.MixProject do
   defp deps do
     [
       {:decimal, "~> 1.6 or ~> 2.0"},
-      {:ecto, "~> 3.12"},
-      {:ecto_sql, "~> 3.12"},
+      {:ecto, "~> 3.13"},
+      {:ecto_sql, "~> 3.13"},
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.0"},
-      {:xandra, "~> 0.19.0"},
+      {:xandra, "~> 0.19.4"},
 
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},

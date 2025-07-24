@@ -9,7 +9,7 @@ defmodule Exandra.QueryingTest do
   defmodule MySchema do
     use Ecto.Schema
 
-    @primary_key {:id, :binary_id, autogenerate: true}
+    @primary_key {:id, Ecto.UUID, autogenerate: true}
     schema "my_schema" do
       field :my_string, :string
       field :my_datetime, :utc_datetime
