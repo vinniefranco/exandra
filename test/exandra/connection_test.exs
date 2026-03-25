@@ -16,6 +16,7 @@ defmodule Exandra.ConnectionTest do
       field(:y, :integer)
       field(:z, :integer)
       field(:meta, :map)
+      field(:tags, {:array, :string})
     end
   end
 
@@ -579,6 +580,36 @@ defmodule Exandra.ConnectionTest do
     query = from(m in Schema, update: [set: [x: 0, y: 1], set: [z: 2]]) |> plan(:update_all)
 
     assert update_all(query) == ~s{UPDATE schema SET x = 0, y = 1, z = 2}
+  end
+
+  test "update all with inc" do
+    query = from(m in Schema, update: [inc: [x: 1]]) |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET x = x + 1}
+
+    query = from(m in Schema, update: [inc: [x: 1, y: -1]]) |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET x = x + 1, y = y + -1}
+  end
+
+  test "update all with push" do
+    query = from(m in Schema, update: [push: [tags: "cool"]]) |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET tags = tags + ['cool']}
+  end
+
+  test "update all with pull" do
+    query = from(m in Schema, update: [pull: [tags: "cool"]]) |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET tags = tags - ['cool']}
+  end
+
+  test "update all with mixed operations" do
+    query =
+      from(m in Schema, update: [set: [x: 0], inc: [y: 1], push: [tags: "new"]])
+      |> plan(:update_all)
+
+    assert update_all(query) == ~s{UPDATE schema SET x = 0, y = y + 1, tags = tags + ['new']}
   end
 
   test "update all with prefix" do

@@ -221,20 +221,37 @@ defmodule Exandra.IntegrationTest do
     } do
       start_supervised!({Exandra.TestRepo, start_opts})
 
-      TestRepo.query!("CREATE TABLE IF NOT EXISTS users (email varchar, PRIMARY KEY (email))")
-      TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["bob@example.com"])
-      TestRepo.query!("INSERT INTO users (email) VALUES (?)", ["meg@example.com"])
+      bobs_user_id = Ecto.UUID.generate()
+
+      TestRepo.query!("DROP TABLE IF EXISTS users")
+
+      TestRepo.query!(
+        "CREATE TABLE IF NOT EXISTS users (email varchar, user_id uuid, PRIMARY KEY (email))"
+      )
+
+      TestRepo.query!("INSERT INTO users (email, user_id) VALUES (?, ?)", [
+        "bob@example.com",
+        bobs_user_id
+      ])
+
+      TestRepo.query!("INSERT INTO users (email, user_id) VALUES (?, ?)", [
+        "meg@example.com",
+        Ecto.UUID.generate()
+      ])
 
       assert %Xandra.PageStream{} = stream = Exandra.stream!(TestRepo, "SELECT * FROM users", [])
 
-      emails =
+      records =
         Enum.flat_map(
           stream,
-          fn page -> Enum.map(page, & &1["email"]) end
+          fn page -> Enum.map(page, &%{email: &1["email"], user_id: &1["user_id"]}) end
         )
 
-      assert "bob@example.com" in emails
-      assert "meg@example.com" in emails
+      assert %{} = Enum.find(records, &(&1.email == "meg@example.com"))
+      {:ok, bobs_user_id_binary} = Ecto.UUID.dump(bobs_user_id)
+
+      assert %{user_id: ^bobs_user_id_binary} =
+               Enum.find(records, &(&1.email == "bob@example.com"))
     end
 
     test "passes the given options to Xandra.prepare!/4 and Xandra.execute!/4", %{
@@ -474,6 +491,84 @@ defmodule Exandra.IntegrationTest do
         select: s.id
 
     assert query |> TestRepo.all() |> is_list()
+  end
+
+  test "update_all with inc on counter", %{start_opts: start_opts} do
+    start_supervised!({TestRepo, start_opts})
+
+    counter_id = Ecto.UUID.generate()
+
+    query =
+      from c in CounterSchema,
+        update: [inc: [my_counter: 5]],
+        where: c.id == ^counter_id
+
+    assert {1, _} = TestRepo.update_all(query, [])
+    assert TestRepo.get!(CounterSchema, counter_id).my_counter == 5
+
+    assert {1, _} = TestRepo.update_all(query, [])
+    assert TestRepo.get!(CounterSchema, counter_id).my_counter == 10
+
+    # Decrement with a negative value.
+    dec_query =
+      from c in CounterSchema,
+        update: [inc: [my_counter: -3]],
+        where: c.id == ^counter_id
+
+    assert {1, _} = TestRepo.update_all(dec_query, [])
+    assert TestRepo.get!(CounterSchema, counter_id).my_counter == 7
+  end
+
+  test "update_all with push and pull", %{start_opts: start_opts} do
+    start_supervised!({TestRepo, start_opts})
+
+    schema =
+      TestRepo.insert!(%Schema{
+        my_list: ["a", "b"],
+        my_integer: 0,
+        my_exandra_map: %{},
+        my_set: MapSet.new()
+      })
+
+    # Push a value onto the list.
+    query =
+      from s in Schema,
+        update: [push: [my_list: "c"]],
+        where: s.id == ^schema.id
+
+    assert {1, _} = TestRepo.update_all(query, [])
+    assert TestRepo.get!(Schema, schema.id).my_list == ["a", "b", "c"]
+
+    # Pull a value from the list.
+    query =
+      from s in Schema,
+        update: [pull: [my_list: "b"]],
+        where: s.id == ^schema.id
+
+    assert {1, _} = TestRepo.update_all(query, [])
+    assert TestRepo.get!(Schema, schema.id).my_list == ["a", "c"]
+  end
+
+  test "update_all with mixed operations", %{start_opts: start_opts} do
+    start_supervised!({TestRepo, start_opts})
+
+    schema =
+      TestRepo.insert!(%Schema{
+        my_integer: 1,
+        my_list: ["x"],
+        my_exandra_map: %{},
+        my_set: MapSet.new()
+      })
+
+    query =
+      from s in Schema,
+        update: [set: [my_integer: 100], push: [my_list: "y"]],
+        where: s.id == ^schema.id
+
+    assert {1, _} = TestRepo.update_all(query, [])
+    updated = TestRepo.get!(Schema, schema.id)
+    assert updated.my_integer == 100
+    assert updated.my_list == ["x", "y"]
   end
 
   test "UUID types are correctly loaded from the database", %{start_opts: start_opts} do

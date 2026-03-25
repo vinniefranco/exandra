@@ -1,8 +1,6 @@
-version: '3'
-
 services:
   cassandra:
-    image: cassandra:4.1
+    image: cassandra:5.0.7
     ports:
       - "9042:9042" # TCP connections
     environment:
@@ -19,7 +17,7 @@ services:
         max-size: 50m
 
   scylladb:
-    image: scylladb/scylla:5.2
+    image: scylladb/scylla:2026.1
     ports:
       - "9043:9042"
     command:

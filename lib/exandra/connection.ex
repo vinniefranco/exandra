@@ -267,6 +267,24 @@ defmodule Exandra.Connection do
     end)
   end
 
+  defp update_expression(query, {:inc, fields}) do
+    Enum.map_join(fields, ", ", fn {field, expr} ->
+      [quote_name(field), " = ", quote_name(field), " + ", expr(expr, _sources = [], query)]
+    end)
+  end
+
+  defp update_expression(query, {:push, fields}) do
+    Enum.map_join(fields, ", ", fn {field, expr} ->
+      [quote_name(field), " = ", quote_name(field), " + [", expr(expr, _sources = [], query), "]"]
+    end)
+  end
+
+  defp update_expression(query, {:pull, fields}) do
+    Enum.map_join(fields, ", ", fn {field, expr} ->
+      [quote_name(field), " = ", quote_name(field), " - [", expr(expr, _sources = [], query), "]"]
+    end)
+  end
+
   @impl Ecto.Adapters.SQL.Connection
   def delete(prefix, table, filters, _returning) do
     "DELETE FROM #{quote_table(prefix, table)} WHERE #{where(filters)}"
