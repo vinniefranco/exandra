@@ -103,10 +103,18 @@ defmodule Exandra.Connection do
 
   @impl Ecto.Adapters.SQL.Connection
   def prepare_execute(cluster, _name, stmt, params, opts) do
-    {prepare_opts, execute_opts} = split_prepare_and_execute_options(opts)
+    with {:ok, %Prepared{} = prepared} <- prepare(cluster, stmt, opts) do
+      execute(cluster, prepared, params, opts)
+    end
+  end
 
-    with {:ok, %Prepared{} = prepared} <- @xandra_cluster_mod.prepare(cluster, stmt, prepare_opts) do
-      execute(cluster, prepared, params, execute_opts)
+  @doc false
+  def prepare(cluster, stmt, opts) do
+    {prepare_opts, _} = split_prepare_and_execute_options(opts)
+
+    case fetch_conn(cluster) do
+      {:ok, conn} -> @xandra_mod.prepare(conn, stmt, prepare_opts)
+      :error -> @xandra_cluster_mod.prepare(cluster, stmt, prepare_opts)
     end
   end
 
@@ -115,21 +123,29 @@ defmodule Exandra.Connection do
     {_, execute_opts} = split_prepare_and_execute_options(opts)
     opts = remove_ecto_opts_for_xandra_execute_or_prepare(opts)
 
-    @xandra_cluster_mod.run(cluster, opts, fn conn ->
-      case @xandra_mod.execute(conn, query, params, execute_opts) do
-        {:ok, %Xandra.Void{}} ->
-          {:ok, query, %{rows: nil, num_rows: 1}}
+    case fetch_conn(cluster) do
+      {:ok, conn} ->
+        do_execute(conn, query, params, execute_opts)
 
-        {:ok, %Xandra.SchemaChange{}} ->
-          {:ok, query, %{rows: nil, num_rows: 1}}
+      :error ->
+        @xandra_cluster_mod.run(cluster, opts, &do_execute(&1, query, params, execute_opts))
+    end
+  end
 
-        {:ok, %Xandra.Page{} = page} ->
-          stream_pages(conn, query, params, execute_opts, page, %{rows: [], num_rows: 0})
+  defp do_execute(conn, query, params, execute_opts) do
+    case @xandra_mod.execute(conn, query, params, execute_opts) do
+      {:ok, %Xandra.Void{}} ->
+        {:ok, query, %{rows: nil, num_rows: 1}}
 
-        {:error, error} ->
-          {:error, error}
-      end
-    end)
+      {:ok, %Xandra.SchemaChange{}} ->
+        {:ok, query, %{rows: nil, num_rows: 1}}
+
+      {:ok, %Xandra.Page{} = page} ->
+        stream_pages(conn, query, params, execute_opts, page, %{rows: [], num_rows: 0})
+
+      {:error, error} ->
+        {:error, error}
+    end
   end
 
   defp stream_pages(conn, query, params, opts, page, acc) do
@@ -1106,4 +1122,25 @@ defmodule Exandra.Connection do
         Keyword.put(opts, :telemetry_metadata, xandra_meta)
     end
   end
+
+  def fetch_conn(cluster) do
+    case :erlang.get(key(cluster)) do
+      :undefined -> :error
+      conn -> {:ok, conn}
+    end
+  end
+
+  def put_conn(cluster, conn) do
+    Process.put(key(cluster), conn)
+  end
+
+  def reset_conn(cluster, previous_conn) do
+    if previous_conn do
+      put_conn(cluster, previous_conn)
+    else
+      Process.delete(key(cluster))
+    end
+  end
+
+  defp key(cluster), do: {__MODULE__, cluster}
 end
