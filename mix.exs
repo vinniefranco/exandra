@@ -80,7 +80,7 @@ defmodule Exandra.MixProject do
   defp aliases do
     [
       "test.cassandra": [&print_tests_banner(&1, :cassandra), "test"],
-      "test.scylla": [&print_tests_banner(&1, :scylla), "cmd EXANDRA_PORT=9043 mix test --color"],
+      "test.scylla": [&print_tests_banner(&1, :scylla), "cmd mix test --color"],
       "test.all": fn args ->
         Mix.Task.run(:"test.cassandra", args)
         Mix.Task.run(:"test.scylla", args)

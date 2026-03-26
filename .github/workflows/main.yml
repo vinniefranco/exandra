@@ -9,6 +9,7 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   MIX_ENV: test
+  EXANDRA_PORT: 9043
 
 jobs:
   test:
