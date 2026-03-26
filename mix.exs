@@ -1,7 +1,7 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
-  @version "0.16.0"
+  @version "0.17.0"
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
@@ -20,12 +20,6 @@ defmodule Exandra.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        "test.cassandra": :test,
-        "test.scylla": :test,
-        "test.all": :test,
-        "coveralls.html": :test
-      ],
       aliases: aliases(),
       xref: [exclude: [XandraClusterMock, XandraMock]],
       docs: [
@@ -86,7 +80,7 @@ defmodule Exandra.MixProject do
   defp aliases do
     [
       "test.cassandra": [&print_tests_banner(&1, :cassandra), "test"],
-      "test.scylla": [&print_tests_banner(&1, :scylla), "cmd EXANDRA_PORT=9043 mix test --color"],
+      "test.scylla": [&print_tests_banner(&1, :scylla), "cmd mix test --color"],
       "test.all": fn args ->
         Mix.Task.run(:"test.cassandra", args)
         Mix.Task.run(:"test.scylla", args)

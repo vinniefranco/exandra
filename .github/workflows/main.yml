@@ -9,6 +9,7 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   MIX_ENV: test
+  EXANDRA_PORT: 9043
 
 jobs:
   test:
@@ -20,14 +21,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp: "28.4"
-            elixir: "1.19"
+          - otp: "28.4.1"
+            elixir: "1.19.5"
+            lint: true
+          - otp: "27.3.4.9"
+            elixir: "1.18.4"
             lint: true
           - otp: "27.1"
             elixir: "1.17.3"
-            lint: true
-          - otp: "26.2"
-            elixir: "1.16.2"
             lint: true
 
     steps:

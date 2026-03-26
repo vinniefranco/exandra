@@ -1,5 +1,5 @@
 defmodule Exandra.MigrationsTest do
-  use Exandra.AdapterCase, integration: true
+  use Exandra.AdapterCase, async: false, integration: true
 
   alias Exandra.TestRepo
 

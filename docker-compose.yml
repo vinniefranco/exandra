@@ -1,15 +1,13 @@
-version: '3'
-
 services:
   cassandra:
-    image: cassandra:4.1
+    image: cassandra:5.0.7
     ports:
       - "9042:9042" # TCP connections
     environment:
       - HEAP_NEWSIZE=1M
       - MAX_HEAP_SIZE=200M
     healthcheck:
-      test: [ "CMD", "cqlsh", "-u", "cassandra", "-p", "cassandra", "localhost", "-e", "select 1" ]
+      test: [ "CMD-SHELL", "nodetool -h ::FFFF:127.0.0.1 status" ]
       interval: 20s
       timeout: 10s
       retries: 12
@@ -19,14 +17,14 @@ services:
         max-size: 50m
 
   scylladb:
-    image: scylladb/scylla:5.2
+    image: scylladb/scylla:2026.1
     ports:
       - "9043:9042"
     command:
       - "--smp"
       - "1"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:10000/api/v2/checks/cluster_management" ]
+      test: [ "CMD-SHELL", "nodetool -h 127.0.0.1 status" ]
       interval: 20s
       timeout: 10s
       retries: 12
