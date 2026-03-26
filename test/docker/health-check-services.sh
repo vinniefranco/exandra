@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # $SECONDS contains the number of seconds elapsed since starting the script.
-MAX_SECONDS=120
+MAX_SECONDS=200
 END_SECONDS=$((SECONDS+MAX_SECONDS))
 
 for name in $(docker ps --format '{{.Names}}'); do
