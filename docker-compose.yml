@@ -26,7 +26,7 @@ services:
       - "--smp"
       - "1"
     healthcheck:
-      test: [ "CMD-SHELL", "nodetool -h ::FFFF:127.0.0.1 status" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:10000/api/v2/checks/cluster_management" ]
       interval: 20s
       timeout: 10s
       retries: 12
