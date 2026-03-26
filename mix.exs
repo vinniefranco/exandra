@@ -20,12 +20,6 @@ defmodule Exandra.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        "test.cassandra": :test,
-        "test.scylla": :test,
-        "test.all": :test,
-        "coveralls.html": :test
-      ],
       aliases: aliases(),
       xref: [exclude: [XandraClusterMock, XandraMock]],
       docs: [

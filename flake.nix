@@ -16,7 +16,7 @@
       system:
       let
         # Versions!!!
-        elixir_version = "elixir_1_18";
+        elixir_version = "elixir_1_19";
         erlang_version = "erlang_28";
 
         pkgs = nixpkgs.legacyPackages.${system};
