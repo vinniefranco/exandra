@@ -1,12 +1,13 @@
 # Changelog
 
-## v0.17.0
+## v1.0.0
 
+  * Add Elixir 1.19 support
+  * Update the `:ecto` and `:ecto_sql` requirements to `~> 3.13`.
   * Add support for `inc`, `push`, and `pull` update expressions in `update_all`.
 
 ## v0.16.0
 
-  * Update the `:ecto` and `:ecto_sql` requirements to `~> 3.13`.
   * Update the `:xandra` requirement to `~> 0.19.4`.
 
 ## v0.15.0

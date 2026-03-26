@@ -1,7 +1,7 @@
 defmodule Exandra.MixProject do
   use Mix.Project
 
-  @version "0.17.0"
+  @version "1.0.0"
 
   @repo_url "https://github.com/vinniefranco/exandra"
 
@@ -13,7 +13,7 @@ defmodule Exandra.MixProject do
     [
       app: :exandra,
       version: @version,
-      elixir: "~> 1.15",
+      elixir: "~> 1.19",
       description: @description,
       package: package(),
       start_permanent: Mix.env() == :prod,
