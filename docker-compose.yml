@@ -9,7 +9,7 @@ services:
       - HEAP_NEWSIZE=1M
       - MAX_HEAP_SIZE=200M
     healthcheck:
-      test: [ "CMD-SHELL", "nodetool -h ::FFFF:127.0.0.1 status" ]
+      test: [ "CMD", "cqlsh", "-u", "cassandra", "-p", "cassandra", "localhost", "-e", "select 1" ]
       interval: 20s
       timeout: 10s
       retries: 12
