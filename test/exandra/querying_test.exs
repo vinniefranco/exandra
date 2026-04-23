@@ -25,6 +25,26 @@ defmodule Exandra.QueryingTest do
     :ok
   end
 
+  describe "checkout/3" do
+    test "runs all instructions in the same connection" do
+      conn = :custom_conn
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(conn) end)
+
+      XandraMock
+      |> expect(:prepare, fn ^conn, _stmt, _opts -> {:ok, %Xandra.Prepared{}} end)
+      |> expect(:execute, fn ^conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
+      |> expect(:prepare, fn ^conn, _stmt, _opts -> {:ok, %Xandra.Prepared{}} end)
+      |> expect(:execute, fn ^conn, _stmt, _values, _opts -> {:ok, %Xandra.Void{}} end)
+
+      TestRepo.checkout(fn ->
+        TestRepo.insert(%MySchema{my_string: "string"})
+        TestRepo.insert(%MySchema{my_string: "anotherstring"})
+      end)
+    end
+  end
+
   describe "querying" do
     test "create" do
       XandraMock

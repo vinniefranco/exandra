@@ -271,6 +271,22 @@ defmodule Exandra do
     conn_mod.checkout(cluster, fun, Keyword.merge(opts, meta.opts))
   end
 
+  def checkout(meta, opts, fun) when is_function(fun, 0) do
+    %{pid: cluster, opts: default_opts, sql: conn_mod} = meta
+
+    callback = fn conn ->
+      previous_conn = conn_mod.put_conn(cluster, conn)
+
+      try do
+        fun.()
+      after
+        conn_mod.reset_conn(cluster, previous_conn)
+      end
+    end
+
+    conn_mod.checkout(cluster, callback, Keyword.merge(opts, default_opts))
+  end
+
   use Ecto.Adapters.SQL, driver: :exandra
 
   @behaviour Ecto.Adapter.Storage
@@ -595,17 +611,15 @@ defmodule Exandra do
   def stream!(repo, sql, values, opts \\ []) do
     %{pid: cluster_pid} = Ecto.Repo.Registry.lookup(repo.get_dynamic_repo())
 
-    {prepare_opts, execute_opts} =
+    {_, execute_opts} =
       Exandra.Connection.split_prepare_and_execute_options(opts)
 
-    prepared = @xandra_cluster_mod.prepare!(cluster_pid, sql, prepare_opts)
+    {:ok, prepared} = Exandra.Connection.prepare(cluster_pid, sql, opts)
 
-    @xandra_cluster_mod.stream_pages!(
-      cluster_pid,
-      prepared,
-      values,
-      execute_opts
-    )
+    case Exandra.Connection.fetch_conn(cluster_pid) do
+      {:ok, conn} -> @xandra_mod.stream_pages!(conn, prepared, values, execute_opts)
+      :error -> @xandra_cluster_mod.stream_pages!(cluster_pid, prepared, values, execute_opts)
+    end
   end
 end
 
