@@ -61,12 +61,12 @@ defmodule Exandra.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:decimal, "~> 1.6 or ~> 2.0"},
+      {:decimal, "~> 1.6 or ~> 2.0 or ~> 3.0"},
       {:ecto, "~> 3.13"},
       {:ecto_sql, "~> 3.13"},
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.0"},
-      {:xandra, "~> 0.19.4"},
+      {:xandra, "~> 0.20"},
 
       # DEV DEPS ------
       {:mox, "~> 1.0", only: :test},

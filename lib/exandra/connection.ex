@@ -59,6 +59,7 @@ defmodule Exandra.Connection do
   # We need to drop these from the options we forward down to Xandra, so that
   # Xandra doesn't blow up. These are documented in Ecto.Repo and Ecto.Migration.
   @ecto_repo_start_opts_keys [
+    :label,
     :log,
     :migration_lock,
     :migration_primary_key,
