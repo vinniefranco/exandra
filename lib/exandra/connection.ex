@@ -250,7 +250,7 @@ defmodule Exandra.Connection do
     keys = Enum.join(headers, ", ")
     values = Enum.map(rows, &Enum.map_join(&1, ", ", fn _ -> "?" end))
 
-    "INSERT INTO #{quote_table(prefix, table)} (#{keys}) VALUES (#{values}) #{insert_suffix(opts)}"
+    "INSERT INTO #{quote_table(prefix, table)} (#{keys}) VALUES (#{values}) #{insert_suffix(opts)} #{update_parameters(opts)}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -259,7 +259,7 @@ defmodule Exandra.Connection do
   end
 
   def update(prefix, table, fields, filters, _returning, opts) do
-    "UPDATE #{quote_table(prefix, table)} SET #{set(fields)} WHERE #{where(filters)} #{update_suffix(opts)}"
+    "UPDATE #{quote_table(prefix, table)} #{update_parameters(opts)} SET #{set(fields)} WHERE #{where(filters)} #{update_suffix(opts)}"
   end
 
   @impl Ecto.Adapters.SQL.Connection
@@ -443,27 +443,26 @@ defmodule Exandra.Connection do
   end
 
   defp insert_suffix(opts) do
-    suffix =
-      case Keyword.get(opts, :overwrite, true) do
-        true ->
-          []
+    case Keyword.get(opts, :overwrite, true) do
+      true ->
+        []
 
-        _ ->
-          [" IF NOT EXISTS"]
+      _ ->
+        ["IF NOT EXISTS"]
+    end
+  end
+
+  defp update_parameters(opts) do
+    opts
+    |> Keyword.take([:ttl])
+    |> Enum.map_intersperse(" AND ", fn param ->
+      case param do
+        {:ttl, seconds} when is_number(seconds) -> "TTL #{seconds}"
       end
-
-    suffix =
-      case Keyword.get(opts, :ttl, nil) do
-        nil -> suffix
-        seconds when is_number(seconds) -> suffix ++ [" USING TTL #{seconds}"]
-      end
-
-    case Keyword.get(opts, :timestamp, nil) do
-      nil ->
-        suffix
-
-      epoch_in_microseconds when is_number(epoch_in_microseconds) ->
-        suffix ++ [" AND TIMESTAMP #{epoch_in_microseconds}"]
+    end)
+    |> case do
+      [] -> []
+      update_parameters -> ["USING " | update_parameters]
     end
   end
 
@@ -473,7 +472,7 @@ defmodule Exandra.Connection do
         []
 
       _ ->
-        [" IF EXISTS"]
+        ["IF EXISTS"]
     end
   end
 
