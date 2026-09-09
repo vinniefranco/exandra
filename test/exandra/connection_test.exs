@@ -32,8 +32,10 @@ defmodule Exandra.ConnectionTest do
   defp delete_all(query), do: query |> SQL.delete_all() |> IO.iodata_to_binary()
   defp execute_ddl(query), do: query |> SQL.execute_ddl() |> Enum.map(&IO.iodata_to_binary/1)
 
-  defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
+  defp insert(prefx, table, header, rows, on_conflict, returning, placeholders \\ [], opts \\ []) do
+    IO.iodata_to_binary(
+      SQL.insert(prefx, table, header, rows, on_conflict, returning, placeholders, opts)
+    )
   end
 
   defp update(prefx, table, fields, filter, returning, opts \\ []) do
@@ -670,21 +672,45 @@ defmodule Exandra.ConnectionTest do
 
   test "insert" do
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO schema (x, y) VALUES (?, ?) }
+    assert query == ~s{INSERT INTO schema (x, y) VALUES (?, ?)  }
 
     query = insert(nil, "schema", [], [[]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO schema () VALUES () }
+    assert query == ~s{INSERT INTO schema () VALUES ()  }
 
     query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO prefix.schema () VALUES () }
+    assert query == ~s{INSERT INTO prefix.schema () VALUES ()  }
+
+    query =
+      insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [], [],
+        overwrite: false,
+        ttl: 20
+      )
+
+    assert query ==
+             ~s{INSERT INTO schema (x, y) VALUES (?, ?) IF NOT EXISTS USING TTL 20}
   end
 
   test "update" do
     query = update(nil, "schema", [:id], [x: 1, y: 2], [])
-    assert query == ~s{UPDATE schema SET id = ? WHERE x = ? AND y = ? }
+    assert query == ~s{UPDATE schema  SET id = ? WHERE x = ? AND y = ? }
 
     query = update("prefix", "schema", [:id], [x: 1, y: 2], [], allow_insert: false)
-    assert query == ~s{UPDATE prefix.schema SET id = ? WHERE x = ? AND y = ?  IF EXISTS}
+    assert query == ~s{UPDATE prefix.schema  SET id = ? WHERE x = ? AND y = ? IF EXISTS}
+
+    query = update(nil, "schema", [:id], [x: 1, y: 2], [], ttl: nil)
+    assert query == ~s{UPDATE schema  SET id = ? WHERE x = ? AND y = ? }
+
+    query = update(nil, "schema", [:id], [x: 1, y: 2], [], ttl: 10)
+    assert query == ~s{UPDATE schema USING TTL 10 SET id = ? WHERE x = ? AND y = ? }
+
+    query =
+      update(nil, "schema", [:id], [x: 1, y: 2], [],
+        allow_insert: false,
+        ttl: 10
+      )
+
+    assert query ==
+             ~s{UPDATE schema USING TTL 10 SET id = ? WHERE x = ? AND y = ? IF EXISTS}
   end
 
   test "delete" do

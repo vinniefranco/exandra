@@ -33,7 +33,7 @@ defmodule Exandra.PrefixTest do
 
     test "adds a keyspace to the table" do
       expect(XandraClusterMock, :prepare, fn _conn, stmt, _opts ->
-        assert "INSERT INTO foo.my_schema (my_string, id) VALUES (?, ?) " = stmt
+        assert "INSERT INTO foo.my_schema (my_string, id) VALUES (?, ?)  " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -42,7 +42,7 @@ defmodule Exandra.PrefixTest do
 
     test "can be overridden by query options" do
       expect(XandraClusterMock, :prepare, fn _conn, stmt, _options ->
-        assert "INSERT INTO bar.my_schema (my_string, id) VALUES (?, ?) " = stmt
+        assert "INSERT INTO bar.my_schema (my_string, id) VALUES (?, ?)  " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
