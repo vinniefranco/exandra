@@ -56,7 +56,7 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _opts ->
-        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?) " = stmt
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?)  " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -65,19 +65,42 @@ defmodule Exandra.QueryingTest do
 
     test "create with options" do
       XandraMock
-      |> expect(:execute, fn _conn, _stmt, values, _opts ->
+      |> expect(:execute, fn _conn, _stmt, values, opts ->
         assert ["string", _uuid] = values
+        dbg(opts)
         {:ok, %Xandra.Void{}}
       end)
 
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _opts ->
-        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?)  USING TTL 2" = stmt
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?)  USING TTL 2" =
+                 stmt
+
         {:ok, %Xandra.Prepared{}}
       end)
 
       TestRepo.insert(%MySchema{my_string: "string"}, ttl: 2)
+    end
+
+    test "create parameters are used by xandra rather than being embedded in the query" do
+      XandraMock
+      |> expect(:execute, fn _conn, _stmt, _values, opts ->
+        assert opts[:timestamp] == 10
+        assert opts[:timeout] == 20
+        {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _opts ->
+        assert "INSERT INTO my_schema (my_string, id) VALUES (?, ?)  USING TTL 2" =
+                 stmt
+
+        {:ok, %Xandra.Prepared{}}
+      end)
+
+      TestRepo.insert(%MySchema{my_string: "string"}, ttl: 2, timestamp: 10, timeout: 20)
     end
 
     test "create many" do
@@ -90,7 +113,7 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _opts ->
-        assert "INSERT INTO my_schema (id, my_string) VALUES (?, ?)  IF NOT EXISTS" = stmt
+        assert "INSERT INTO my_schema (id, my_string) VALUES (?, ?) IF NOT EXISTS " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -111,7 +134,7 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _options ->
-        assert "UPDATE my_schema SET my_counter = ? WHERE id = ? " = stmt
+        assert "UPDATE my_schema  SET my_counter = ? WHERE id = ? " = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -137,7 +160,7 @@ defmodule Exandra.QueryingTest do
       XandraClusterMock
       |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
       |> expect(:prepare, fn _conn, stmt, _options ->
-        assert "UPDATE my_schema SET my_counter = ? WHERE id = ?  IF EXISTS" = stmt
+        assert "UPDATE my_schema USING TTL 20 SET my_counter = ? WHERE id = ? IF EXISTS" = stmt
         {:ok, %Xandra.Prepared{}}
       end)
 
@@ -148,7 +171,34 @@ defmodule Exandra.QueryingTest do
         %{my_counter: 5},
         [:my_counter]
       )
-      |> TestRepo.update(allow_insert: false)
+      |> TestRepo.update(allow_insert: false, ttl: 20)
+    end
+
+    test "update options are used by xandra rather than being embedded in the query" do
+      uuid = Ecto.UUID.generate()
+
+      XandraMock
+      |> expect(:execute, fn _conn, _stmt, _values, opts ->
+        assert opts[:timestamp] == 10
+        assert opts[:timeout] == 20
+        {:ok, %Xandra.Void{}}
+      end)
+
+      XandraClusterMock
+      |> expect(:run, fn _cluster, _opts, fun -> fun.(_conn = nil) end)
+      |> expect(:prepare, fn _conn, stmt, _options ->
+        assert "UPDATE my_schema USING TTL 20 SET my_counter = ? WHERE id = ? IF EXISTS" = stmt
+        {:ok, %Xandra.Prepared{}}
+      end)
+
+      record = %MySchema{id: uuid, my_counter: 4}
+
+      record
+      |> Ecto.Changeset.cast(
+        %{my_counter: 5},
+        [:my_counter]
+      )
+      |> TestRepo.update(allow_insert: false, ttl: 20, timestamp: 10, timeout: 20)
     end
   end
 

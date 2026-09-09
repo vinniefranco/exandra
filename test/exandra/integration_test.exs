@@ -744,7 +744,7 @@ defmodule Exandra.IntegrationTest do
           "online" => true
         }
       })
-      |> TestRepo.insert!()
+      |> TestRepo.insert!(overwrite: false, ttl: 600)
 
       assert %MyEmbeddedSchema{
                my_name: "EmBetty",
@@ -805,7 +805,7 @@ defmodule Exandra.IntegrationTest do
                    my_map: %{foo: "bar"}
                  }
                })
-               |> TestRepo.update!()
+               |> TestRepo.update!(allow_insert: false, ttl: 600)
 
       assert %MyEmbeddedSchema{
                my_name: "EmBetty",
