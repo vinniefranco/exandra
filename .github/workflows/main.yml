@@ -27,9 +27,6 @@ jobs:
           - otp: "27.3.4.9"
             elixir: "1.18.4"
             lint: true
-          - otp: "27.1"
-            elixir: "1.17.3"
-            lint: true
 
     steps:
       - name: Clone the repository
