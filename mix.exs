@@ -62,8 +62,8 @@ defmodule Exandra.MixProject do
   defp deps do
     [
       {:decimal, "~> 1.6 or ~> 2.0 or ~> 3.0"},
-      {:ecto, "~> 3.13"},
-      {:ecto_sql, "~> 3.13"},
+      {:ecto, "~> 3.14"},
+      {:ecto_sql, "~> 3.14"},
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.0"},
       {:xandra, "~> 0.20"},
